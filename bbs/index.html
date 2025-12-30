@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BBS入力（脳卒中・大腿骨近位部骨折）</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#111; --muted:#666; --line:#e8eaf2; --radius:14px; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP"; background:var(--bg); color:var(--text); }
+    header { padding: 18px 16px 10px; max-width: 980px; margin: 0 auto; }
+    header h1 { margin:0; font-size: 18px; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    main { padding: 12px 16px 24px; max-width: 980px; margin: 0 auto; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 920px) { .grid { grid-template-columns: 1.1fr .9fr; } }
+    .card { background:var(--card); border-radius:var(--radius); padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+    .row { display:grid; gap: 8px; margin: 10px 0; }
+    label { font-size: 12px; color: var(--muted); }
+    select, input { width:100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; background:#fff; }
+    .kpi { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .kpi .box { border:1px solid var(--line); border-radius: 12px; padding: 10px; background:#fafbfe; }
+    .kpi .t { font-size: 12px; color: var(--muted); }
+    .kpi .v { font-size: 18px; font-weight: 900; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .items { margin-top: 8px; }
+    .item { border-top: 1px solid var(--line); padding: 10px 0; }
+    .item:first-child { border-top: 0; }
+    .itemname { font-size: 14px; font-weight: 700; line-height: 1.35; }
+    .btns { display:flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .btn { border:1px solid var(--line); background:#fff; color:#111; padding: 8px 10px; border-radius: 999px; font-size: 14px; cursor:pointer; min-width: 44px; }
+    .btn.active { background:#111; color:#fff; border-color:#111; }
+    .muted { color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .kv { display:grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .kv:last-child { border-bottom: 0; }
+    .k { color: var(--muted); }
+    .v { font-weight: 900; font-variant-numeric: tabular-nums; text-align:right; }
+    details { background:#fafbfe; border:1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    summary { cursor:pointer; font-weight: 800; }
+    ul { margin: 10px 0 0; padding-left: 18px; }
+    li { margin: 6px 0; }
+    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#f0f1f5; font-size: 12px; color:#333; margin-left: 6px; }
+    .actions { display:flex; gap: 10px; flex-wrap: wrap; align-items:center; margin-top: 10px; }
+    button.action { appearance:none; border:0; background:#111; color:#fff; padding: 10px 12px; border-radius: 12px; font-size: 14px; cursor:pointer; }
+    button.action.secondary { background:#f0f1f5; color:#111; border: 1px solid var(--line); }
+    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; background:#111; color:#fff; padding: 10px 12px; border-radius: 999px; font-size: 13px; display:none; }
+    .help { margin-top: 10px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>BBS入力（1〜4点 / 合計56点）</h1>
+  <p>脳卒中 / 大腿骨近位部骨折（2つのCSV相当）を切替。合計点・静的/動的・カットオフ判定をその場で表示します。<br>
+  ※BBSは本来0〜4点です。必要なら「0点も表示」をONにしてください。</p>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="card">
+      <div class="row">
+        <label for="dataset">データ選択（CSVのシート1 / シート2）</label>
+        <select id="dataset"></select>
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <div class="t">静的（1〜7）</div>
+          <div class="v"><span id="staticScore">0</span> / 28</div>
+        </div>
+        <div class="box">
+          <div class="t">動的（8〜14）</div>
+          <div class="v"><span id="dynamicScore">0</span> / 28</div>
+        </div>
+        <div class="box">
+          <div class="t">合計</div>
+          <div class="v"><span id="totalScore">0</span> / 56</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <label style="display:flex; gap:10px; align-items:center;">
+          <input type="checkbox" id="showZero" style="width:20px;height:20px;" />
+          0点も表示（BBS標準）
+        </label>
+      </div>
+
+      <div class="items" id="items"></div>
+
+      <div class="actions">
+        <button class="action secondary" id="reset">全リセット</button>
+        <button class="action" id="copy">結果をコピー</button>
+      </div>
+
+      <div class="help muted">
+        ホーム画面に追加して使う場合：GitHub Pages などに置いたURLをSafariで開き、共有→ホーム画面に追加。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:15px;">フィードバック</h2>
+
+      <div class="row">
+        <label for="prevTotal">前回BBS（任意）</label>
+        <input id="prevTotal" inputmode="decimal" placeholder="例：38" />
+        <div class="muted">前回との差を MDC / MCID と照合します。</div>
+      </div>
+
+      <div class="kv"><div class="k">前回との差（今回−前回）</div><div class="v" id="delta">-</div></div>
+      <div class="kv"><div class="k" id="mdcLabel">MDC</div><div class="v" id="mdcJudge">-</div></div>
+      <div class="kv"><div class="k" id="mcidLabel">MCID</div><div class="v" id="mcidJudge">-</div></div>
+
+      <div style="margin-top:12px;">
+        <details open>
+          <summary>カットオフ判定（合計点）</summary>
+          <div class="muted" style="margin-top:6px;">表示は“参考”。閾値の方向（高いほど良い/低いほど良い）は運用に合わせて解釈してください。</div>
+          <div id="cutoffs" style="margin-top:8px;"></div>
+        </details>
+      </div>
+
+      <div style="margin-top:12px;">
+        <details>
+          <summary>関連テスト（任意入力）</summary>
+          <div class="muted" style="margin-top:6px;">大腿骨近位部骨折シートにある参考値（TUG・5回立ち座り）。</div>
+          <div id="tests" style="margin-top:8px;"></div>
+        </details>
+      </div>
+
+      <div style="margin-top:12px;">
+        <details>
+          <summary>保存について</summary>
+          <div class="muted" style="margin-top:6px;">
+            入力はこの端末（ブラウザ）に保存されます。別端末へは同期されません。
+          </div>
+        </details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast">コピーしました</div>
+
+<script>
+  // PWA SW
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js");
+  }
+
+  const ITEMS = ["1. 立ち上がり", "2. 立位保持", "3. 座位保持", "4. 着座", "5. 移乗", "6. 閉眼立位保持", "7. 閉脚立位保持", "8. 上肢前方リーチ", "9. 床から物拾い", "10. 左右振り返り", "11. 360度回転", "12. 段差踏み替え", "13. タンデム立位保持", "14. 片脚立位保持"];
+  const DATASETS = {"stroke": {"name": "シート1：脳卒中BBS", "cutoffs": [{"label": "歩行自立", "type": "ge", "value": 42}, {"label": "転倒予測（研究により）", "type": "ge", "value": 47}, {"label": "転倒予測（研究により）", "type": "ge", "value": 51}], "mdc": {"label": "MDC（誤差）", "low": 3, "high": 5}, "mcid": {"label": "MCID（効果があったと言える）", "low": 5, "high": 6}, "tests": []}, "hip": {"name": "シート2：大腿骨近位部骨折BBS", "cutoffs": [{"label": "屋内自立", "type": "ge", "value": 43}, {"label": "歩行補助具あり自立", "type": "ge", "value": 45.5}, {"label": "転倒予測カットオフ（解釈は運用に合わせて）", "type": "ge", "value": 50}, {"label": "歩行補助具なし自立", "type": "ge", "value": 51.5}, {"label": "車輪付き歩行器監視", "type": "ge", "value": 19}, {"label": "監視", "type": "ge", "value": 21}, {"label": "車輪付き歩行器自立", "type": "ge", "value": 25}, {"label": "自立", "type": "ge", "value": 28}], "mdc": {"label": "MDC（誤差）", "low": 5, "high": 5}, "mcid": {"label": "MCID（効果があったと言える）", "low": 12, "high": 12}, "tests": [{"label": "TUG", "unit": "秒", "type": "le", "value": 12}, {"label": "5回立ち座り", "unit": "秒", "type": "le", "value": 12}]}};
+
+  const $ = (id) => document.getElementById(id);
+
+  const LS_KEY = "bbs_pwa_state_v1";
+
+  function loadState() {
+    try {
+      const s = localStorage.getItem(LS_KEY);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  }
+  function saveState(state) {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }
+
+  function clampScore(x) {
+    if (!Number.isFinite(x)) return 0;
+    return Math.max(0, Math.min(4, Math.round(x)));
+  }
+
+  function fmt(n, digits=1) {
+    return Number.isFinite(n) ? n.toFixed(digits) : "-";
+  }
+
+  function makeToast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(makeToast._timer);
+    makeToast._timer = setTimeout(() => t.style.display = "none", 1200);
+  }
+
+  // Build dataset select
+  function buildDatasetSelect(selectedKey) {
+    const sel = $("dataset");
+    sel.innerHTML = "";
+    Object.entries(DATASETS).forEach(([k, v]) => {
+      const opt = document.createElement("option");
+      opt.value = k;
+      opt.textContent = v.name;
+      if (k === selectedKey) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function buildItems(scores, showZero) {
+    const root = $("items");
+    root.innerHTML = "";
+
+    ITEMS.forEach((name, idx) => {
+      const wrap = document.createElement("div");
+      wrap.className = "item";
+
+      const title = document.createElement("div");
+      title.className = "itemname";
+      title.textContent = name;
+      wrap.appendChild(title);
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const start = showZero ? 0 : 1;
+      for (let s = start; s <= 4; s++) {
+        const b = document.createElement("button");
+        b.className = "btn" + (scores[idx] === s ? " active" : "");
+        b.type = "button";
+        b.textContent = String(s);
+        b.addEventListener("click", () => {
+          scores[idx] = s;
+          render();
+        });
+        btns.appendChild(b);
+      }
+      wrap.appendChild(btns);
+      root.appendChild(wrap);
+    });
+  }
+
+  function sumScores(scores) {
+    const total = scores.reduce((a,b)=>a + (Number.isFinite(b)?b:0), 0);
+    const staticScore = scores.slice(0,7).reduce((a,b)=>a+b, 0);
+    const dynamicScore = scores.slice(7,14).reduce((a,b)=>a+b, 0);
+    return { total, staticScore, dynamicScore };
+  }
+
+  function judgeDelta(delta, range) {
+    if (!Number.isFinite(delta)) return "-";
+    const absd = Math.abs(delta);
+    const low = range.low, high = range.high;
+    if (low === high) {
+      return absd >= low ? `◯ 以上（|Δ|=${absd}）` : `× 未満（|Δ|=${absd}）`;
+    }
+    if (absd < low) return `× 未満（|Δ|=${absd}）`;
+    if (absd >= high) return `◯ 以上（|Δ|=${absd}）`;
+    return `△ 範囲内（|Δ|=${absd}）`;
+  }
+
+  function renderCutoffs(total, datasetKey) {
+    const d = DATASETS[datasetKey];
+    const root = $("cutoffs");
+    root.innerHTML = "";
+
+    d.cutoffs.forEach((c) => {
+      const ok = (c.type === "ge") ? (total >= c.value) : (total <= c.value);
+      const line = document.createElement("div");
+      line.className = "kv";
+      const k = document.createElement("div");
+      k.className = "k";
+      k.textContent = `${c.label}（${c.type === "ge" ? "≧" : "≦"} ${c.value}点）`;
+      const v = document.createElement("div");
+      v.className = "v";
+      v.innerHTML = ok ? "◯ 満たす" : "× 下回る";
+      line.appendChild(k);
+      line.appendChild(v);
+      root.appendChild(line);
+    });
+  }
+
+  function renderTests(datasetKey, state) {
+    const d = DATASETS[datasetKey];
+    const root = $("tests");
+    root.innerHTML = "";
+
+    if (!d.tests || d.tests.length === 0) {
+      root.innerHTML = '<div class="muted">このシートには関連テストの閾値がありません。</div>';
+      return;
+    }
+
+    d.tests.forEach((t) => {
+      const id = `test_${datasetKey}_${t.label}`.replaceAll(/[^a-zA-Z0-9_]/g, "_");
+      const val = state.tests?.[t.label] ?? "";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+      const lab = document.createElement("label");
+      lab.setAttribute("for", id);
+      lab.textContent = `${t.label}（${t.unit}）`;
+      const inp = document.createElement("input");
+      inp.id = id;
+      inp.inputMode = "decimal";
+      inp.placeholder = `例：${t.value}`;
+      inp.value = val;
+      inp.addEventListener("input", () => {
+        state.tests = state.tests || {};
+        state.tests[t.label] = inp.value;
+        saveState(state);
+        render(); // rejudge
+      });
+
+      const num = Number(String(inp.value).trim().replaceAll(",", ""));
+      const ok = Number.isFinite(num) ? ((t.type==="le") ? (num <= t.value) : (num >= t.value)) : null;
+
+      const judge = document.createElement("div");
+      judge.className = "muted";
+      if (ok === null) {
+        judge.textContent = `基準：${t.type==="le" ? "≦" : "≧"} ${t.value}${t.unit}`;
+      } else {
+        judge.innerHTML = ok ? `◯ 満たす <span class="badge">基準 ${
+          t.type==="le" ? "≦" : "≧"
+        } ${t.value}${t.unit}</span>` : `× 下回る <span class="badge">基準 ${
+          t.type==="le" ? "≦" : "≧"
+        } ${t.value}${t.unit}</span>`;
+      }
+
+      wrap.appendChild(lab);
+      wrap.appendChild(inp);
+      wrap.appendChild(judge);
+      root.appendChild(wrap);
+    });
+  }
+
+  function makeSummary(state, totals) {
+    const d = DATASETS[state.datasetKey];
+    const lines = [];
+    const now = new Date();
+    lines.push(`BBS（${d.name}）`);
+    lines.push(`日時：${now.toLocaleString()}`);
+    lines.push(`静的：${totals.staticScore}/28　動的：${totals.dynamicScore}/28　合計：${totals.total}/56`);
+    lines.push("");
+    ITEMS.forEach((it, i) => lines.push(`${it}：${state.scores[i]}`));
+    lines.push("");
+    // cutoffs
+    lines.push("【カットオフ（参考）】");
+    d.cutoffs.forEach(c => {
+      const ok = (c.type === "ge") ? (totals.total >= c.value) : (totals.total <= c.value);
+      lines.push(`${c.label}（${c.type==="ge"?"≧":"≦"}${c.value}）：${ok ? "満たす" : "下回る"}`);
+    });
+    // delta
+    const prev = Number(String(state.prevTotal||"").trim().replaceAll(",", ""));
+    if (Number.isFinite(prev)) {
+      const delta = totals.total - prev;
+      lines.push("");
+      lines.push(`前回：${prev}　差：${delta}`);
+      lines.push(`${d.mdc.label}：${d.mdc.low}${d.mdc.low===d.mdc.high?"":"-"+d.mdc.high}点`);
+      lines.push(`${d.mcid.label}：${d.mcid.low}${d.mcid.low===d.mcid.high?"":"-"+d.mcid.high}点`);
+    }
+    // tests
+    if (d.tests?.length) {
+      lines.push("");
+      lines.push("【関連テスト】");
+      d.tests.forEach(t => {
+        const v = state.tests?.[t.label];
+        lines.push(`${t.label}：${v||"-"}（基準：${t.type==="le"?"≦":"≧"}${t.value}${t.unit}）`);
+      });
+    }
+    return lines.join("\n");
+  }
+
+  // State init
+  const saved = loadState();
+  const state = saved || {
+    datasetKey: "stroke",
+    showZero: false,
+    scores: Array(ITEMS.length).fill(1), // 1〜4運用に合わせて初期1
+    prevTotal: "",
+    tests: {}
+  };
+
+  // If showZero is off, ensure minimum 1 for practical usage
+  function normalizeScores() {
+    state.scores = state.scores.map(s => {
+      s = clampScore(s);
+      if (!state.showZero && s === 0) return 1;
+      return s;
+    });
+  }
+
+  function render() {
+    normalizeScores();
+    saveState(state);
+
+    buildDatasetSelect(state.datasetKey);
+    $("showZero").checked = !!state.showZero;
+    $("prevTotal").value = state.prevTotal ?? "";
+
+    buildItems(state.scores, state.showZero);
+
+    const totals = sumScores(state.scores);
+    $("staticScore").textContent = totals.staticScore;
+    $("dynamicScore").textContent = totals.dynamicScore;
+    $("totalScore").textContent = totals.total;
+
+    // delta + mdc/mcid
+    const prev = Number(String(state.prevTotal||"").trim().replaceAll(",", ""));
+    const d = DATASETS[state.datasetKey];
+    $("mdcLabel").textContent = `${d.mdc.label}（${d.mdc.low}${d.mdc.low===d.mdc.high?"":"-"+d.mdc.high}点）`;
+    $("mcidLabel").textContent = `${d.mcid.label}（${d.mcid.low}${d.mcid.low===d.mcid.high?"":"-"+d.mcid.high}点）`;
+
+    if (Number.isFinite(prev)) {
+      const delta = totals.total - prev;
+      $("delta").textContent = String(delta);
+      $("mdcJudge").textContent = judgeDelta(delta, d.mdc);
+      $("mcidJudge").textContent = judgeDelta(delta, d.mcid);
+    } else {
+      $("delta").textContent = "-";
+      $("mdcJudge").textContent = "-";
+      $("mcidJudge").textContent = "-";
+    }
+
+    renderCutoffs(totals.total, state.datasetKey);
+    renderTests(state.datasetKey, state);
+  }
+
+  // Events
+  $("dataset").addEventListener("change", (e) => {
+    state.datasetKey = e.target.value;
+    render();
+  });
+  $("showZero").addEventListener("change", (e) => {
+    state.showZero = e.target.checked;
+    render();
+  });
+  $("prevTotal").addEventListener("input", (e) => {
+    state.prevTotal = e.target.value;
+    saveState(state);
+    render();
+  });
+
+  $("reset").addEventListener("click", () => {
+    if (!confirm("全項目を初期化しますか？")) return;
+    state.scores = Array(ITEMS.length).fill(state.showZero ? 0 : 1);
+    state.prevTotal = "";
+    state.tests = {};
+    render();
+  });
+
+  $("copy").addEventListener("click", async () => {
+    const totals = sumScores(state.scores);
+    const text = makeSummary(state, totals);
+    try {
+      await navigator.clipboard.writeText(text);
+      makeToast("コピーしました");
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      makeToast("コピーしました");
+    }
+  });
+
+  // init
+  render();
+</script>
+</body>
+</html>
