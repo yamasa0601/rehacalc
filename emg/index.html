@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMG歩行解析（スマホ対応・サーバ不要）</title>
+  <link rel="stylesheet" href="./style.css" />
+  <!-- Plotly (for plotting + PNG export) -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>EMG歩行解析（スマホ対応）</h1>
+      <p class="sub">CSVを2つ選ぶ → HS推定 → %peak → 歩行周期0–100%平均±SD → PNG保存</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>1) CSVを選択（2つ）</h2>
+      <div class="grid2">
+        <div class="box">
+          <label class="lbl">CSV 1（例：Lt）</label>
+          <input id="file1" type="file" accept=".csv" />
+          <div class="row">
+            <label class="lbl2">信号列</label>
+            <select id="sigcol1"></select>
+          </div>
+          <div class="row">
+            <label class="lbl2">時間列</label>
+            <select id="timecol1"></select>
+          </div>
+          <p class="hint">※ センサ形式（No,電圧mV,event）なら自動判別します</p>
+        </div>
+
+        <div class="box">
+          <label class="lbl">CSV 2（例：Rt）</label>
+          <input id="file2" type="file" accept=".csv" />
+          <div class="row">
+            <label class="lbl2">信号列</label>
+            <select id="sigcol2"></select>
+          </div>
+          <div class="row">
+            <label class="lbl2">時間列</label>
+            <select id="timecol2"></select>
+          </div>
+          <p class="hint">※ 列の選択は「読み込み後」に自動で候補が出ます</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2) 解析設定</h2>
+      <div class="grid3">
+        <div class="box">
+          <label class="lbl2">サンプリング周波数 (Hz)</label>
+          <input id="fs" type="number" value="1000" min="100" max="5000" step="1"/>
+        </div>
+        <div class="box">
+          <label class="lbl2">BandPass (Hz)</label>
+          <div class="row">
+            <input id="hp" type="number" value="50" min="1" max="500" step="1"/> <span class="unit">〜</span>
+            <input id="lp" type="number" value="450" min="10" max="1000" step="1"/>
+          </div>
+        </div>
+        <div class="box">
+          <label class="lbl2">RMS窓 (ms)</label>
+          <input id="rmsms" type="number" value="50" min="1" max="500" step="1"/>
+        </div>
+
+        <div class="box">
+          <label class="lbl2">最小バースト持続 (ms)</label>
+          <input id="minburst" type="number" value="30" min="5" max="500" step="1"/>
+        </div>
+        <div class="box">
+          <label class="lbl2">最小HS間隔 (ms)（二重抑制）</label>
+          <input id="mingap" type="number" value="300" min="50" max="2000" step="10"/>
+        </div>
+        <div class="box">
+          <label class="lbl2">HSオフセット (ms)（onset→HS補正）</label>
+          <input id="offset" type="number" value="0" min="-200" max="200" step="5"/>
+        </div>
+
+        <div class="box">
+          <label class="lbl2">動画の歩数（分かるなら）</label>
+          <input id="steps" type="number" value="0" min="0" max="500" step="1"/>
+          <p class="hint">0なら自動（歩行らしい周期でスコアリング）</p>
+        </div>
+
+        <div class="box">
+          <label class="lbl2">周期正規化点数</label>
+          <input id="npoints" type="number" value="501" min="101" max="2001" step="50"/>
+        </div>
+
+        <div class="box">
+          <label class="lbl2">個別周期を表示</label>
+          <select id="showind">
+            <option value="1" selected>表示する</option>
+            <option value="0">表示しない</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="run" class="primary">解析してプロット</button>
+        <button id="clear">クリア</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </section>
+
+    <section class="card">
+      <h2>3) 結果</h2>
+
+      <div class="grid2">
+        <div class="box">
+          <h3 id="name1">CSV 1</h3>
+          <div class="mini">
+            <div><b>推定HS数</b>: <span id="hsn1">-</span></div>
+            <div><b>k(MAD)</b>: <span id="kmad1">-</span></div>
+            <div><b>周期数</b>: <span id="cycn1">-</span></div>
+          </div>
+
+          <div class="btnrow">
+            <button id="dlhs1">HS一覧CSVを保存</button>
+            <button id="dlpng1">プロットPNGを保存</button>
+          </div>
+
+          <div id="plot1" class="plot"></div>
+          <details>
+            <summary>デバッグ（%peak包絡 + HS）</summary>
+            <div id="debug1" class="plot"></div>
+          </details>
+        </div>
+
+        <div class="box">
+          <h3 id="name2">CSV 2</h3>
+          <div class="mini">
+            <div><b>推定HS数</b>: <span id="hsn2">-</span></div>
+            <div><b>k(MAD)</b>: <span id="kmad2">-</span></div>
+            <div><b>周期数</b>: <span id="cycn2">-</span></div>
+          </div>
+
+          <div class="btnrow">
+            <button id="dlhs2">HS一覧CSVを保存</button>
+            <button id="dlpng2">プロットPNGを保存</button>
+          </div>
+
+          <div id="plot2" class="plot"></div>
+          <details>
+            <summary>デバッグ（%peak包絡 + HS）</summary>
+            <div id="debug2" class="plot"></div>
+          </details>
+        </div>
+      </div>
+
+      <div class="note">
+        <p><b>注意</b>：EMGだけのHS推定は「バースト立ち上がり＝HS近傍」という仮定です。筋や貼付位置でズレます。ズレる場合は<b>HSオフセット</b>で補正してください。</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>rehacalc内に追加してGitHub Pagesで運用可能（サーバ不要）。</p>
+    </footer>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

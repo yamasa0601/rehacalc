@@ -1,0 +1,88 @@
+
+:root{
+  --bg:#0b1020;
+  --card:#111a33;
+  --muted:#aab5d6;
+  --text:#e9eeff;
+  --line:#24315e;
+  --btn:#3b82f6;
+  --btn2:#1f2a52;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background:linear-gradient(180deg, #070a14, #0b1020 35%, #070a14);
+  color:var(--text);
+}
+.top{
+  position:sticky; top:0;
+  background:rgba(7,10,20,0.9);
+  border-bottom:1px solid var(--line);
+  backdrop-filter: blur(10px);
+  padding:14px 16px;
+  z-index:10;
+}
+h1{margin:0; font-size:18px}
+.sub{margin:6px 0 0; color:var(--muted); font-size:12px}
+.wrap{max-width:1100px; margin:0 auto; padding:16px}
+.card{
+  background:rgba(17,26,51,0.9);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  margin:12px 0;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+}
+h2{margin:0 0 12px; font-size:15px}
+h3{margin:0 0 8px; font-size:14px}
+.grid2{display:grid; grid-template-columns:1fr; gap:12px}
+.grid3{display:grid; grid-template-columns:1fr; gap:10px}
+@media (min-width: 900px){
+  .grid2{grid-template-columns:1fr 1fr}
+  .grid3{grid-template-columns:1fr 1fr 1fr}
+}
+.box{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  background:rgba(9,13,28,0.55);
+}
+.lbl{display:block; font-size:12px; color:var(--muted); margin-bottom:8px}
+.lbl2{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+.row{display:flex; gap:8px; align-items:center}
+.unit{color:var(--muted); font-size:12px}
+input, select{
+  width:100%;
+  padding:10px 10px;
+  background:rgba(17,26,51,0.8);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:10px;
+  outline:none;
+}
+input[type="file"]{
+  padding:10px;
+}
+.hint{margin:8px 0 0; color:var(--muted); font-size:11px}
+.actions{display:flex; gap:10px; margin-top:12px}
+button{
+  border:1px solid var(--line);
+  background:var(--btn2);
+  color:var(--text);
+  padding:11px 12px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+}
+button.primary{
+  background:var(--btn);
+  border-color:rgba(255,255,255,0.15);
+}
+button:active{transform: translateY(1px)}
+.msg{margin-top:10px; font-size:12px; color:var(--muted)}
+.plot{width:100%; min-height:320px}
+.mini{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:12px; color:var(--muted); margin-bottom:10px}
+.btnrow{display:flex; gap:10px; margin:10px 0}
+.note{margin-top:10px; color:var(--muted); font-size:12px}
+.foot{color:var(--muted); font-size:12px; text-align:center; padding:18px 0}
