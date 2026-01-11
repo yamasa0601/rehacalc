@@ -294,22 +294,29 @@ function meanAndSD(cycles){
 }
 
 /** Read file as ArrayBuffer then decode with multiple encodings */
-async function readFileText(file){
+// iPhone Safari対策：文字コードが読めなくても「バイト列からASCII部分(数字/カンマ/改行)」を確実に拾う
+async function readFileData(file){
   const buf = await file.arrayBuffer();
-  const encs = ["utf-8", "utf-8-sig", "shift_jis"];
-  let best = null;
 
-  for(const enc of encs){
-    try{
-      const dec = new TextDecoder(enc, {fatal:false});
-      const txt = dec.decode(buf);
-      const bad = (txt.match(/\uFFFD/g) || []).length;
-      if(best === null || bad < best.bad){
-        best = {txt, bad, enc};
-      }
-    }catch(e){}
+  // 通常はUTF-8でOK（UTF-8 CSVなら列名も綺麗に出る）
+  let text = "";
+  try {
+    text = new TextDecoder("utf-8", {fatal:false}).decode(buf);
+  } catch (e) {
+    text = "";
   }
-  return best.txt;
+  return { buf, text };
+}
+
+// バイト列を「そのまま1バイト=1文字」で文字列化（日本語は文字化けしてOK、数字とカンマが取れれば十分）
+function bytesToLatin1String(buf){
+  const bytes = new Uint8Array(buf);
+  let out = "";
+  const CHUNK = 0x8000;
+  for(let i=0;i<bytes.length;i+=CHUNK){
+    out += String.fromCharCode(...bytes.subarray(i, i+CHUNK));
+  }
+  return out;
 }
 
 /** Parse CSV text into {name, fs, t, x, columns, guessedTimeCol, guessedSigCol} */
