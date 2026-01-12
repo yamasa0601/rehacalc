@@ -770,6 +770,102 @@ function plotVideoDebug(targetId, tArr, eArr, thr, events) {
 /* =======================
    Video assist
    ======================= */
+function fileToDataURL(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error || new Error("FileReader error"));
+    r.readAsDataURL(file);
+  });
+}
+
+function waitLoadedMetadata(video, timeoutMs){
+  return new Promise((resolve) => {
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(false);
+    }, timeoutMs);
+
+    function cleanup(){
+      clearTimeout(timer);
+      video.removeEventListener("loadedmetadata", onOk);
+      video.removeEventListener("error", onErr);
+    }
+    function onOk(){
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(true);
+    }
+    function onErr(){
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(false);
+    }
+
+    video.addEventListener("loadedmetadata", onOk, { once:true });
+    video.addEventListener("error", onErr, { once:true });
+  });
+}
+
+function videoErrorText(video){
+  const e = video?.error;
+  if(!e) return "unknown";
+  // 1:ABORTED 2:NETWORK 3:DECODE 4:SRC_NOT_SUPPORTED
+  const map = {1:"ABORTED",2:"NETWORK",3:"DECODE",4:"SRC_NOT_SUPPORTED"};
+  return `${map[e.code] || e.code}`;
+}
+
+async function loadVideoFileToElement(file){
+  const video = $("video");
+
+  // cleanup old
+  try { video.pause(); } catch {}
+  try {
+    if (video.src && video.src.startsWith("blob:")) URL.revokeObjectURL(video.src);
+  } catch {}
+  video.removeAttribute("src");
+  video.load();
+
+  // ensure inline
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.preload = "metadata";
+
+  // 1) try blob URL (fast)
+  const blobUrl = URL.createObjectURL(file);
+  video.src = blobUrl;
+  video.load();
+
+  let ok = await waitLoadedMetadata(video, 1500);
+  if(!ok){
+    // 2) fallback to DataURL (more compatible on iOS, but memory heavier)
+    try { URL.revokeObjectURL(blobUrl); } catch {}
+    const dataUrl = await fileToDataURL(file);
+    video.removeAttribute("src");
+    video.load();
+    video.src = dataUrl;
+    video.load();
+
+    ok = await waitLoadedMetadata(video, 5000);
+    if(!ok){
+      throw new Error(`動画を読み込めません（${videoErrorText(video)}）。iPhoneでは高fps動画が失敗することがあります。30/60fpsのH.264で書き出して再試行してください。`);
+    }
+  }
+
+  // show first frame (sometimes black until seek)
+  try{
+    const t = Math.min(0.05, Math.max(0, (video.duration || 0) - 0.05));
+    video.currentTime = t;
+    video.pause();
+  } catch {}
+}
 
 function drawRoiOverlay() {
   const video = $("video");
