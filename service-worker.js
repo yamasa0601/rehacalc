@@ -1,4 +1,4 @@
-const CACHE_NAME = "rehacalc-v2";
+const CACHE_NAME = "rehacalc-v3";
 
 const ASSETS = [
   "./",
