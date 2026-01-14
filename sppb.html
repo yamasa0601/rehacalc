@@ -3,148 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SPPB Pro - リハ計算ツール</title>
+    <title>SPPB Pro+ (全項目タイマー付)</title>
     <style>
-        :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 120px; user-select: none; }
-        .card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        h3 { margin-top: 0; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
-        label { font-size: 0.85rem; color: #666; display: block; margin: 10px 0 5px; }
+        :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500; --bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 120px; user-select: none; }
+        .card { background: white; border-radius: 15px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h3 { margin: 0 0 10px 0; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .item-label { font-size: 0.9rem; font-weight: bold; color: #333; margin-top: 10px; display: block; }
         
-        /* ラジオボタンをボタン風に */
-        .segmented-control { display: flex; background: #EEE; padding: 2px; border-radius: 10px; }
-        .segmented-control label { flex: 1; margin: 0; text-align: center; padding: 8px 0; border-radius: 8px; cursor: pointer; color: #333; }
-        .segmented-control input { display: none; }
-        .segmented-control input:checked + span { background: white; display: block; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-weight: bold; }
-
-        /* ストップウォッチエリア */
-        .timer-ui { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-        input[type="number"] { flex: 1; padding: 12px; font-size: 1.2rem; border: 1px solid #DDD; border-radius: 10px; text-align: center; }
-        .btn-timer { padding: 10px 15px; border: none; border-radius: 10px; color: white; font-weight: bold; min-width: 80px; }
+        /* タイマーUI */
+        .timer-row { display: flex; gap: 8px; align-items: center; margin: 5px 0 12px 0; }
+        .time-display { flex: 1; padding: 10px; font-size: 1.3rem; border: 2px solid #DDD; border-radius: 10px; text-align: center; font-variant-numeric: tabular-nums; background: #f9f9f9; }
+        .time-display.completed { border-color: var(--success); background: #EFFFF4; color: var(--success); font-weight: bold; }
+        
+        .btn-timer { padding: 10px 12px; border: none; border-radius: 10px; color: white; font-weight: bold; min-width: 85px; font-size: 0.9rem; }
         .start { background: var(--success); }
         .stop { background: var(--danger); }
+        .score-badge { min-width: 40px; text-align: center; background: #EEE; padding: 5px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; }
 
         /* フッター */
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #DDD; display: flex; flex-direction: column; gap: 10px; }
-        .score-row { display: flex; justify-content: space-between; align-items: center; }
-        .total-score { font-size: 1.6rem; font-weight: bold; color: var(--primary); }
-        .btn-copy { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; }
-        .btn-copy:active { opacity: 0.7; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #DDD; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .score-summary { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .total-score { font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+        .btn-copy { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 1rem; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h3>1. バランステスト</h3>
-    <label>閉脚立位</label>
-    <div class="segmented-control">
-        <label><input type="radio" name="b1" value="1" checked onchange="calc()"><span>10s可能(1)</span></label>
-        <label><input type="radio" name="b1" value="0" onchange="calc()"><span>不可(0)</span></label>
+    <h3>1. バランステスト (各10秒)</h3>
+    
+    <span class="item-label">閉脚立位 (1点)</span>
+    <div class="timer-row">
+        <div id="disp-b1" class="time-display">0.00</div>
+        <button id="btn-b1" class="btn-timer start" onclick="toggleTimer('b1', 10)">スタート</button>
+        <div class="score-badge">点数: <span id="sc-b1">0</span></div>
     </div>
-    <label>セミタンデム</label>
-    <div class="segmented-control">
-        <label><input type="radio" name="b2" value="1" checked onchange="calc()"><span>10s可能(1)</span></label>
-        <label><input type="radio" name="b2" value="0" onchange="calc()"><span>不可(0)</span></label>
+
+    <span class="item-label">セミタンデム (1点)</span>
+    <div class="timer-row">
+        <div id="disp-b2" class="time-display">0.00</div>
+        <button id="btn-b2" class="btn-timer start" onclick="toggleTimer('b2', 10)">スタート</button>
+        <div class="score-badge">点数: <span id="sc-b2">0</span></div>
     </div>
-    <label>タンデム</label>
-    <div class="segmented-control">
-        <label><input type="radio" name="b3" value="2" checked onchange="calc()"><span>10s~(2)</span></label>
-        <label><input type="radio" name="b3" value="1" onchange="calc()"><span>3-9.9s(1)</span></label>
-        <label><input type="radio" name="b3" value="0" onchange="calc()"><span>3s未満(0)</span></label>
+
+    <span class="item-label">タンデム (2点)</span>
+    <div class="timer-row">
+        <div id="disp-b3" class="time-display">0.00</div>
+        <button id="btn-b3" class="btn-timer start" onclick="toggleTimer('b3', 10)">スタート</button>
+        <div class="score-badge">点数: <span id="sc-b3">0</span></div>
     </div>
 </div>
 
 <div class="card">
     <h3>2. 歩行テスト (4m)</h3>
-    <div class="timer-ui">
-        <input type="number" id="gait" step="0.01" placeholder="秒" oninput="calc()" inputmode="decimal">
-        <button id="btn-gait" class="btn-timer start" onclick="toggleTimer('gait')">スタート</button>
+    <span class="item-label">最速のタイム</span>
+    <div class="timer-row">
+        <div id="disp-gait" class="time-display">0.00</div>
+        <button id="btn-gait" class="btn-timer start" onclick="toggleTimer('gait', 0)">スタート</button>
+        <div class="score-badge">点数: <span id="sc-gait">0</span></div>
     </div>
 </div>
 
 <div class="card">
     <h3>3. 5回椅子立ち上がり</h3>
-    <div class="timer-ui">
-        <input type="number" id="chair" step="0.01" placeholder="秒" oninput="calc()" inputmode="decimal">
-        <button id="btn-chair" class="btn-timer start" onclick="toggleTimer('chair')">スタート</button>
+    <span class="item-label">動作終了までのタイム</span>
+    <div class="timer-row">
+        <div id="disp-chair" class="time-display">0.00</div>
+        <button id="btn-chair" class="btn-timer start" onclick="toggleTimer('chair', 0)">スタート</button>
+        <div class="score-badge">点数: <span id="sc-chair">0</span></div>
     </div>
 </div>
 
 <div class="footer">
-    <div class="score-row">
-        <div style="font-size: 0.8rem; color: #666;">バランス: <span id="res-b">4</span> / 歩行: <span id="res-g">0</span> / 立ち上がり: <span id="res-c">0</span></div>
-        <div class="total-score">合計 <span id="res-total">4</span> / 12</div>
+    <div class="score-summary">
+        <div style="font-size: 0.8rem; color: #666;">
+            バランス: <span id="sum-b">0</span> / 歩行: <span id="sum-g">0</span> / 立ち上がり: <span id="sum-c">0</span>
+        </div>
+        <div class="total-score"><span id="res-total">0</span> <small style="font-size:1rem; color:#333;">/ 12 点</small></div>
     </div>
     <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
 </div>
 
 <script>
-let timers = { gait: { interval: null, startTime: 0 }, chair: { interval: null, startTime: 0 } };
+let timers = {
+    b1: { interval: null, time: 0 },
+    b2: { interval: null, time: 0 },
+    b3: { interval: null, time: 0 },
+    gait: { interval: null, time: 0 },
+    chair: { interval: null, time: 0 }
+};
 
-function toggleTimer(id) {
+function toggleTimer(id, limit) {
     const btn = document.getElementById('btn-' + id);
-    const input = document.getElementById(id);
+    const disp = document.getElementById('disp-' + id);
     
     if (!timers[id].interval) {
         // スタート
-        timers[id].startTime = Date.now();
+        let startTime = Date.now();
         btn.innerText = "ストップ";
-        btn.className = "btn-timer stop";
-        timers[id].interval = setInterval(() => {
-            input.value = ((Date.now() - timers[id].startTime) / 1000).toFixed(2);
-        }, 10);
-    } else {
-        // ストップ
-        clearInterval(timers[id].interval);
-        timers[id].interval = null;
-        btn.innerText = "スタート";
-        btn.className = "btn-timer start";
-        calc();
-    }
-}
-
-function calc() {
-    const b1 = parseInt(document.querySelector('input[name="b1"]:checked').value);
-    const b2 = parseInt(document.querySelector('input[name="b2"]:checked').value);
-    const b3 = parseInt(document.querySelector('input[name="b3"]:checked').value);
-    const scoreB = b1 + b2 + b3;
-
-    const gVal = parseFloat(document.getElementById('gait').value) || 0;
-    let scoreG = 0;
-    if (gVal > 0) {
-        if (gVal < 4.82) scoreG = 4;
-        else if (gVal <= 6.20) scoreG = 3;
-        else if (gVal <= 8.70) scoreG = 2;
-        else scoreG = 1;
-    }
-
-    const cVal = parseFloat(document.getElementById('chair').value) || 0;
-    let scoreC = 0;
-    if (cVal > 0) {
-        if (cVal < 11.19) scoreC = 4;
-        else if (cVal <= 13.69) scoreC = 3;
-        else if (cVal <= 16.69) scoreC = 2;
-        else if (cVal < 60) scoreC = 1;
-    }
-
-    document.getElementById('res-b').innerText = scoreB;
-    document.getElementById('res-g').innerText = scoreG;
-    document.getElementById('res-c').innerText = scoreC;
-    document.getElementById('res-total').innerText = scoreB + scoreG + scoreC;
-}
-
-function copyResult() {
-    const total = document.getElementById('res-total').innerText;
-    const b = document.getElementById('res-b').innerText;
-    const g = document.getElementById('res-g').innerText;
-    const c = document.getElementById('res-c').innerText;
-    const text = `SPPB: ${total}点 (バランス:${b}, 歩行:${g}, 立ち上がり:${c})`;
-    
-    navigator.clipboard.writeText(text).then(() => {
-        alert("コピーしました！\n" + text);
-    });
-}
-</script>
-
-</body>
-</html>
+        btn.className
