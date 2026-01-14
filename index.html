@@ -24,39 +24,41 @@
   </style>
 </head>
 <body>
-  <header>
+ <header>
     <h1>リハ計算アプリ一覧</h1>
-    <p>下の2つを選んで使えます。iPhoneで普段使いする場合は、各アプリをSafariで開いて「共有 → ホーム画面に追加」がおすすめです。</p>
+    <p>現場で使いやすいツール集。iPhoneの場合は各アプリをSafariで開いて「共有 → ホーム画面に追加」して使えます。</p>
   </header>
 
   <main>
     <div class="grid">
+      
       <section class="card">
         <div class="title">10m歩行・HHD（筋力→トルク） <span class="pill">計算</span></div>
         <div class="meta">
-          ・10m歩行（時間・歩数）→ 速度/歩幅/ケイデンス<br>
-          ・HHD（N）×モーメントアーム（cm）→ Nm / Nm/kg（基準値表示）
+          ・10m歩行（時間・歩数） → 速度/歩幅/ケイデンス<br>
+          ・HHD (N) × モーメントアーム (cm) → Nm / Nm/kg (基準値表示)
         </div>
         <a class="btn" href="./calc/">開く</a>
       </section>
 
       <section class="card">
-        <div class="title">BBS入力（脳卒中 / 大腿骨近位部骨折） <span class="pill">評価</span></div>
+        <div class="title">BBS入力 (脳卒中 / 大腿骨近位部骨折) <span class="pill">評価</span></div>
         <div class="meta">
           ・14項目（0〜4点 / 最大56点）タップ入力<br>
-          ・シート切替、cutoff判定、前回との差（MDC/MCID）
+          ・シート切替、cutoff判定、前回との差 (MDC/MCID)
         </div>
         <a class="btn" href="./bbs/">開く</a>
       </section>
+
       <section class="card">
-  　　　　<div class="title">EMG歩行解析（スマホ対応） <span class="pill">EMG</span></div>
-  　　　　<div class="meta">
-    ・CSVを2つ選ぶ（CSV1=TA推奨：HS基準）<br>
-    ・筋活動のみでHS推定（動画で目視したHS数でガード）<br>
-    ・%peak → 歩行周期0–100%正規化 → 平均±SD<br>
-    ・HS一覧CSV / プロットPNG保存
-  </div>
-<a class="btn" href="./emg/">開く</a>
+        <div class="title">EMG歩行解析（スマホ対応） <span class="pill">EMG</span></div>
+        <div class="meta">
+          ・CSVを選択（HS基準）<br>
+          ・筋活動のみでHS推定（動画目視HSでガード）<br>
+          ・%peak → 歩行周期0-100%正規化 → 平均±SD<br>
+          ・HS一覧CSV / プロットPNG保存
+        </div>
+        <a class="btn" href="./emg/">開く</a>
       </section>
 
       <section class="card">
@@ -68,16 +70,7 @@
         </div>
         <a class="btn" href="./sppb.html">開く</a>
       </section>
-      </div> </main>
-</body>
-</html>
 
-    <div class="note">
-      <b>iPhoneでオフライン利用のコツ</b><br>
-      1) まずオンライン状態で各アプリ（<code>/calc/</code> や <code>/bbs/</code>）を1回開く<br>
-      2) 共有 → ホーム画面に追加<br>
-      3) 更新後に古い表示が残る場合は、ホーム画面のアイコンを一度削除 → 追加し直すのが確実です。
-    </div>
-  </main>
+    </div> </main>
 </body>
 </html>
