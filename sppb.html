@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SPPB Pro - リハ計算ツール</title>
+    <style>
+        :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 120px; user-select: none; }
+        .card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h3 { margin-top: 0; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
+        label { font-size: 0.85rem; color: #666; display: block; margin: 10px 0 5px; }
+        
+        /* ラジオボタンをボタン風に */
+        .segmented-control { display: flex; background: #EEE; padding: 2px; border-radius: 10px; }
+        .segmented-control label { flex: 1; margin: 0; text-align: center; padding: 8px 0; border-radius: 8px; cursor: pointer; color: #333; }
+        .segmented-control input { display: none; }
+        .segmented-control input:checked + span { background: white; display: block; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-weight: bold; }
+
+        /* ストップウォッチエリア */
+        .timer-ui { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        input[type="number"] { flex: 1; padding: 12px; font-size: 1.2rem; border: 1px solid #DDD; border-radius: 10px; text-align: center; }
+        .btn-timer { padding: 10px 15px; border: none; border-radius: 10px; color: white; font-weight: bold; min-width: 80px; }
+        .start { background: var(--success); }
+        .stop { background: var(--danger); }
+
+        /* フッター */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #DDD; display: flex; flex-direction: column; gap: 10px; }
+        .score-row { display: flex; justify-content: space-between; align-items: center; }
+        .total-score { font-size: 1.6rem; font-weight: bold; color: var(--primary); }
+        .btn-copy { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; }
+        .btn-copy:active { opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h3>1. バランステスト</h3>
+    <label>閉脚立位</label>
+    <div class="segmented-control">
+        <label><input type="radio" name="b1" value="1" checked onchange="calc()"><span>10s可能(1)</span></label>
+        <label><input type="radio" name="b1" value="0" onchange="calc()"><span>不可(0)</span></label>
+    </div>
+    <label>セミタンデム</label>
+    <div class="segmented-control">
+        <label><input type="radio" name="b2" value="1" checked onchange="calc()"><span>10s可能(1)</span></label>
+        <label><input type="radio" name="b2" value="0" onchange="calc()"><span>不可(0)</span></label>
+    </div>
+    <label>タンデム</label>
+    <div class="segmented-control">
+        <label><input type="radio" name="b3" value="2" checked onchange="calc()"><span>10s~(2)</span></label>
+        <label><input type="radio" name="b3" value="1" onchange="calc()"><span>3-9.9s(1)</span></label>
+        <label><input type="radio" name="b3" value="0" onchange="calc()"><span>3s未満(0)</span></label>
+    </div>
+</div>
+
+<div class="card">
+    <h3>2. 歩行テスト (4m)</h3>
+    <div class="timer-ui">
+        <input type="number" id="gait" step="0.01" placeholder="秒" oninput="calc()" inputmode="decimal">
+        <button id="btn-gait" class="btn-timer start" onclick="toggleTimer('gait')">スタート</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3>3. 5回椅子立ち上がり</h3>
+    <div class="timer-ui">
+        <input type="number" id="chair" step="0.01" placeholder="秒" oninput="calc()" inputmode="decimal">
+        <button id="btn-chair" class="btn-timer start" onclick="toggleTimer('chair')">スタート</button>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="score-row">
+        <div style="font-size: 0.8rem; color: #666;">バランス: <span id="res-b">4</span> / 歩行: <span id="res-g">0</span> / 立ち上がり: <span id="res-c">0</span></div>
+        <div class="total-score">合計 <span id="res-total">4</span> / 12</div>
+    </div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+</div>
+
+<script>
+let timers = { gait: { interval: null, startTime: 0 }, chair: { interval: null, startTime: 0 } };
+
+function toggleTimer(id) {
+    const btn = document.getElementById('btn-' + id);
+    const input = document.getElementById(id);
+    
+    if (!timers[id].interval) {
+        // スタート
+        timers[id].startTime = Date.now();
+        btn.innerText = "ストップ";
+        btn.className = "btn-timer stop";
+        timers[id].interval = setInterval(() => {
+            input.value = ((Date.now() - timers[id].startTime) / 1000).toFixed(2);
+        }, 10);
+    } else {
+        // ストップ
+        clearInterval(timers[id].interval);
+        timers[id].interval = null;
+        btn.innerText = "スタート";
+        btn.className = "btn-timer start";
+        calc();
+    }
+}
+
+function calc() {
+    const b1 = parseInt(document.querySelector('input[name="b1"]:checked').value);
+    const b2 = parseInt(document.querySelector('input[name="b2"]:checked').value);
+    const b3 = parseInt(document.querySelector('input[name="b3"]:checked').value);
+    const scoreB = b1 + b2 + b3;
+
+    const gVal = parseFloat(document.getElementById('gait').value) || 0;
+    let scoreG = 0;
+    if (gVal > 0) {
+        if (gVal < 4.82) scoreG = 4;
+        else if (gVal <= 6.20) scoreG = 3;
+        else if (gVal <= 8.70) scoreG = 2;
+        else scoreG = 1;
+    }
+
+    const cVal = parseFloat(document.getElementById('chair').value) || 0;
+    let scoreC = 0;
+    if (cVal > 0) {
+        if (cVal < 11.19) scoreC = 4;
+        else if (cVal <= 13.69) scoreC = 3;
+        else if (cVal <= 16.69) scoreC = 2;
+        else if (cVal < 60) scoreC = 1;
+    }
+
+    document.getElementById('res-b').innerText = scoreB;
+    document.getElementById('res-g').innerText = scoreG;
+    document.getElementById('res-c').innerText = scoreC;
+    document.getElementById('res-total').innerText = scoreB + scoreG + scoreC;
+}
+
+function copyResult() {
+    const total = document.getElementById('res-total').innerText;
+    const b = document.getElementById('res-b').innerText;
+    const g = document.getElementById('res-g').innerText;
+    const c = document.getElementById('res-c').innerText;
+    const text = `SPPB: ${total}点 (バランス:${b}, 歩行:${g}, 立ち上がり:${c})`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert("コピーしました！\n" + text);
+    });
+}
+</script>
+
+</body>
+</html>
