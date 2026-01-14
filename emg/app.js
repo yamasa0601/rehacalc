@@ -1,17 +1,20 @@
 /* app.js (module) - EMG gait analysis in-browser
    - Load two CSVs
-   - Bandpass (HP-LP), rectification, RMS envelope
-   - HS estimation from CSV1 (TA) via burst segmentation -> Peak-based HS (near peak)
-   - Use TA HS to define 0–100% gait cycle for BOTH channels
+   - Bandpass (HP-LP), rectification, RMS (window ms)
+   - HS estimation from CSV1 (TA) using burst segmentation + Peak-based HS
+     * within each burst: find Peak (max envelope)
+     * HS = max rising slope point around Peak (more HS-like than Peak itself)
+   - Use TA HS to define 0(0%)–100% gait cycle for BOTH channels
    - %peak normalization (max RMS = 100), mean ± SD
-   - Plotly plots + export HS csv / PNG
+   - Plotly plots + export PNG/HS csv
+   - Optional: manual HS list (check only / use to segment)
 */
 
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  file1: null, // TA
-  file2: null, // target muscle
+  file1: null, // CSV1 (TA)
+  file2: null, // CSV2 (target muscle)
   parsed1: null,
   parsed2: null,
   res1: null,
@@ -111,7 +114,7 @@ function filtfilt2(x, coeffs) {
   return y;
 }
 
-// apply twice -> 4th-order-ish (good for EMG)
+// apply twice -> 4th-order-ish
 function butter2x(x, type, fc, fs) {
   const c = biquadCoeffs(type, fc, fs, 1 / Math.SQRT2);
   let y = filtfilt2(x, c);
@@ -156,6 +159,7 @@ function movingRMS(x, win) {
   return out;
 }
 
+// mask->segments [start, endExclusive]
 function risingEdges(mask) {
   const starts = [];
   const ends = [];
@@ -200,9 +204,6 @@ function bytesToLatin1String(buf) {
   }
 }
 
-// supports:
-//  - sensor-style: includes line with "No," and voltage column
-//  - table-style: header row (time, RF/BF/TA/MG etc.)
 function parseCSV(buf, text, filename, fsDefault) {
   const name = filename.replace(/\.csv$/i, "");
   const raw = bytesToLatin1String(buf);
@@ -332,7 +333,6 @@ function getSelectedSignal(parsed, sigSel, timeSel, fs) {
   const x = parsed.table[sig];
   const t0 = parsed.table[tim];
 
-  // time column seconds-like?
   const maxT = Math.max(...t0);
   const estDur = t0.length / fs;
   const isSeconds = Number.isFinite(maxT) && maxT > estDur * 0.8;
@@ -344,16 +344,104 @@ function getSelectedSignal(parsed, sigSel, timeSel, fs) {
   return { t: tSec, x };
 }
 
-// ------------------------ Peak-based HS estimation ------------------------
-function detectHS(env, fs, opts) {
+// ------------------------ manual HS parsing ------------------------
+function parseManualHS(text, fs) {
+  const raw = (text || "").trim();
+  if (!raw) return { hsSec: null, hsNo: null, countOnly: null };
+
+  const lower = raw.toLowerCase();
+
+  // If it's just a number like "10" or "10hs" -> countOnly
+  const lines = raw.split(/\r\n|\n|\r/).map(s => s.trim()).filter(Boolean);
+  if (lines.length === 1) {
+    const s = lines[0];
+    const m = s.match(/([-+]?\d+(\.\d+)?)/);
+    if (m) {
+      const v = Number(m[1]);
+      if (Number.isFinite(v)) {
+        // if contains "hs" or it's a small integer -> treat as count
+        if (lower.includes("hs") || (Number.isInteger(v) && v >= 1 && v <= 500)) {
+          return { hsSec: null, hsNo: null, countOnly: Math.round(v) };
+        }
+      }
+    }
+  }
+
+  // Otherwise parse list
+  const valsSec = [];
+  const valsNo = [];
+
+  for (const line of lines) {
+    const tokens = line.split(/[,\s]+/).filter(Boolean);
+    for (const tok0 of tokens) {
+      const tok = tok0.trim();
+      if (!tok) continue;
+
+      // ms
+      let m = tok.match(/^([-+]?\d+(\.\d+)?)\s*ms$/i);
+      if (m) {
+        const v = Number(m[1]);
+        if (Number.isFinite(v)) valsSec.push(v / 1000);
+        continue;
+      }
+
+      // s
+      m = tok.match(/^([-+]?\d+(\.\d+)?)\s*s$/i);
+      if (m) {
+        const v = Number(m[1]);
+        if (Number.isFinite(v)) valsSec.push(v);
+        continue;
+      }
+
+      // plain number
+      m = tok.match(/^[-+]?\d+(\.\d+)?$/);
+      if (m) {
+        const v = Number(tok);
+        if (!Number.isFinite(v)) continue;
+
+        if (Number.isInteger(v) && v >= 1) {
+          // treat as sample No (1-based)
+          valsNo.push(v);
+          valsSec.push((v - 1) / fs);
+        } else if (v > 0) {
+          // treat as seconds
+          valsSec.push(v);
+        }
+      }
+    }
+  }
+
+  const hsSec = valsSec.length > 0 ? valsSec.sort((a, b) => a - b) : null;
+  const hsNoSorted = valsNo.length > 0 ? valsNo.sort((a, b) => a - b) : null;
+  return { hsSec, hsNo: hsNoSorted, countOnly: null };
+}
+
+function matchHS(autoSec, manualSec, tolMs) {
+  if (!autoSec || !manualSec || autoSec.length === 0 || manualSec.length === 0) {
+    return { matched: 0, manualN: manualSec ? manualSec.length : 0, autoN: autoSec ? autoSec.length : 0 };
+  }
+  const tol = tolMs / 1000;
+  let i = 0, j = 0, matched = 0;
+  while (i < autoSec.length && j < manualSec.length) {
+    const d = autoSec[i] - manualSec[j];
+    if (Math.abs(d) <= tol) { matched++; i++; j++; continue; }
+    if (d < 0) i++; else j++;
+  }
+  return { matched, manualN: manualSec.length, autoN: autoSec.length };
+}
+
+// ------------------------ HS estimation: Peak-based ------------------------
+function detectHS_peak(env, fs, opts) {
   const {
-    expectedCount = null,  // optional (e.g., steps count/2)
+    baselineSec = 0,      // 0なら全区間で閾値計算（開始条件は一切なし）
+    expectedCount = null, // 任意：HS数の目安（動画で数えた等）
+    countTol = 2,         // 許容差 (±)
     minBurstMs = 30,
     minGapMs = 650,
     offsetMs = 80,
 
     plausibleStep = [0.6, 2.5], // seconds
-    enableEveryOtherFix = true, // auto "skip every other" if double events
+    enableEveryOtherFix = true, // double events -> choose every other if needed
     peakBackMs = 180,
     peakForwardMs = 30,
   } = opts;
@@ -364,12 +452,19 @@ function detectHS(env, fs, opts) {
   const back = Math.round((peakBackMs / 1000) * fs);
   const fwd  = Math.round((peakForwardMs / 1000) * fs);
 
-  const med = median(env);
-  let md = madScalar(env);
+  // --- threshold stats source: baseline window or whole ---
+  let src = env;
+  if (baselineSec > 0) {
+    const n = Math.min(env.length, Math.max(10, Math.round(baselineSec * fs)));
+    src = env.slice(0, n);
+  }
 
-  // MADが極小なら救済（平坦や読み取り失敗に耐性）
+  const med = median(src);
+  let md = madScalar(src);
+
+  // MAD tiny rescue
   if (!Number.isFinite(md) || md < 1e-12) {
-    const a = Array.from(env).filter(Number.isFinite).sort((x, y) => x - y);
+    const a = Array.from(src).filter(Number.isFinite).sort((x, y) => x - y);
     if (a.length >= 10) {
       const p25 = a[Math.floor(a.length * 0.25)];
       const p75 = a[Math.floor(a.length * 0.75)];
@@ -378,6 +473,7 @@ function detectHS(env, fs, opts) {
       md = 1e-6;
     }
   }
+  const sigma = md * 1.4826;
 
   function scoreHS(hs) {
     if (!hs || hs.length < 2) return Infinity;
@@ -396,10 +492,16 @@ function detectHS(env, fs, opts) {
     const bad = intervals.filter((v) => v < lo || v > hi).length / intervals.length;
 
     let score = 5.0 * bad + 2.0 * cv + 0.5 * Math.abs(medInt - 1.0);
-    if (expectedCount !== null) score += 0.8 * Math.abs(hs.length - expectedCount);
+
+    if (expectedCount !== null) {
+      const diff = Math.abs(hs.length - expectedCount);
+      const over = Math.max(0, diff - countTol);
+      score += 0.8 * over; // 許容差内はあまり罰しない
+    }
     return score;
   }
 
+  // merge candidates closer than minGap: keep stronger (peak amp)
   function mergeByMinGap(hs, strength) {
     if (hs.length === 0) return { hs, strength };
     const outH = [hs[0]];
@@ -419,6 +521,7 @@ function detectHS(env, fs, opts) {
     return { hs: outH, strength: outS };
   }
 
+  // If double events remain, choose odd/even set that scores better
   function chooseEveryOtherIfDouble(hs) {
     if (!enableEveryOtherFix || !hs || hs.length < 6) return hs;
 
@@ -437,8 +540,9 @@ function detectHS(env, fs, opts) {
     return scoreHS(candA) <= scoreHS(candB) ? candA : candB;
   }
 
-  // Peak周辺でHS点を決める：最大傾き点（推奨）
-  function hsAroundPeak(segStart, segEnd, peakIdx) {
+  // HS around peak = max rising slope point (more HS-like)
+  function hsAroundPeak(segStart, segEndExclusive, peakIdx) {
+    const segEnd = segEndExclusive;
     const w0 = Math.max(segStart + 1, peakIdx - back);
     const w1 = Math.min(segEnd - 1, peakIdx + fwd);
     let bestI = w0;
@@ -453,37 +557,33 @@ function detectHS(env, fs, opts) {
     return bestI;
   }
 
-  // k sweep
   const ks = [];
   for (let k = 2.0; k <= 6.0 + 1e-12; k += 0.25) ks.push(Number(k.toFixed(2)));
 
   let best = null;
 
   for (const k of ks) {
-    const thr = med + k * (md * 1.4826); // MAD->sigma
+    const thr = med + k * sigma;
+
     const mask = new Array(env.length);
     for (let i = 0; i < env.length; i++) mask[i] = env[i] > thr;
 
     let segs = risingEdges(mask);
-    segs = segs
-      .map(([s, e]) => [s, e - 1]) // risingEdges gives end as exclusive in our earlier version; normalize
-      .map(([s, e]) => [s, Math.max(s, e)])
-      .filter(([s, e]) => (e - s + 1) >= minBurst);
-
+    segs = segs.filter(([s, e]) => (e - s) >= minBurst);
     if (segs.length === 0) continue;
 
     const hs = [];
     const strength = [];
 
     for (const [s, e] of segs) {
-      // find Peak (max amp) in burst
+      // peak in [s, e)
       let p = s;
       let pv = -Infinity;
-      for (let i = s; i <= e; i++) {
+      for (let i = s; i < e; i++) {
         const v = env[i];
         if (v > pv) { pv = v; p = i; }
       }
-      // HS near peak (max slope) + offset
+
       const h = hsAroundPeak(s, e, p) + offset;
       if (h >= 0 && h < env.length) {
         hs.push(h);
@@ -496,7 +596,7 @@ function detectHS(env, fs, opts) {
     let hsS = ord.map(([v]) => v);
     let stS = ord.map(([, i]) => strength[i]);
 
-    // merge and every-other fix
+    // merge + every-other fix
     const merged = mergeByMinGap(hsS, stS);
     let hsFinal = merged.hs;
     hsFinal = chooseEveryOtherIfDouble(hsFinal);
@@ -510,14 +610,11 @@ function detectHS(env, fs, opts) {
   }
 
   if (!best || best.hs.length < 2) {
-    throw new Error("HS推定に失敗しました（周期が作れません）。minGapや歩数入力、閾値を調整してください。");
+    throw new Error("HS推定に失敗しました（周期が作れません）。minGap/offset/閾値やHS数入力を調整してください。");
   }
-
-  // HSが少ない場合は警告（throwしない）
   if (best.hs.length < 3) {
     console.warn("HSが少ないため、平均/SDの信頼性が低いです（推定HS数 < 3）。");
   }
-
   return best;
 }
 
@@ -599,9 +696,9 @@ function meanAndSD(cycles) {
 function computePipeline(t, x, fs, params, expectedCount) {
   const {
     hp, lp, rmsMs,
+    baselineSec,
+    countTol,
     minBurstMs, minGapMs, offsetMs,
-    plausibleStep, enableEveryOtherFix,
-    peakBackMs, peakForwardMs,
     nPoints,
   } = params;
 
@@ -613,15 +710,17 @@ function computePipeline(t, x, fs, params, expectedCount) {
   const win = Math.max(1, Math.round((fs * rmsMs) / 1000));
   const env = movingRMS(y, win);
 
-  const hsRes = detectHS(env, fs, {
+  const hsRes = detectHS_peak(env, fs, {
+    baselineSec,
     expectedCount,
+    countTol,
     minBurstMs,
     minGapMs,
     offsetMs,
-    plausibleStep,
-    enableEveryOtherFix,
-    peakBackMs,
-    peakForwardMs,
+    plausibleStep: [0.6, 2.5],
+    enableEveryOtherFix: true,
+    peakBackMs: 180,
+    peakForwardMs: 30,
   });
 
   const envPct = percentPeak(env, hsRes.hs);
@@ -701,6 +800,43 @@ async function plotCycle(targetId, res, showIndividual) {
   return Plotly.newPlot(targetId, traces, layout, { displayModeBar: false, responsive: true });
 }
 
+async function plotDebug(targetId, res) {
+  const t = Array.from(res.t);
+  const y = Array.from(res.envPct);
+
+  const shapes = (res.hs || []).map((idx) => ({
+    type: "line",
+    x0: res.t[idx],
+    x1: res.t[idx],
+    y0: 0,
+    y1: 1,
+    xref: "x",
+    yref: "paper",
+    line: { width: 1, color: "rgba(255,255,255,0.25)" },
+  }));
+
+  const traces = [{
+    x: t,
+    y: y,
+    mode: "lines",
+    line: { width: 2, color: "#22c55e" },
+    name: "%peak env",
+  }];
+
+  const layout = {
+    margin: { l: 50, r: 20, t: 30, b: 45 },
+    xaxis: { title: "time (s)" },
+    yaxis: { title: "%RMS (%peak)" },
+    shapes,
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    font: { color: "#e9eeff" },
+  };
+
+  return Plotly.newPlot(targetId, traces, layout, { displayModeBar: false, responsive: true });
+}
+
+// ------------------------ export ------------------------
 function makeHSCSV(t, hs) {
   let s = "hs_index,No,time_s\n";
   for (let i = 0; i < hs.length; i++) {
@@ -734,7 +870,7 @@ async function downloadPlotPNG(plotId, filename) {
   a.remove();
 }
 
-// ------------------------ main run ------------------------
+// ------------------------ main ------------------------
 async function handleFile(file, sigSel, timeSel, fs) {
   if (!file) return null;
   const { buf, text } = await readFileData(file);
@@ -751,12 +887,15 @@ async function handleFile(file, sigSel, timeSel, fs) {
 }
 
 function clearPlots() {
-  for (const id of ["plot1", "plot2"]) {
+  for (const id of ["plot1", "plot2", "debug1", "debug2"]) {
     const el = document.getElementById(id);
     if (el) el.innerHTML = "";
   }
-  const ids = ["hsn1", "hsn2", "kmad1", "kmad2", "cycn1", "cycn2", "name1", "name2"];
-  for (const id of ids) if ($(id)) $(id).textContent = "-";
+  const ids = ["hsn1", "hsn2", "kmad1", "kmad2", "cycn1", "cycn2", "name1", "name2", "hsreport"];
+  for (const id of ids) {
+    const el = $(id);
+    if (el) el.textContent = (id === "hsreport") ? "" : "-";
+  }
 }
 
 async function run() {
@@ -764,23 +903,22 @@ async function run() {
     setMsg("読み込み中…");
     clearPlots();
 
-    // ---- parameters from UI (fallback defaults if missing) ----
     const fs = parseFloat($("fs")?.value ?? "1000");
 
-    // bandpass (HP-LP). If your UI says "50-450", set hp=50, lp=450.
+    const baselineSec = parseFloat($("baseline")?.value ?? "0"); // 0なら完全無視
     const hp = parseFloat($("hp")?.value ?? "50");
     const lp = parseFloat($("lp")?.value ?? "450");
-
     const rmsMs = parseFloat($("rmsms")?.value ?? "50");
+
     const minBurstMs = parseFloat($("minburst")?.value ?? "30");
     const minGapMs = parseFloat($("mingap")?.value ?? "650");
     const offsetMs = parseFloat($("offset")?.value ?? "80");
+
+    const steps = parseInt($("steps")?.value ?? "0", 10); // video count input (but no video processing)
+    const countTol = parseInt($("stepstol")?.value ?? "2", 10);
+
     const nPoints = parseInt($("npoints")?.value ?? "501", 10);
     const showIndividual = ($("showind")?.value ?? "1") === "1";
-
-    // Optional: total steps (video/manual). Used only as expectedCount for HS selection.
-    const steps = parseInt($("steps")?.value ?? "0", 10);
-    const expectedTA = steps > 0 ? Math.floor(steps / 2) : null;
 
     if (!state.file1 || !state.file2) {
       setMsg("CSVを2つ選んでください（CSV1=TA, CSV2=測定筋）。", true);
@@ -793,29 +931,76 @@ async function run() {
     const s1 = getSelectedSignal(state.parsed1, $("sigcol1"), $("timecol1"), fs);
     const s2 = getSelectedSignal(state.parsed2, $("sigcol2"), $("timecol2"), fs);
 
-    setMsg("解析中…");
+    // manual HS
+    const hsManualTxt = $("hsmanual")?.value ?? "";
+    const hsUse = $("hsuse")?.value ?? "check";
+    const hsTolMs = parseFloat($("hstol")?.value ?? "80");
+    const manual = parseManualHS(hsManualTxt, fs);
+
+    // expected count priority:
+    // 1) hsmanual countOnly
+    // 2) steps input
+    const expectedHS = (manual.countOnly && manual.countOnly > 0) ? manual.countOnly : (steps > 0 ? steps : null);
+
+    // CSV1 is TA -> we want "same leg" HS count. If user inputs total HS count, keep as-is.
+    // (運用上: ここは「動画で数えたHS数」をそのまま入れてOK)
+    const expectedTA = expectedHS;
 
     const params = {
-      hp, lp, rmsMs, minBurstMs, minGapMs, offsetMs,
-      plausibleStep: [0.6, 2.5],
-      enableEveryOtherFix: true,
-      peakBackMs: 180,
-      peakForwardMs: 30,
+      hp, lp, rmsMs,
+      baselineSec,
+      countTol,
+      minBurstMs, minGapMs, offsetMs,
       nPoints,
     };
 
-    // 1) TAでHS推定（Peak方式）
+    setMsg("解析中…");
+
+    // 1) compute envelopes + auto HS from TA (Peak-based)
     state.res1 = computePipeline(s1.t, s1.x, fs, params, expectedTA);
 
-    // 2) 測定筋も解析（env等は作る）
+    // 2) compute target channel envelope (HS not used later)
     state.res2 = computePipeline(s2.t, s2.x, fs, params, null);
 
-    // 3) 重要：TAのHSで両方の周期(0-100%)を切る
-    const hsRef = state.res1.hs;
+    // 3) Decide HS reference:
+    //    - if hsuse=use and manual list exists (>=2), use manual list
+    //    - else use TA auto HS
+    let hsRef = state.res1.hs;
+    let hsRefSrc = "auto(TA)";
+
+    if (hsUse === "use" && manual.hsSec && manual.hsSec.length >= 2) {
+      // convert manual seconds to indices using TA time array
+      const t = state.res1.t;
+      const hsIdx = [];
+      let j = 0;
+      for (const ts of manual.hsSec) {
+        while (j < t.length && t[j] < ts) j++;
+        const idx = Math.min(Math.max(0, j), t.length - 1);
+        hsIdx.push(idx);
+      }
+      // remove duplicates & sort
+      hsRef = Array.from(new Set(hsIdx)).sort((a, b) => a - b);
+      hsRefSrc = "manual";
+    }
+
+    // 4) Apply TA HS to both for cycle segmentation
     state.res1 = applyHsToExistingResult(state.res1, hsRef, nPoints);
     state.res2 = applyHsToExistingResult(state.res2, hsRef, nPoints);
 
-    // UI text
+    // 5) manual check report
+    const hsReportEl = $("hsreport");
+    if (hsReportEl && hsUse === "check" && manual.hsSec && manual.hsSec.length >= 1) {
+      const autoSec = hsRef.map((i) => state.res1.t[i]).sort((a, b) => a - b);
+      const rep = matchHS(autoSec, manual.hsSec, hsTolMs);
+      hsReportEl.textContent =
+        `手入力HSチェック: manual=${rep.manualN}, auto(${hsRefSrc})=${rep.autoN}, 一致=${rep.matched}（許容±${hsTolMs}ms）`;
+    } else if (hsReportEl && hsUse === "use" && hsRefSrc === "manual") {
+      hsReportEl.textContent = `手入力HSで周期分割しました（manual HS数=${hsRef.length}）`;
+    } else if (hsReportEl) {
+      hsReportEl.textContent = "";
+    }
+
+    // UI labels
     if ($("name1")) $("name1").textContent = state.parsed1.name;
     if ($("name2")) $("name2").textContent = state.parsed2.name;
 
@@ -827,9 +1012,11 @@ async function run() {
     if ($("cycn2")) $("cycn2").textContent = String(Math.max(0, state.res2.hs.length - 1));
 
     await plotCycle("plot1", state.res1, showIndividual);
+    await plotDebug("debug1", state.res1);
     await plotCycle("plot2", state.res2, showIndividual);
+    await plotDebug("debug2", state.res2);
 
-    setMsg("完了。");
+    setMsg(`完了（HS=${hsRef.length}, HS参照=${hsRefSrc}）`);
   } catch (e) {
     console.error(e);
     setMsg(String(e?.message || e), true);
