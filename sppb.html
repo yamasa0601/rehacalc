@@ -3,26 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SPPB Pro+ (全項目タイマー付)</title>
+    <title>SPPB Pro+ (タイマー完全版)</title>
     <style>
         :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500; --bg: #F2F2F7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 120px; user-select: none; }
         .card { background: white; border-radius: 15px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         h3 { margin: 0 0 10px 0; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
         .item-label { font-size: 0.9rem; font-weight: bold; color: #333; margin-top: 10px; display: block; }
-        
-        /* タイマーUI */
         .timer-row { display: flex; gap: 8px; align-items: center; margin: 5px 0 12px 0; }
         .time-display { flex: 1; padding: 10px; font-size: 1.3rem; border: 2px solid #DDD; border-radius: 10px; text-align: center; font-variant-numeric: tabular-nums; background: #f9f9f9; }
         .time-display.completed { border-color: var(--success); background: #EFFFF4; color: var(--success); font-weight: bold; }
-        
         .btn-timer { padding: 10px 12px; border: none; border-radius: 10px; color: white; font-weight: bold; min-width: 85px; font-size: 0.9rem; }
         .start { background: var(--success); }
         .stop { background: var(--danger); }
         .score-badge { min-width: 40px; text-align: center; background: #EEE; padding: 5px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; }
-
-        /* フッター */
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #DDD; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #DDD; }
         .score-summary { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .total-score { font-size: 1.8rem; font-weight: bold; color: var(--primary); }
         .btn-copy { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; font-size: 1rem; }
@@ -32,21 +27,18 @@
 
 <div class="card">
     <h3>1. バランステスト (各10秒)</h3>
-    
     <span class="item-label">閉脚立位 (1点)</span>
     <div class="timer-row">
         <div id="disp-b1" class="time-display">0.00</div>
         <button id="btn-b1" class="btn-timer start" onclick="toggleTimer('b1', 10)">スタート</button>
         <div class="score-badge">点数: <span id="sc-b1">0</span></div>
     </div>
-
     <span class="item-label">セミタンデム (1点)</span>
     <div class="timer-row">
         <div id="disp-b2" class="time-display">0.00</div>
         <button id="btn-b2" class="btn-timer start" onclick="toggleTimer('b2', 10)">スタート</button>
         <div class="score-badge">点数: <span id="sc-b2">0</span></div>
     </div>
-
     <span class="item-label">タンデム (2点)</span>
     <div class="timer-row">
         <div id="disp-b3" class="time-display">0.00</div>
@@ -57,7 +49,6 @@
 
 <div class="card">
     <h3>2. 歩行テスト (4m)</h3>
-    <span class="item-label">最速のタイム</span>
     <div class="timer-row">
         <div id="disp-gait" class="time-display">0.00</div>
         <button id="btn-gait" class="btn-timer start" onclick="toggleTimer('gait', 0)">スタート</button>
@@ -67,7 +58,6 @@
 
 <div class="card">
     <h3>3. 5回椅子立ち上がり</h3>
-    <span class="item-label">動作終了までのタイム</span>
     <div class="timer-row">
         <div id="disp-chair" class="time-display">0.00</div>
         <button id="btn-chair" class="btn-timer start" onclick="toggleTimer('chair', 0)">スタート</button>
@@ -78,7 +68,7 @@
 <div class="footer">
     <div class="score-summary">
         <div style="font-size: 0.8rem; color: #666;">
-            バランス: <span id="sum-b">0</span> / 歩行: <span id="sum-g">0</span> / 立ち上がり: <span id="sum-c">0</span>
+            B: <span id="sum-b">0</span> / G: <span id="sum-g">0</span> / C: <span id="sum-c">0</span>
         </div>
         <div class="total-score"><span id="res-total">0</span> <small style="font-size:1rem; color:#333;">/ 12 点</small></div>
     </div>
@@ -86,6 +76,8 @@
 </div>
 
 <script>
+console.log("SPPB Script Loaded Successfully"); // スクリプトが読み込まれたか確認用
+
 let timers = {
     b1: { interval: null, time: 0 },
     b2: { interval: null, time: 0 },
@@ -95,11 +87,79 @@ let timers = {
 };
 
 function toggleTimer(id, limit) {
+    console.log("Button clicked: " + id); // ボタンが反応しているか確認用
     const btn = document.getElementById('btn-' + id);
     const disp = document.getElementById('disp-' + id);
     
     if (!timers[id].interval) {
-        // スタート
         let startTime = Date.now();
         btn.innerText = "ストップ";
-        btn.className
+        btn.className = "btn-timer stop";
+        disp.classList.remove('completed');
+        
+        timers[id].interval = setInterval(() => {
+            let elapsed = (Date.now() - startTime) / 1000;
+            timers[id].time = elapsed;
+            disp.innerText = elapsed.toFixed(2);
+            if (limit > 0 && elapsed >= limit) {
+                disp.classList.add('completed');
+            }
+        }, 30);
+    } else {
+        clearInterval(timers[id].interval);
+        timers[id].interval = null;
+        btn.innerText = "スタート";
+        btn.className = "btn-timer start";
+        calc();
+    }
+}
+
+function calc() {
+    const b1 = timers.b1.time >= 10 ? 1 : 0;
+    const b2 = timers.b2.time >= 10 ? 1 : 0;
+    let b3 = 0;
+    if (timers.b3.time >= 10) b3 = 2;
+    else if (timers.b3.time >= 3) b3 = 1;
+
+    document.getElementById('sc-b1').innerText = b1;
+    document.getElementById('sc-b2').innerText = b2;
+    document.getElementById('sc-b3').innerText = b3;
+    const scoreB = b1 + b2 + b3;
+
+    let scoreG = 0;
+    const g = timers.gait.time;
+    if (g > 0) {
+        if (g < 4.82) scoreG = 4;
+        else if (g <= 6.20) scoreG = 3;
+        else if (g <= 8.70) scoreG = 2;
+        else scoreG = 1;
+    }
+    document.getElementById('sc-gait').innerText = scoreG;
+
+    let scoreC = 0;
+    const c = timers.chair.time;
+    if (c > 0) {
+        if (c < 11.19) scoreC = 4;
+        else if (c <= 13.69) scoreC = 3;
+        else if (c <= 16.69) scoreC = 2;
+        else if (c < 60) scoreC = 1;
+    }
+    document.getElementById('sc-chair').innerText = scoreC;
+
+    document.getElementById('sum-b').innerText = scoreB;
+    document.getElementById('sum-g').innerText = scoreG;
+    document.getElementById('sum-c').innerText = scoreC;
+    document.getElementById('res-total').innerText = scoreB + scoreG + scoreC;
+}
+
+function copyResult() {
+    const total = document.getElementById('res-total').innerText;
+    const b = document.getElementById('sum-b').innerText;
+    const g = document.getElementById('sum-g').innerText;
+    const c = document.getElementById('sum-c').innerText;
+    const text = `SPPB: ${total}点 (B:${b}, G:${g}, C:${c})`;
+    navigator.clipboard.writeText(text).then(() => { alert("コピーしました！\n" + text); });
+}
+</script>
+</body>
+</html>
