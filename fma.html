@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FMA Pro - 運動・感覚計算</title>
+    <title>FMA Pro - 最終確定版</title>
     <style>
-        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; --danger: #FF3B30; --success: #34C759; }
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 240px; }
         .tabs { display: flex; gap: 8px; margin-bottom: 12px; position: sticky; top: 10px; z-index: 100; }
         .tab { flex: 1; padding: 12px; background: #ddd; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -18,16 +18,12 @@
         .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 4px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
         .options input { display: none; }
         .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 8px; padding: 10px 4px; margin: -10px -4px; }
-        
-        /* Footer UI */
         .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
         .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         .score-box { background: #f1f3f5; padding: 8px; border-radius: 10px; text-align: center; }
         .score-val { font-size: 1.3rem; font-weight: bold; color: var(--primary); display: block; }
         .score-label { font-size: 0.6rem; color: var(--muted); font-weight: bold; }
-        .severity-bar { grid-column: span 3; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.9rem; margin-top: 5px; }
-        .btn-copy { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
-        .hidden { display: none; }
+        .sev-bar { grid-column: span 3; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -38,50 +34,50 @@
 </div>
 
 <div id="content-ue">
-    <div class="section-card"><h2>I. 反射 (Reflex)</h2><div id="ue-r1"></div></div>
-    <div class="section-card"><h2>II. 共同運動 (屈筋)</h2><div id="ue-f"></div></div>
-    <div class="section-card"><h2>II. 共同運動 (伸筋)</h2><div id="ue-e"></div></div>
+    <div class="section-card"><h2>I. 反射 (2項目)</h2><div id="ue-r"></div></div>
+    <div class="section-card"><h2>II. 屈筋共同運動 (肩4, 肘1, 前腕1)</h2><div id="ue-f"></div></div>
+    <div class="section-card"><h2>II. 伸筋共同運動 (肩1, 肘1, 前腕1)</h2><div id="ue-e"></div></div>
     <div class="section-card"><h2>III. 混合 / IV. 分離</h2><div id="ue-m"></div></div>
     <div class="section-card"><h2>V. 正常反射 / VI. 手関節</h2><div id="ue-w"></div></div>
     <div class="section-card"><h2>VII. 手指</h2><div id="ue-h"></div></div>
     <div class="section-card"><h2>VIII. 協調性</h2><div id="ue-c"></div></div>
-    <div class="section-card"><h2>感覚 (Sensation)</h2><div id="ue-s"></div></div>
+    <div class="section-card"><h2>感覚 (12点)</h2><div id="ue-s"></div></div>
 </div>
 
 <div id="content-le" class="hidden">
-    <div class="section-card"><h2>I. 反射 / II. 共同運動</h2><div id="le-sy"></div></div>
+    <div class="section-card"><h2>I. 反射 (2項目) / II. 共同運動</h2><div id="le-sy"></div></div>
     <div class="section-card"><h2>III. 座位 / IV. 立位</h2><div id="le-pos"></div></div>
     <div class="section-card"><h2>V. 正常反射 / VI. 協調性</h2><div id="le-c"></div></div>
-    <div class="section-card"><h2>感覚 (Sensation)</h2><div id="le-s"></div></div>
+    <div class="section-card"><h2>感覚 (12点)</h2><div id="le-s"></div></div>
 </div>
 
 <div class="footer">
     <div class="score-grid">
-        <div class="score-box"><span class="score-label">合計 (運動)</span><span id="tot-m" class="score-val">0</span></div>
+        <div class="score-box"><span class="score-label">運動合計</span><span id="tot-m" class="score-val">0</span></div>
         <div class="score-box"><span class="score-label">FMS (随意)</span><span id="fms-val" class="score-val">0</span></div>
         <div class="score-box"><span class="score-label">感覚 (/12)</span><span id="sens-val" class="score-val">0</span></div>
-        <div id="sev-bar" class="severity-bar">判定中...</div>
+        <div id="sev-bar" class="sev-bar">判定中...</div>
     </div>
-    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <button style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:bold;" onclick="copyResult()">コピー</button>
 </div>
 
 <script>
 const data = {
     ue: {
-        r1: [{id:"ur1",n:"二頭筋反射"},{id:"ur2",n:"手指屈筋反射"},{id:"ur3",n:"三頭筋反射"}],
+        r: [{id:"ur1",n:"二頭筋 or 手指屈筋"},{id:"ur3",n:"三頭筋"}],
         f: [{id:"uf1",n:"肩甲骨後退"},{id:"uf2",n:"肩甲骨挙上"},{id:"uf3",n:"肩外転"},{id:"uf4",n:"肩外旋"},{id:"uf5",n:"肘屈曲"},{id:"uf6",n:"前腕回外"}],
         e: [{id:"ue1",n:"肩内転/内旋"},{id:"ue2",n:"肘伸展"},{id:"ue3",n:"前腕回内"}],
-        m: [{id:"um1",n:"手を腰へ回す"},{id:"um2",n:"肩屈曲90(肘伸)"},{id:"um3",n:"回内/外(肘90)"},{id:"um4",n:"肩外転90(肘伸)"},{id:"um5",n:"肩屈曲90-180"},{id:"um6",n:"回内/外(肘伸)"}],
-        w: [{id:"uw0",n:"正常反射(V)"},{id:"uw1",n:"保持(肘伸)"},{id:"uw2",n:"屈伸(肘伸)"},{id:"uw3",n:"保持(肘90)"},{id:"uw4",n:"屈伸(肘90)"},{id:"uw5",n:"回旋"}],
-        h: [{id:"uh1",n:"集団屈曲"},{id:"uh2",n:"集団伸展"},{id:"uh3",n:"鉤状把持"},{id:"uh4",n:"側方把持"},{id:"uh5",n:"対立把持"},{id:"uh6",n:"円筒把持"},{id:"uh7",n:"球状把持"}],
+        m: [{id:"um1",n:"手を腰へ"},{id:"um2",n:"肩屈90"},{id:"um3",n:"回内/外(90)"},{id:"um4",n:"肩外転90"},{id:"um5",n:"肩屈90-180"},{id:"um6",n:"回内/外(伸)"}],
+        w: [{id:"uw0",n:"正常反射(V)"},{id:"uw1",n:"保持(伸)"},{id:"uw2",n:"屈伸(伸)"},{id:"uw3",n:"保持(90)"},{id:"uw4",n:"屈伸(90)"},{id:"uw5",n:"回旋"}],
+        h: [{id:"uh1",n:"集団屈曲"},{id:"uh2",n:"集団伸展"},{id:"uh3",n:"鉤状"},{id:"uh4",n:"側方"},{id:"uh5",n:"対立"},{id:"uh6",n:"円筒"},{id:"uh7",n:"球状"}],
         c: [{id:"uc1",n:"測定障害"},{id:"uc2",n:"振戦"},{id:"uc3",n:"スピード"}],
-        s: [{id:"us1",n:"触覚:上腕/前腕"},{id:"us2",n:"触覚:手掌/手背"},{id:"us3",n:"位置覚:肩"},{id:"us4",n:"位置覚:肘"},{id:"us5",n:"位置覚:手首"},{id:"us6",n:"位置覚:母指"}]
+        s: [{id:"us1",n:"触覚:上/前腕"},{id:"us2",n:"触覚:手掌/背"},{id:"us3",n:"位:肩"},{id:"us4",n:"位:肘"},{id:"us5",n:"位:手首"},{id:"us6",n:"位:母指"}]
     },
     le: {
-        sy: [{id:"lr1",n:"膝屈筋反射"},{id:"lr2",n:"アキレス反射"},{id:"lf1",n:"股屈曲"},{id:"lf2",n:"股外旋/外転"},{id:"lf3",n:"膝屈曲"},{id:"lf4",n:"足背屈"},{id:"le1",n:"股伸展"},{id:"le2",n:"股内転"},{id:"le3",n:"膝伸展"},{id:"le4",n:"足底屈"}],
+        sy: [{id:"lr1",n:"膝屈筋反射"},{id:"lr2",n:"膝伸筋 or アキレス"},{id:"lf1",n:"股屈曲(屈筋)"},{id:"lf2",n:"膝屈曲(屈筋)"},{id:"lf3",n:"足背屈(屈筋)"},{id:"le1",n:"股伸展(伸筋)"},{id:"le2",n:"股内転(伸筋)"},{id:"le3",n:"膝伸展(伸筋)"},{id:"le4",n:"足底屈(伸筋)"}],
         pos: [{id:"lp1",n:"座位:膝屈曲"},{id:"lp2",n:"座位:足背屈"},{id:"lp3",n:"立位:膝屈曲"},{id:"lp4",n:"立位:足背屈"}],
         c: [{id:"lc0",n:"正常反射(V)"},{id:"lc1",n:"測定障害"},{id:"lc2",n:"振戦"},{id:"lc3",n:"スピード"}],
-        s: [{id:"ls1",n:"触覚:大腿/下腿"},{id:"ls2",n:"触覚:足底"},{id:"ls3",n:"位置覚:股"},{id:"ls4",n:"位置覚:膝"},{id:"ls5",n:"位置覚:足首"},{id:"ls6",n:"位置覚:母趾"}]
+        s: [{id:"ls1",n:"触覚:大/下腿"},{id:"ls2",n:"触覚:足底"},{id:"ls3",n:"位:股"},{id:"ls4",n:"位:膝"},{id:"ls5",n:"位:足首"},{id:"ls6",n:"位:母趾"}]
     }
 };
 
@@ -89,40 +85,27 @@ let tab = 'ue';
 function switchTab(t){ tab=t; document.getElementById('tab-ue').className=t==='ue'?'tab active':'tab'; document.getElementById('tab-le').className=t==='le'?'tab active':'tab'; document.getElementById('content-ue').className=t==='ue'?'':'hidden'; document.getElementById('content-le').className=t==='le'?'':'hidden'; calc(); }
 
 function render(){
-    const gen = (sec, target) => {
-        document.getElementById(target).innerHTML = data[target.split('-')[0]][sec].map(i => `<div class="item"><span class="item-name">${i.n}</span><div class="options">${[0,1,2].map(v => `<label><input type="radio" name="${i.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`).join('')}</div></div>`).join('');
-    };
-    ['r1','f','e','m','w','h','c','s'].forEach(s => gen(s, 'ue-'+s));
+    const gen = (s, t) => { document.getElementById(t).innerHTML = data[t.split('-')[0]][s].map(i => `<div class="item"><span class="item-name">${i.n}</span><div class="options">${[0,1,2].map(v => `<label><input type="radio" name="${i.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`).join('')}</div></div>`).join(''); };
+    ['r','f','e','m','w','h','c','s'].forEach(s => gen(s, 'ue-'+s));
     ['sy','pos','c','s'].forEach(s => gen(s, 'le-'+s));
 }
 
 function calc(){
     const sum = (ids) => ids.reduce((a,i) => a + (document.querySelector(`input[name="${i.id}"]:checked`)?.value*1 || 0), 0);
-    const ueItems = [...data.ue.r1, ...data.ue.f, ...data.ue.e, ...data.ue.m, {id:"uw0"}, ...data.ue.w.slice(1), ...data.ue.h, ...data.ue.c];
-    const leItems = [...data.le.sy, ...data.le.pos, ...data.le.c];
-
     if(tab==='ue'){
-        const total = sum(ueItems);
-        const fms = total - sum(data.ue.r1) - sum([{id:"uw0"}]) - sum(data.ue.c);
-        document.getElementById('tot-m').innerText = total + "/66";
-        document.getElementById('fms-val').innerText = fms + "/54";
-        document.getElementById('sens-val').innerText = sum(data.ue.s) + "/12";
-        setSev(total, 43, 29);
+        const ueM = [...data.ue.r, ...data.ue.f, ...data.ue.e, ...data.ue.m, {id:"uw0"}, ...data.ue.w.slice(1), ...data.ue.h, ...data.ue.c];
+        const tot = sum(ueM); const fms = tot - sum(data.ue.r) - sum([{id:"uw0"}]) - sum(data.ue.c);
+        document.getElementById('tot-m').innerText = tot + "/66"; document.getElementById('fms-val').innerText = fms + "/54"; document.getElementById('sens-val').innerText = sum(data.ue.s) + "/12";
+        setSev(tot, 43, 29);
     } else {
-        const total = sum(leItems);
-        const fms = total - sum(data.le.sy.slice(0,2)) - sum([{id:"lc0"}]) - sum(data.le.c.slice(1));
-        document.getElementById('tot-m').innerText = total + "/34";
-        document.getElementById('fms-val').innerText = fms + "/22";
-        document.getElementById('sens-val').innerText = sum(data.le.s) + "/12";
-        setSev(total, 28, 19);
+        const leM = [...data.le.sy, ...data.le.pos, ...data.le.c];
+        const tot = sum(leM); const fms = tot - sum(data.le.sy.slice(0,2)) - sum([{id:"lc0"}]) - sum(data.le.c.slice(1));
+        document.getElementById('tot-m').innerText = tot + "/34"; document.getElementById('fms-val').innerText = fms + "/22"; document.getElementById('sens-val').innerText = sum(data.le.s) + "/12";
+        setSev(tot, 28, 19);
     }
 }
 function setSev(s, l, m){ const el = document.getElementById('sev-bar'); if(s>=l){el.innerText="軽度麻痺";el.style.background="#e1f5fe";}else if(s>=m){el.innerText="中等度麻痺";el.style.background="#fff9c4";}else{el.innerText="重度麻痺";el.style.background="#ffccbc";} }
-
-function copyResult(){
-    const txt = `FMA ${tab.toUpperCase()} 結果\n合計(運動): ${document.getElementById('tot-m').innerText}\nFMS(随意): ${document.getElementById('fms-val').innerText}\n感覚: ${document.getElementById('sens-val').innerText}\n判定: ${document.getElementById('sev-bar').innerText}`;
-    navigator.clipboard.writeText(txt).then(()=>alert("コピーしました"));
-}
+function copyResult(){ const txt = `FMA ${tab.toUpperCase()}結果\n運動合計: ${document.getElementById('tot-m').innerText}\nFMS(随意): ${document.getElementById('fms-val').innerText}\n感覚: ${document.getElementById('sens-val').innerText}\n判定: ${document.getElementById('sev-bar').innerText}`; navigator.clipboard.writeText(txt).then(()=>alert("コピーしました")); }
 render(); switchTab('ue');
 </script>
 </body>
