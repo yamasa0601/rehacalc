@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FMA 運動スコア計算 Pro</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 150px; }
+        h1 { font-size: 1.2rem; text-align: center; margin: 10px 0; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 12px; background: #ddd; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .tab.active { background: var(--primary); color: white; }
+        
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 1rem; margin-top: 0; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); }
+        
+        .item { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .item:last-child { border-bottom: none; }
+        .item-name { font-size: 0.9rem; font-weight: bold; margin-bottom: 6px; display: block; }
+        
+        .options { display: flex; gap: 4px; }
+        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 8px 4px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
+        .options input { display: none; }
+        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 6px; padding: 8px 4px; margin: -8px -4px; }
+
+        /* Footer Result */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .total-box { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; }
+        .total-score { font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+        .severity { font-weight: bold; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem; }
+        .ref-info { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<h1>Fugl-Meyer Assessment (FMA)</h1>
+
+<div class="tabs">
+    <button id="tab-ue" class="tab active" onclick="switchTab('ue')">上肢 (UE)</button>
+    <button id="tab-le" class="tab" onclick="switchTab('le')">下肢 (LE)</button>
+</div>
+
+<div id="content-ue">
+    <div class="section-card">
+        <h2>A. 肩・肘・前腕 (II〜IV)</h2>
+        <div id="ue-a-items"></div>
+    </div>
+    <div class="section-card">
+        <h2>B. 手関節 / C. 手指</h2>
+        <div id="ue-bc-items"></div>
+    </div>
+    <div class="section-card">
+        <h2>D. 協調性 / スピード</h2>
+        <div id="ue-d-items"></div>
+    </div>
+</div>
+
+<div id="content-le" class="hidden">
+    <div class="section-card">
+        <h2>E. 股・膝・足 (II〜IV)</h2>
+        <div id="le-e-items"></div>
+    </div>
+    <div class="section-card">
+        <h2>F. 協調性 / スピード</h2>
+        <div id="le-f-items"></div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="total-box">
+        <div>
+            <span class="total-score" id="total-score">0</span> 
+            <span id="max-label">/ 66</span>
+        </div>
+        <div id="severity-label" class="severity">判定待ち</div>
+    </div>
+    <div class="ref-info">
+        <b>MDC:</b> <span id="mdc-val">5.2</span> pts<br>
+        <b>MCID:</b> <span id="mcid-val">6-8</span> pts
+    </div>
+    <button onclick="copyResult()" style="background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold;">結果コピー</button>
+</div>
+
+<script>
+const ue_items = {
+    a: [
+        {id:"ue_a1", name:"屈曲共同運動 (肩外転/外旋, 肘屈曲, 前腕回外)"},
+        {id:"ue_a2", name:"伸展共同運動 (肩内転/内旋, 肘伸展, 前腕回内)"},
+        {id:"ue_a3", name:"混合: 手を腰の後ろへ回す"},
+        {id:"ue_a4", name:"混合: 肩関節屈曲90度 (肘伸展位)"},
+        {id:"ue_a5", name:"混合: 前腕回内・回外 (肘屈曲90度)"},
+        {id:"ue_a6", name:"分離: 肩関節外転90度 (肘伸展位)"},
+        {id:"ue_a7", name:"分離: 肩関節屈曲90-180度 (肘伸展位)"},
+        {id:"ue_a8", name:"分離: 前腕回内・回外 (肘伸展位)"}
+    ],
+    bc: [
+        {id:"ue_b1", name:"手関節保持 (肘伸展0度)"},
+        {id:"ue_b2", name:"手関節屈曲・伸展 (肘伸展0度)"},
+        {id:"ue_b3", name:"手関節保持 (肘屈曲90度)"},
+        {id:"ue_b4", name:"手関節屈曲・伸展 (肘屈曲90度)"},
+        {id:"ue_b5", name:"手関節回旋"},
+        {id:"ue_c1", name:"手指集団屈曲"},
+        {id:"ue_c2", name:"手指集団伸展"},
+        {id:"ue_c3", name:"鉤状把持 (Hook grasp)"},
+        {id:"ue_c4", name:"側方把持 (Pincer grasp)"},
+        {id:"ue_c5", name:"対立把持 (Opposition grasp)"},
+        {id:"ue_c6", name:"円筒把持"},
+        {id:"ue_c7", name:"球状把持"}
+    ],
+    d: [
+        {id:"ue_d1", name:"測定障害 (Dysmetria)"},
+        {id:"ue_d2", name:"振戦 (Tremor)"},
+        {id:"ue_d3", name:"スピード (非麻痺側との差)"}
+    ]
+};
+
+const le_items = {
+    e: [
+        {id:"le_e1", name:"屈曲共同運動 (股屈曲/外転/外旋, 膝屈曲, 足背屈)"},
+        {id:"le_e2", name:"伸展共同運動 (股伸展/内転, 膝伸展, 足底屈)"},
+        {id:"le_e3", name:"座位: 膝屈曲 (>90度)"},
+        {id:"le_e4", name:"座位: 足背屈"},
+        {id:"le_e5", name:"立位: 膝屈曲 (股関節伸展位で90度)"},
+        {id:"le_e6", name:"立位: 足背屈"}
+    ],
+    f: [
+        {id:"le_f1", name:"測定障害 (Dysmetria)"},
+        {id:"le_f2", name:"振戦 (Tremor)"},
+        {id:"le_f3", name:"スピード (非麻痺側との差)"}
+    ]
+};
+
+let currentTab = 'ue';
+
+function renderItems() {
+    const render = (container, list) => {
+        container.innerHTML = list.map(item => `
+            <div class="item">
+                <span class="item-name">${item.name}</span>
+                <div class="options">
+                    <label><input type="radio" name="${item.id}" value="0" onchange="calculate()"><span>0:不可</span></label>
+                    <label><input type="radio" name="${item.id}" value="1" onchange="calculate()"><span>1:部分</span></label>
+                    <label><input type="radio" name="${item.id}" value="2" onchange="calculate()"><span>2:完全</span></label>
+                </div>
+            </div>
+        `).join('');
+    };
+    render(document.getElementById('ue-a-items'), ue_items.a);
+    render(document.getElementById('ue-bc-items'), ue_items.bc);
+    render(document.getElementById('ue-d-items'), ue_items.d);
+    render(document.getElementById('le-e-items'), le_items.e);
+    render(document.getElementById('le-f-items'), le_items.f);
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tab-ue').classList.toggle('active', tab === 'ue');
+    document.getElementById('tab-le').classList.toggle('active', tab === 'le');
+    document.getElementById('content-ue').classList.toggle('hidden', tab !== 'ue');
+    document.getElementById('content-le').classList.toggle('hidden', tab !== 'le');
+    document.getElementById('max-label').innerText = tab === 'ue' ? '/ 66' : '/ 34';
+    document.getElementById('mdc-val').innerText = tab === 'ue' ? '5.2' : '4.0';
+    document.getElementById('mcid-val').innerText = tab === 'ue' ? '6-8' : '約6';
+    calculate();
+}
+
+function calculate() {
+    const list = currentTab === 'ue' ? [...ue_items.a, ...ue_items.bc, ...ue_items.d] : [...le_items.e, ...le_items.f];
+    let total = 0;
+    list.forEach(item => {
+        const selected = document.querySelector(`input[name="${item.id}"]:checked`);
+        if (selected) total += parseInt(selected.value);
+    });
+
+    // 指導に基づき、反射項目は除外していますが、重症度判定は標準点(66/34)に基づき表示します
+    // ※反射項目(UE:6点, LE:4点)を含まない場合でも資料の基準に準拠
+    document.getElementById('total-score').innerText = total;
+    
+    const sev = document.getElementById('severity-label');
+    if (currentTab === 'ue') {
+        if (total >= 43) { sev.innerText = "軽度"; sev.style.background = "#e1f5fe"; }
+        else if (total >= 29) { sev.innerText = "中等度"; sev.style.background = "#fff9c4"; }
+        else { sev.innerText = "重度"; sev.style.background = "#ffccbc"; }
+    } else {
+        if (total >= 28) { sev.innerText = "軽度"; sev.style.background = "#e1f5fe"; }
+        else if (total >= 19) { sev.innerText = "中等度"; sev.style.background = "#fff9c4"; }
+        else { sev.innerText = "重度"; sev.style.background = "#ffccbc"; }
+    }
+}
+
+function copyResult() {
+    const score = document.getElementById('total-score').innerText;
+    const sev = document.getElementById('severity-label').innerText;
+    const tabName = currentTab === 'ue' ? '上肢(UE)' : '下肢(LE)';
+    const text = `FMA ${tabName} 運動スコア: ${score}点 (判定:${sev})`;
+    navigator.clipboard.writeText(text).then(() => alert("コピーしました"));
+}
+
+renderItems();
+</script>
+</body>
+</html>
