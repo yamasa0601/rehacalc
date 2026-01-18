@@ -3,28 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FMA 評価ツール Pro</title>
+    <title>FMA Pro - 運動・感覚計算</title>
     <style>
-        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 220px; }
-        .tabs { display: flex; gap: 8px; margin-bottom: 15px; position: sticky; top: 10px; z-index: 100; }
-        .tab { flex: 1; padding: 12px; background: #ddd; border: none; border-radius: 10px; font-weight: bold; }
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; --danger: #FF3B30; --success: #34C759; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 240px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 12px; position: sticky; top: 10px; z-index: 100; }
+        .tab { flex: 1; padding: 12px; background: #ddd; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
         .tab.active { background: var(--primary); color: white; }
-        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-        h2 { font-size: 0.95rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 10px 0; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.9rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 10px 0; }
         .item { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .item-name { font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; display: block; line-height: 1.2; }
+        .item-name { font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; display: block; line-height: 1.2; }
         .options { display: flex; gap: 4px; }
-        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 8px 4px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 4px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
         .options input { display: none; }
-        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 6px; padding: 8px 4px; margin: -8px -4px; }
+        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 8px; padding: 10px 4px; margin: -10px -4px; }
+        
         /* Footer UI */
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
-        .score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-        .score-box { background: #f8f8f8; padding: 8px; border-radius: 8px; text-align: center; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .score-box { background: #f1f3f5; padding: 8px; border-radius: 10px; text-align: center; }
         .score-val { font-size: 1.3rem; font-weight: bold; color: var(--primary); display: block; }
-        .score-label { font-size: 0.65rem; color: var(--muted); }
-        .severity { font-weight: bold; padding: 8px; border-radius: 8px; text-align: center; grid-column: span 2; font-size: 0.9rem; }
+        .score-label { font-size: 0.6rem; color: var(--muted); font-weight: bold; }
+        .severity-bar { grid-column: span 3; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.9rem; margin-top: 5px; }
+        .btn-copy { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
         .hidden { display: none; }
     </style>
 </head>
@@ -36,9 +38,9 @@
 </div>
 
 <div id="content-ue">
-    <div class="section-card"><h2>I. 反射 (Reflex)</h2><div id="ue-r"></div></div>
-    <div class="section-card"><h2>II. 屈曲共同運動</h2><div id="ue-f"></div></div>
-    <div class="section-card"><h2>II. 伸展共同運動</h2><div id="ue-e"></div></div>
+    <div class="section-card"><h2>I. 反射 (Reflex)</h2><div id="ue-r1"></div></div>
+    <div class="section-card"><h2>II. 共同運動 (屈筋)</h2><div id="ue-f"></div></div>
+    <div class="section-card"><h2>II. 共同運動 (伸筋)</h2><div id="ue-e"></div></div>
     <div class="section-card"><h2>III. 混合 / IV. 分離</h2><div id="ue-m"></div></div>
     <div class="section-card"><h2>V. 正常反射 / VI. 手関節</h2><div id="ue-w"></div></div>
     <div class="section-card"><h2>VII. 手指</h2><div id="ue-h"></div></div>
@@ -47,39 +49,39 @@
 </div>
 
 <div id="content-le" class="hidden">
-    <div class="section-card"><h2>I. 反射 / II. 共同運動</h2><div id="le-r"></div></div>
-    <div class="section-card"><h2>III. 座位 / IV. 立位</h2><div id="le-v"></div></div>
+    <div class="section-card"><h2>I. 反射 / II. 共同運動</h2><div id="le-sy"></div></div>
+    <div class="section-card"><h2>III. 座位 / IV. 立位</h2><div id="le-pos"></div></div>
     <div class="section-card"><h2>V. 正常反射 / VI. 協調性</h2><div id="le-c"></div></div>
     <div class="section-card"><h2>感覚 (Sensation)</h2><div id="le-s"></div></div>
 </div>
 
 <div class="footer">
-    <div class="score-row">
-        <div class="score-box"><span class="score-label">合計 (運動)</span><span id="total-m" class="score-val">0</span></div>
+    <div class="score-grid">
+        <div class="score-box"><span class="score-label">合計 (運動)</span><span id="tot-m" class="score-val">0</span></div>
         <div class="score-box"><span class="score-label">FMS (随意)</span><span id="fms-val" class="score-val">0</span></div>
         <div class="score-box"><span class="score-label">感覚 (/12)</span><span id="sens-val" class="score-val">0</span></div>
-        <div id="sev-label" class="severity">判定中...</div>
+        <div id="sev-bar" class="severity-bar">判定中...</div>
     </div>
-    <button onclick="copyResult()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold;">結果をコピー</button>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
 </div>
 
 <script>
-const items = {
+const data = {
     ue: {
-        r: [{id:"ur1",n:"上腕二頭筋反射"},{id:"ur2",n:"手指屈筋反射"},{id:"ur3",n:"上腕三頭筋反射"}],
-        f: [{id:"uf1",n:"肩甲骨:後退"},{id:"uf2",n:"肩甲骨:挙上"},{id:"uf3",n:"肩関節:外転"},{id:"uf4",n:"肩関節:外旋"},{id:"uf5",n:"肘関節:屈曲"},{id:"uf6",n:"前腕:回外"}],
-        e: [{id:"ue1",n:"肩関節:内転/内旋"},{id:"ue2",n:"肘関節:伸展"},{id:"ue3",n:"前腕:回内"}],
-        m: [{id:"um1",n:"手を腰の後ろへ回す"},{id:"um2",n:"肩屈曲90度(肘伸展)"},{id:"um3",n:"前腕回内/回外(肘90度)"},{id:"us1",n:"肩外転90度(肘伸展)"},{id:"us2",n:"肩屈曲90-180度"},{id:"us3",n:"前腕回内/回外(肘伸展)"}],
-        w: [{id:"uw0",n:"正常反射(V)"},{id:"uw1",n:"手関節保持(肘伸展)"},{id:"uw2",n:"手関節屈曲/伸展(肘伸展)"},{id:"uw3",n:"手関節保持(肘屈曲)"},{id:"uw4",n:"手関節屈曲/伸展(肘屈曲)"},{id:"uw5",n:"手関節回旋"}],
+        r1: [{id:"ur1",n:"二頭筋反射"},{id:"ur2",n:"手指屈筋反射"},{id:"ur3",n:"三頭筋反射"}],
+        f: [{id:"uf1",n:"肩甲骨後退"},{id:"uf2",n:"肩甲骨挙上"},{id:"uf3",n:"肩外転"},{id:"uf4",n:"肩外旋"},{id:"uf5",n:"肘屈曲"},{id:"uf6",n:"前腕回外"}],
+        e: [{id:"ue1",n:"肩内転/内旋"},{id:"ue2",n:"肘伸展"},{id:"ue3",n:"前腕回内"}],
+        m: [{id:"um1",n:"手を腰へ回す"},{id:"um2",n:"肩屈曲90(肘伸)"},{id:"um3",n:"回内/外(肘90)"},{id:"um4",n:"肩外転90(肘伸)"},{id:"um5",n:"肩屈曲90-180"},{id:"um6",n:"回内/外(肘伸)"}],
+        w: [{id:"uw0",n:"正常反射(V)"},{id:"uw1",n:"保持(肘伸)"},{id:"uw2",n:"屈伸(肘伸)"},{id:"uw3",n:"保持(肘90)"},{id:"uw4",n:"屈伸(肘90)"},{id:"uw5",n:"回旋"}],
         h: [{id:"uh1",n:"集団屈曲"},{id:"uh2",n:"集団伸展"},{id:"uh3",n:"鉤状把持"},{id:"uh4",n:"側方把持"},{id:"uh5",n:"対立把持"},{id:"uh6",n:"円筒把持"},{id:"uh7",n:"球状把持"}],
         c: [{id:"uc1",n:"測定障害"},{id:"uc2",n:"振戦"},{id:"uc3",n:"スピード"}],
-        s: [{id:"us_t1",n:"触覚:上腕/前腕"},{id:"us_t2",n:"触覚:手掌/手背"},{id:"us_p1",n:"位置覚:肩"},{id:"us_p2",n:"位置覚:肘"},{id:"us_p3",n:"位置覚:手関節"},{id:"us_p4",n:"位置覚:母指"}]
+        s: [{id:"us1",n:"触覚:上腕/前腕"},{id:"us2",n:"触覚:手掌/手背"},{id:"us3",n:"位置覚:肩"},{id:"us4",n:"位置覚:肘"},{id:"us5",n:"位置覚:手首"},{id:"us6",n:"位置覚:母指"}]
     },
     le: {
-        r: [{id:"lr1",n:"膝屈筋反射"},{id:"lr2",n:"アキレス腱反射"},{id:"lf1",n:"股屈曲"},{id:"lf2",n:"膝屈曲"},{id:"lf3",n:"足背屈"},{id:"le1",n:"股伸展/内転"},{id:"le2",n:"膝伸展"},{id:"le3",n:"足底屈"}],
-        v: [{id:"lv1",n:"座位膝屈曲"},{id:"lv2",n:"座位足背屈"},{id:"lv3",n:"立位膝屈曲"},{id:"lv4",n:"立位足背屈"}],
+        sy: [{id:"lr1",n:"膝屈筋反射"},{id:"lr2",n:"アキレス反射"},{id:"lf1",n:"股屈曲"},{id:"lf2",n:"股外旋/外転"},{id:"lf3",n:"膝屈曲"},{id:"lf4",n:"足背屈"},{id:"le1",n:"股伸展"},{id:"le2",n:"股内転"},{id:"le3",n:"膝伸展"},{id:"le4",n:"足底屈"}],
+        pos: [{id:"lp1",n:"座位:膝屈曲"},{id:"lp2",n:"座位:足背屈"},{id:"lp3",n:"立位:膝屈曲"},{id:"lp4",n:"立位:足背屈"}],
         c: [{id:"lc0",n:"正常反射(V)"},{id:"lc1",n:"測定障害"},{id:"lc2",n:"振戦"},{id:"lc3",n:"スピード"}],
-        s: [{id:"ls_t1",n:"触覚:大腿/下腿"},{id:"ls_t2",n:"触覚:足底"},{id:"ls_p1",n:"位置覚:股"},{id:"ls_p2",n:"位置覚:膝"},{id:"ls_p3",n:"位置覚:足関節"},{id:"ls_p4",n:"位置覚:母趾"}]
+        s: [{id:"ls1",n:"触覚:大腿/下腿"},{id:"ls2",n:"触覚:足底"},{id:"ls3",n:"位置覚:股"},{id:"ls4",n:"位置覚:膝"},{id:"ls5",n:"位置覚:足首"},{id:"ls6",n:"位置覚:母趾"}]
     }
 };
 
@@ -87,35 +89,39 @@ let tab = 'ue';
 function switchTab(t){ tab=t; document.getElementById('tab-ue').className=t==='ue'?'tab active':'tab'; document.getElementById('tab-le').className=t==='le'?'tab active':'tab'; document.getElementById('content-ue').className=t==='ue'?'':'hidden'; document.getElementById('content-le').className=t==='le'?'':'hidden'; calc(); }
 
 function render(){
-    const r = (cat, id) => {
-        document.getElementById(id).innerHTML = items[id.split('-')[0]][cat].map(i => `<div class="item"><span class="item-name">${i.n}</span><div class="options">${[0,1,2].map(v => `<label><input type="radio" name="${i.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`).join('')}</div></div>`).join('');
+    const gen = (sec, target) => {
+        document.getElementById(target).innerHTML = data[target.split('-')[0]][sec].map(i => `<div class="item"><span class="item-name">${i.n}</span><div class="options">${[0,1,2].map(v => `<label><input type="radio" name="${i.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`).join('')}</div></div>`).join('');
     };
-    ['r','f','e','m','w','h','c','s'].forEach(c => r(c,'ue-'+c));
-    ['r','v','c','s'].forEach(c => r(c,'le-'+c));
+    ['r1','f','e','m','w','h','c','s'].forEach(s => gen(s, 'ue-'+s));
+    ['sy','pos','c','s'].forEach(s => gen(s, 'le-'+s));
 }
 
 function calc(){
-    const getS = (ids) => ids.reduce((a,i) => a + (document.querySelector(`input[name="${i.id}"]:checked`)?.value*1 || 0), 0);
-    const ueM = items.ue.r.concat(items.ue.f, items.ue.e, items.ue.m, items.ue.w, items.ue.h, items.ue.c);
-    const leM = items.le.r.concat(items.le.v, items.le.c);
-    const uS = items.ue.s, lS = items.le.s;
+    const sum = (ids) => ids.reduce((a,i) => a + (document.querySelector(`input[name="${i.id}"]:checked`)?.value*1 || 0), 0);
+    const ueItems = [...data.ue.r1, ...data.ue.f, ...data.ue.e, ...data.ue.m, {id:"uw0"}, ...data.ue.w.slice(1), ...data.ue.h, ...data.ue.c];
+    const leItems = [...data.le.sy, ...data.le.pos, ...data.le.c];
 
     if(tab==='ue'){
-        const tot = getS(ueM), ref = getS(items.ue.r)+getS([{id:"uw0"}]), co = getS(items.ue.c);
-        $("total-m", tot+"/66"); $("fms-val", (tot-ref-co)+"/57"); $("sens-val", getS(uS));
-        setSev(tot, 43, 29);
+        const total = sum(ueItems);
+        const fms = total - sum(data.ue.r1) - sum([{id:"uw0"}]) - sum(data.ue.c);
+        document.getElementById('tot-m').innerText = total + "/66";
+        document.getElementById('fms-val').innerText = fms + "/54";
+        document.getElementById('sens-val').innerText = sum(data.ue.s) + "/12";
+        setSev(total, 43, 29);
     } else {
-        const tot = getS(leM), ref = getS(items.le.r.slice(0,2))+getS([{id:"lc0"}]), co = getS(items.le.c.slice(1));
-        $("total-m", tot+"/34"); $("fms-val", (tot-ref-co)+"/26"); $("sens-val", getS(lS));
-        setSev(tot, 28, 19);
+        const total = sum(leItems);
+        const fms = total - sum(data.le.sy.slice(0,2)) - sum([{id:"lc0"}]) - sum(data.le.c.slice(1));
+        document.getElementById('tot-m').innerText = total + "/34";
+        document.getElementById('fms-val').innerText = fms + "/22";
+        document.getElementById('sens-val').innerText = sum(data.le.s) + "/12";
+        setSev(total, 28, 19);
     }
 }
-function $(id, v){ document.getElementById(id).innerText = v; }
-function setSev(s, l, m){ const el = document.getElementById('sev-label'); if(s>=l){el.innerText="軽度";el.style.background="#e1f5fe";}else if(s>=m){el.innerText="中等度";el.style.background="#fff9c4";}else{el.innerText="重度";el.style.background="#ffccbc";} }
+function setSev(s, l, m){ const el = document.getElementById('sev-bar'); if(s>=l){el.innerText="軽度麻痺";el.style.background="#e1f5fe";}else if(s>=m){el.innerText="中等度麻痺";el.style.background="#fff9c4";}else{el.innerText="重度麻痺";el.style.background="#ffccbc";} }
 
 function copyResult(){
-    const t = `FMA ${tab.toUpperCase()}結果\n運動合計: ${document.getElementById('total-m').innerText}\nFMS(随意性): ${document.getElementById('fms-val').innerText}\n感覚: ${document.getElementById('sens-val').innerText}\n判定: ${document.getElementById('sev-label').innerText}`;
-    navigator.clipboard.writeText(t).then(()=>alert("コピーしました"));
+    const txt = `FMA ${tab.toUpperCase()} 結果\n合計(運動): ${document.getElementById('tot-m').innerText}\nFMS(随意): ${document.getElementById('fms-val').innerText}\n感覚: ${document.getElementById('sens-val').innerText}\n判定: ${document.getElementById('sev-bar').innerText}`;
+    navigator.clipboard.writeText(txt).then(()=>alert("コピーしました"));
 }
 render(); switchTab('ue');
 </script>
