@@ -2,60 +2,66 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>リハ計算（10m歩行・HHD）</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+  <title>リハ計算 Pro (10m歩行 & HHD)</title>
 
   <style>
-    :root { --gap: 12px; --radius: 14px; --bg: #f6f7fb; --card: #fff; --text:#111; --muted:#666; --danger:#b00020; }
+    :root { --gap: 12px; --radius: 14px; --bg: #f6f7fb; --card: #fff; --text:#111; --muted:#666; --danger:#FF3B30; --primary:#007AFF; --success:#34C759; --info:#5856D6; }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP","Apple Color Emoji","Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP"; background: var(--bg); color: var(--text); padding-bottom: 20px; }
     header { padding: 18px 16px 10px; max-width: 980px; margin: 0 auto; }
     header h1 { margin: 0; font-size: 18px; }
     header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
     main { padding: 12px 16px 20px; max-width: 980px; margin: 0 auto; }
-    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 0; }
-    .tabbtn { border:1px solid #e0e2ea; background:#fff; padding: 10px 12px; border-radius: 999px; font-size: 13px; cursor:pointer; }
+    
+    /* Tabs */
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 15px; }
+    .tabbtn { border:1px solid #e0e2ea; background:#fff; padding: 10px 16px; border-radius: 999px; font-size: 13px; cursor:pointer; font-weight: bold; }
     .tabbtn.active { background:#111; color:#fff; border-color:#111; }
+    
     .grid { display: grid; grid-template-columns: 1fr; gap: var(--gap); margin-top: 12px; }
     @media (min-width: 920px) { .grid { grid-template-columns: 1fr 1fr; } }
-    .card { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
-    .card h2 { margin: 0 0 10px; font-size: 15px; }
-    .row { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 10px 0; }
-    label { font-size: 12px; color: var(--muted); }
-    input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; }
+    
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.06); height: fit-content; }
+    .card h2 { margin: 0 0 12px; font-size: 15px; border-left: 4px solid var(--primary); padding-left: 8px; }
+
+    /* Mode Selector (for Gait) */
+    .mode-selector { display: flex; background: #eee; padding: 2px; border-radius: 10px; margin-bottom: 15px; }
+    .mode-selector label { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 13px; border-radius: 8px; position: relative; }
+    .mode-selector input { display: none; }
+    .mode-selector input:checked + span { background: white; display: block; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-weight: bold; }
+    
+    /* Timer Display */
+    .timer-container { text-align: center; margin: 10px 0; background: #f9f9f9; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+    .timer-display { font-size: 3.2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); margin-bottom: 8px; }
+    
+    /* Feedback Area */
+    .feedback-area { margin-top: 12px; padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; background: #f0f4ff; border: 1px solid #d0daff; }
+    
+    /* Inputs & KV */
+    .row { display: grid; grid-template-columns: 1fr; gap: 6px; margin: 12px 0; }
+    label { font-size: 12px; color: var(--muted); font-weight: bold; }
+    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; }
     .kv { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; }
     .kv:last-child { border-bottom: 0; }
-    .k { color: var(--muted); }
-    .v { font-variant-numeric: tabular-nums; font-weight: 800; text-align:right; }
-    .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .footer { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
-    button { appearance:none; border:0; background:#111; color:#fff; padding: 10px 12px; border-radius: 12px; font-size: 14px; cursor:pointer; }
-    button.btn2 { background:#f0f1f5; color:#111; border: 1px solid #e0e2ea; }
-    .actions { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
-    .err { color: var(--danger); font-size: 13px; margin-top: 8px; display:none; }
-    .pill { display:inline-flex; gap:8px; align-items:center; padding: 8px 10px; border-radius: 999px; background:#f0f1f5; font-size: 12px; color:#333; flex-wrap: wrap; }
-    .toggle { display:flex; gap:8px; align-items:center; }
-    .toggle input { width: 20px; height: 20px; }
-    details { background:#fafbfe; border:1px solid #e8eaf2; border-radius: 12px; padding: 10px 12px; }
-    summary { cursor:pointer; font-weight: 700; }
-    ul { margin: 10px 0 0; padding-left: 18px; color:#333; }
-    li { margin: 6px 0; }
-    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#f0f1f5; font-size: 12px; color:#333; margin-left: 6px; }
-    .mini { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .v { font-variant-numeric: tabular-nums; font-weight: 800; text-align:right; color: var(--primary); }
+    
+    /* Buttons */
+    .actions { display:flex; gap: 10px; margin-top: 10px; }
+    button { appearance:none; border:0; background: var(--primary); color:#fff; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor:pointer; flex: 1; }
+    button.btn-stop { background: var(--danger); }
+    button.btn-reset { background:#f0f1f5; color:#111; border: 1px solid #e0e2ea; }
+    .btn-copy { background: var(--success); margin-top: 15px; width: 100%; }
+    
     .hidden { display:none !important; }
+    .mini { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    details { background:#fafbfe; border:1px solid #e8eaf2; border-radius: 10px; padding: 10px; margin-top: 10px; }
+    summary { cursor:pointer; font-weight: bold; font-size: 13px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>リハ計算（10m歩行・HHD）</h1>
-    <p>このページは<strong>サーバー不要</strong>で計算します（PCを閉じてもOK）。ホーム画面に追加して普段使いできます。</p>
+    <h1>リハ計算 Pro</h1>
     <div class="tabs">
       <button class="tabbtn active" data-tab="gait">10m歩行</button>
       <button class="tabbtn" data-tab="hhd">HHD（筋力→トルク）</button>
@@ -63,146 +69,99 @@
   </header>
 
   <main>
-    <!-- 10m gait -->
     <section id="tab-gait">
       <div class="grid">
         <section class="card">
-          <h2>入力（10m固定）</h2>
-
-          <div class="row">
-            <label for="time_sec">所要時間（秒）</label>
-            <input id="time_sec" inputmode="decimal" placeholder="例：8.5" />
-            <div class="sub">10m歩行にかかった時間</div>
+          <h2>計測：10m歩行</h2>
+          <div class="mode-selector">
+            <label><input type="radio" name="gait-mode" value="stroke" checked onchange="recalcGait()"><span>脳卒中</span></label>
+            <label><input type="radio" name="gait-mode" value="loco" onchange="recalcGait()"><span>運動器・高齢者</span></label>
+          </div>
+          
+          <div class="timer-container">
+            <div id="gait-timer" class="timer-display">0.00</div>
+            <div class="actions">
+              <button id="gait-start-stop">スタート</button>
+              <button id="reset_gait" class="btn-reset">リセット</button>
+            </div>
           </div>
 
           <div class="row">
             <label for="steps_gait">歩数（歩）</label>
-            <input id="steps_gait" inputmode="decimal" placeholder="例：14" />
-            <div class="sub">10m歩行中の歩数</div>
+            <input id="steps_gait" type="number" inputmode="numeric" placeholder="例：14" />
           </div>
 
-          <div class="actions">
-            <button id="reset_gait" class="btn2">リセット</button>
-          </div>
-
-          <div id="err_gait" class="err"></div>
+          <div id="gait-feedback" class="feedback-area">計測を開始してください。</div>
         </section>
 
         <section class="card">
-          <h2>結果</h2>
-          <div class="kv"><div class="k">歩行速度</div><div class="v" id="speed">-</div></div>
-          <div class="kv"><div class="k">平均歩幅</div><div class="v" id="step_len">-</div></div>
-          <div class="kv"><div class="k">ケイデンス</div><div class="v" id="cadence">-</div></div>
-          <div class="footer">距離：10m固定。速度は m/s・m/分・km/h を併記します。</div>
+          <h2>計算結果と判定</h2>
+          <div class="kv"><div class="k">歩行速度 (m/s)</div><div class="v" id="speed_mps">-</div></div>
+          <div class="kv"><div class="k">分速 (m/min)</div><div class="v" id="speed_mpm">-</div></div>
+          <div class="kv"><div class="k">平均歩幅 (cm)</div><div class="v" id="step_len">-</div></div>
+          <div class="kv"><div class="k">ケイデンス (歩/分)</div><div class="v" id="cadence">-</div></div>
+          
+          <button id="copy_gait" class="btn-copy">結果と判定をコピー</button>
+
+          <details id="ref-details">
+            <summary>臨床指標・カットオフ</summary>
+            <div id="ref-content" class="mini"></div>
+          </details>
         </section>
       </div>
     </section>
 
-    <!-- HHD -->
     <section id="tab-hhd" class="hidden">
       <div class="grid">
         <section class="card">
-          <h2>入力</h2>
-
-          <div class="pill">
-            <div class="toggle">
-              <input type="checkbox" id="lock_bw" checked />
-              <label for="lock_bw" style="margin:0;color:#333;">体重を固定</label>
-            </div>
-            <span class="mini">固定ONだと体重欄は編集不可・端末に保存（iPhoneでも保持）</span>
-          </div>
-
+          <h2>入力：HHD (N)</h2>
           <div class="row">
             <label for="bodyweight_kg">体重（kg）</label>
-            <input id="bodyweight_kg" inputmode="decimal" placeholder="例：60" />
+            <input id="bodyweight_kg" type="number" inputmode="decimal" placeholder="例：60" />
+            <div class="mini"><input type="checkbox" id="lock_bw" checked /> 体重をこの端末に保存する</div>
           </div>
-
           <div class="row">
             <label for="moment_arm_cm">モーメントアーム（cm）</label>
-            <input id="moment_arm_cm" inputmode="decimal" placeholder="例：30" />
-            <div class="sub">※右左共通の想定</div>
+            <input id="moment_arm_cm" type="number" inputmode="decimal" placeholder="例：30" />
           </div>
-
           <div class="row">
-            <label for="right_n">右の筋力（N）</label>
-            <input id="right_n" inputmode="decimal" placeholder="例：250" />
+            <label for="right_n">右 筋力（N）</label>
+            <input id="right_n" type="number" inputmode="decimal" placeholder="例：250" />
           </div>
-
           <div class="row">
-            <label for="left_n">左の筋力（N）</label>
-            <input id="left_n" inputmode="decimal" placeholder="例：230" />
+            <label for="left_n">左 筋力（N）</label>
+            <input id="left_n" type="number" inputmode="decimal" placeholder="例：230" />
           </div>
-
-          <div class="actions">
-            <button id="reset_hhd" class="btn2">入力をクリア</button>
-            <button id="clear_bw" class="btn2">体重保存を消す</button>
-          </div>
-
-          <div id="err_hhd" class="err"></div>
-
-          <div style="margin-top:12px;">
-            <details>
-              <summary>基準値（参考指標）</summary>
-              <div class="mini">※ユーザー提供の参考値をそのまま表示しています。</div>
-              <ul>
-                <li>膝折れカットオフ値：0.4 Nm/kg</li>
-                <li>膝伸展MMT3レベル：0.6 Nm/kg</li>
-                <li>60歳女性：1.4 Nm/kg</li>
-                <li>60歳男性：1.9 Nm/kg</li>
-                <li>70歳男性：1.7 Nm/kg</li>
-                <li>大腿骨頸部骨折の健側：0.78 Nm/kg</li>
-                <li>階段16.5cm,16段可能：1.2 Nm/kg</li>
-                <li>10cm段差：0.6 / 0.45 Nm/kg</li>
-                <li>20cm：1.0 / 0.57 Nm/kg</li>
-                <li>30cm：1.2 / 0.81 Nm/kg</li>
-              </ul>
-            </details>
-          </div>
+          <button id="reset_hhd" class="btn-reset" style="width:100%;">入力をクリア</button>
         </section>
 
         <section class="card">
-          <h2>結果</h2>
+          <h2>トルク計算結果</h2>
           <div class="kv"><div class="k">右トルク</div><div class="v" id="rtq">-</div></div>
           <div class="kv"><div class="k">左トルク</div><div class="v" id="ltq">-</div></div>
-          <div class="kv"><div class="k">右 体重補正</div><div class="v" id="rtq_bw">-</div></div>
-          <div class="kv"><div class="k">左 体重補正</div><div class="v" id="ltq_bw">-</div></div>
-          <div class="kv"><div class="k">左右差（右−左）</div><div class="v" id="diff">-</div></div>
-          <div class="kv"><div class="k">左右比（小/大）</div><div class="v" id="ratio">-</div></div>
-          <div class="kv"><div class="k">左右差率（|差|/平均）</div><div class="v" id="si">-</div></div>
-
-          <div style="margin-top:12px;">
-            <details open>
-              <summary>参考：2つのカットオフとの比較（Nm/kg）</summary>
-              <div class="mini">※表示は“参考”。数値の意味づけは用途に合わせて解釈してください。</div>
-              <div class="kv"><div class="k">0.4（膝折れカットオフ）</div><div class="v" id="thr04">-</div></div>
-              <div class="kv"><div class="k">0.6（膝伸展MMT3）</div><div class="v" id="thr06">-</div></div>
-            </details>
-          </div>
-
-          <div class="footer">体重補正は <b>Nm/kg</b>（トルク÷体重）。</div>
+          <div class="kv"><div class="k">右 体重補正 (Nm/kg)</div><div class="v" id="rtq_bw">-</div></div>
+          <div class="kv"><div class="k">左 体重補正 (Nm/kg)</div><div class="v" id="ltq_bw">-</div></div>
+          <div class="kv"><div class="k">左右差率 (SI)</div><div class="v" id="si">-</div></div>
+          
+          <details>
+            <summary>判定の目安 (Nm/kg)</summary>
+            <ul class="mini">
+              <li>0.4：膝折れカットオフ</li>
+              <li>0.6：膝伸展MMT3レベル</li>
+              <li>1.2：階段昇降自立の目安</li>
+            </ul>
+          </details>
         </section>
       </div>
     </section>
   </main>
 
 <script>
-  // PWA SW
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js");
-  }
-
   const DIST_M = 10.0;
   const $ = (id) => document.getElementById(id);
+  function toNum(x) { return parseFloat(String(x).replace(/,/g, "")) || 0; }
 
-  function toNum(x) {
-    const s = String(x ?? "").trim().replaceAll(",", "");
-    if (!s) return NaN;
-    const n = Number(s);
-    return Number.isFinite(n) ? n : NaN;
-  }
-  function fmt(n, digits=2) { return Number.isFinite(n) ? n.toFixed(digits) : "-"; }
-
-  // Tabs
+  // --- Tab Control ---
   document.querySelectorAll(".tabbtn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tabbtn").forEach(b => b.classList.remove("active"));
@@ -213,145 +172,112 @@
     });
   });
 
-  // --- Gait calc ---
+  // --- 10m Gait Logic ---
+  let gaitTimer = null;
+  let gaitStartTime = 0;
+  let gaitElapsedTime = 0;
+
+  function toggleGaitTimer() {
+    const btn = $("gait-start-stop");
+    if (!gaitTimer) {
+      gaitStartTime = Date.now() - (gaitElapsedTime * 1000);
+      gaitTimer = setInterval(() => {
+        gaitElapsedTime = (Date.now() - gaitStartTime) / 1000;
+        $("gait-timer").innerText = gaitElapsedTime.toFixed(2);
+      }, 10);
+      btn.innerText = "ストップ"; btn.className = "btn-stop";
+    } else {
+      clearInterval(gaitTimer); gaitTimer = null;
+      btn.innerText = "再開"; btn.className = "";
+      recalcGait();
+    }
+  }
+
   function recalcGait() {
-    const t = toNum($("time_sec").value);
+    const t = gaitElapsedTime;
     const steps = toNum($("steps_gait").value);
-    const err = $("err_gait");
-    err.style.display = "none"; err.textContent = "";
+    const mode = document.querySelector('input[name="gait-mode"]:checked').value;
+    
+    if (t > 0) {
+      const mps = DIST_M / t;
+      $("speed_mps").innerText = mps.toFixed(2);
+      $("speed_mpm").innerText = (mps * 60).toFixed(1);
+      
+      let cad = 0, slen = 0;
+      if (steps > 0) {
+        slen = (DIST_M / steps) * 100;
+        cad = (steps / t) * 60;
+        $("step_len").innerText = slen.toFixed(1) + " cm";
+        $("cadence").innerText = cad.toFixed(1);
+      }
 
-    if (!Number.isFinite(t) || !Number.isFinite(steps)) {
-      $("speed").textContent = "-";
-      $("step_len").textContent = "-";
-      $("cadence").textContent = "-";
-      return;
+      let fb = "", ref = "";
+      if (mode === "stroke") {
+        [cite_start]if (mps >= 0.8) fb = "<b>Community (屋外自立)</b><br>自立した屋外歩行が可能な速度です [cite: 2]。";
+        [cite_start]else if (mps >= 0.4) fb = "<b>Limited Community (制限的屋外)</b><br>近隣商店などの歩行が可能な範囲です [cite: 2]。";
+        [cite_start]else fb = "<b>Household (屋内自立)</b><br>主な移動は屋内が中心となる速度です [cite: 2]。";
+        
+        [cite_start]if (mps >= 0.66) fb += "<br>※Community walkersの閾値(0.66)を超えています [cite: 2]。";
+        [cite_start]ref = "MCID: 0.16-0.19 m/s [cite: 6][cite_start]<br>MDC: 亜急性期 0.05-0.21 m/s [cite: 4][cite_start]<br>平均: 亜急性 0.36 / 慢性 0.56 m/s [cite: 2]";
+      } else {
+        if (t <= 7.84) fb = "<b>70代通常歩行以上</b><br>年齢相応の良好な歩行速度です。";
+        else if (t <= 11.6) fb = "<b>屋外歩行可能レベル</b>";
+        else if (t <= 15.1) fb = "<b>屋外活動性が低い</b>";
+        else fb = "<b>屋内移動レベル</b><br>介助や環境調整の検討を推奨します。";
+        
+        if (steps > 0 && (cad < 90 || cad > 120)) fb += `<br><span style="color:var(--danger)">※ケイデンスが標準範囲(90-120)外です。</span>`;
+        ref = "10秒:通常高齢者 / 11.6秒:屋外歩行可<br>15.1秒:屋外活動低値 / 24.6秒:屋内移動";
+      }
+      $("gait-feedback").innerHTML = fb;
+      $("ref-content").innerHTML = ref;
     }
-    if (t <= 0 || steps <= 0) {
-      $("speed").textContent = "-";
-      $("step_len").textContent = "-";
-      $("cadence").textContent = "-";
-      err.textContent = "所要時間（秒）と歩数（歩）は0より大きい値を入力してください。";
-      err.style.display = "block";
-      return;
-    }
-    const speed_mps = DIST_M / t;
-    const speed_mpm = speed_mps * 60;
-    const speed_kph = speed_mps * 3.6;
-    const step_len_m = DIST_M / steps;
-    const step_len_cm = step_len_m * 100;
-    const cadence_spm = steps / t * 60;
-
-    $("speed").textContent = `${fmt(speed_mps,2)} m/s（${fmt(speed_mpm,1)} m/分 / ${fmt(speed_kph,1)} km/h）`;
-    $("step_len").textContent = `${fmt(step_len_m,3)} m/歩（${fmt(step_len_cm,1)} cm/歩）`;
-    $("cadence").textContent = `${fmt(cadence_spm,1)} 歩/分`;
   }
-  ["time_sec","steps_gait"].forEach(id => {
-    $(id).addEventListener("input", recalcGait);
-    $(id).addEventListener("change", recalcGait);
-  });
+
+  $("gait-start-stop").addEventListener("click", toggleGaitTimer);
+  $("steps_gait").addEventListener("input", recalcGait);
   $("reset_gait").addEventListener("click", () => {
-    $("time_sec").value = ""; $("steps_gait").value = "";
-    $("speed").textContent = "-"; $("step_len").textContent = "-"; $("cadence").textContent = "-";
-    $("err_gait").style.display = "none";
+    clearInterval(gaitTimer); gaitTimer = null; gaitElapsedTime = 0;
+    $("gait-timer").innerText = "0.00"; $("gait-start-stop").innerText = "スタート"; $("gait-start-stop").className = "";
+    $("steps_gait").value = ""; $("gait-feedback").innerHTML = "計測を開始してください。";
+    ["speed_mps","speed_mpm","step_len","cadence"].forEach(id => $(id).innerText = "-");
   });
 
-  // --- HHD calc ---
-  function setBWEditable() {
-    const locked = $("lock_bw").checked;
-    $("bodyweight_kg").disabled = locked;
-    $("bodyweight_kg").style.opacity = locked ? 0.7 : 1.0;
-  }
-  function loadBW() {
-    const saved = localStorage.getItem("musclecalc_bw_kg");
-    if (saved) $("bodyweight_kg").value = saved;
-  }
-  function saveBWIfLocked() {
-    if ($("lock_bw").checked) {
-      const v = $("bodyweight_kg").value.trim();
-      if (v !== "") localStorage.setItem("musclecalc_bw_kg", v);
-    }
-  }
-  function cmp(value, thr) {
-    if (!Number.isFinite(value) || value <= 0) return "—";
-    return (value >= thr) ? "◯ 以上" : "× 未満";
-  }
-  function recalcHHD() {
-    saveBWIfLocked();
+  $("copy_gait").addEventListener("click", () => {
+    const mode = document.querySelector('input[name="gait-mode"]:checked').value === "stroke" ? "脳卒中" : "運動器";
+    const res = `【10m歩行 - ${mode}】\n時間:${$("gait-timer").innerText}s, 速度:${$("speed_mps").innerText}m/s, 歩幅:${$("step_len").innerText}, Cadence:${$("cadence").innerText}\n判定:${$("gait-feedback").innerText.replace(/\n/g, "")}`;
+    navigator.clipboard.writeText(res).then(() => alert("コピーしました"));
+  });
 
+  // --- HHD Logic ---
+  function recalcHHD() {
     const bw = toNum($("bodyweight_kg").value);
-    const arm_cm = toNum($("moment_arm_cm").value);
+    const arm = toNum($("moment_arm_cm").value);
     const rn = toNum($("right_n").value);
     const ln = toNum($("left_n").value);
 
-    const err = $("err_hhd");
-    err.style.display = "none"; err.textContent = "";
-
-    if (![bw, arm_cm, rn, ln].some(Number.isFinite)) {
-      ["rtq","ltq","rtq_bw","ltq_bw","diff","ratio","si","thr04","thr06"].forEach(id => $(id).textContent = "-");
-      return;
+    if (bw > 0 && arm > 0) {
+      if ($("lock_bw").checked) localStorage.setItem("rehacalc_bw", bw);
+      const rtq = rn * (arm / 100);
+      const ltq = ln * (arm / 100);
+      $("rtq").innerText = rtq.toFixed(2) + " Nm";
+      $("ltq").innerText = ltq.toFixed(2) + " Nm";
+      $("rtq_bw").innerText = (rtq / bw).toFixed(3);
+      $("ltq_bw").innerText = (ltq / bw).toFixed(3);
+      
+      const avg = (rtq + ltq) / 2;
+      $("si").innerText = avg > 0 ? (Math.abs(rtq - ltq) / avg * 100).toFixed(1) + " %" : "-";
     }
-    if (!Number.isFinite(bw) || bw <= 0) {
-      err.textContent = "体重（kg）は0より大きい値を入力してください。"; err.style.display = "block";
-      ["rtq","ltq","rtq_bw","ltq_bw","diff","ratio","si","thr04","thr06"].forEach(id => $(id).textContent = "-");
-      return;
-    }
-    if (!Number.isFinite(arm_cm) || arm_cm <= 0) {
-      err.textContent = "モーメントアーム（cm）は0より大きい値を入力してください。"; err.style.display = "block";
-      ["rtq","ltq","rtq_bw","ltq_bw","diff","ratio","si","thr04","thr06"].forEach(id => $(id).textContent = "-");
-      return;
-    }
-    if ((!Number.isFinite(rn) || rn <= 0) && (!Number.isFinite(ln) || ln <= 0)) {
-      err.textContent = "右または左の筋力（N）を入力してください。"; err.style.display = "block";
-      ["rtq","ltq","rtq_bw","ltq_bw","diff","ratio","si","thr04","thr06"].forEach(id => $(id).textContent = "-");
-      return;
-    }
-
-    const arm_m = arm_cm / 100.0;
-    const rtq = (Number.isFinite(rn) ? rn : 0) * arm_m;
-    const ltq = (Number.isFinite(ln) ? ln : 0) * arm_m;
-
-    const rtq_bw = rtq / bw;
-    const ltq_bw = ltq / bw;
-
-    const diff = rtq - ltq;
-    const absdiff = Math.abs(diff);
-    const maxv = Math.max(rtq, ltq);
-    const minv = Math.min(rtq, ltq);
-    const ratio = (maxv > 0) ? (minv / maxv * 100) : 0;
-    const avg = (rtq + ltq) / 2.0;
-    const si = (avg > 0) ? (absdiff / avg * 100) : 0;
-
-    $("rtq").textContent = `${fmt(rtq,2)} Nm`;
-    $("ltq").textContent = `${fmt(ltq,2)} Nm`;
-    $("rtq_bw").textContent = `${fmt(rtq_bw,3)} Nm/kg`;
-    $("ltq_bw").textContent = `${fmt(ltq_bw,3)} Nm/kg`;
-    $("diff").textContent = `${fmt(diff,2)} Nm（|差|=${fmt(absdiff,2)}）`;
-    $("ratio").textContent = `${fmt(ratio,1)} %`;
-    $("si").textContent = `${fmt(si,1)} %`;
-
-    const thr04 = 0.4, thr06 = 0.6;
-    $("thr04").innerHTML = `右 ${cmp(rtq_bw, thr04)} / 左 ${cmp(ltq_bw, thr04)} <span class="badge">基準 0.4</span>`;
-    $("thr06").innerHTML = `右 ${cmp(rtq_bw, thr06)} / 左 ${cmp(ltq_bw, thr06)} <span class="badge">基準 0.6</span>`;
   }
 
-  ["bodyweight_kg","moment_arm_cm","right_n","left_n"].forEach(id => {
-    $(id).addEventListener("input", recalcHHD);
-    $(id).addEventListener("change", recalcHHD);
-  });
-  $("lock_bw").addEventListener("change", () => { setBWEditable(); saveBWIfLocked(); recalcHHD(); });
+  ["bodyweight_kg","moment_arm_cm","right_n","left_n"].forEach(id => $(id).addEventListener("input", recalcHHD));
+  const savedBW = localStorage.getItem("rehacalc_bw");
+  if (savedBW) { $("bodyweight_kg").value = savedBW; recalcHHD(); }
+
   $("reset_hhd").addEventListener("click", () => {
-    $("moment_arm_cm").value = ""; $("right_n").value = ""; $("left_n").value = "";
-    ["rtq","ltq","rtq_bw","ltq_bw","diff","ratio","si","thr04","thr06"].forEach(id => $(id).textContent = "-");
-    $("err_hhd").style.display = "none";
-  });
-  $("clear_bw").addEventListener("click", () => {
-    localStorage.removeItem("musclecalc_bw_kg");
-    $("bodyweight_kg").value = ""; $("lock_bw").checked = false;
-    setBWEditable(); recalcHHD();
+    ["moment_arm_cm","right_n","left_n"].forEach(id => $(id).value = "");
+    ["rtq","ltq","rtq_bw","ltq_bw","si"].forEach(id => $(id).innerText = "-");
   });
 
-  loadBW(); setBWEditable();
-  recalcGait(); recalcHHD();
 </script>
 </body>
 </html>
