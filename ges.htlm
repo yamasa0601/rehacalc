@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GES 評価ツール</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 120px; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.9rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 12px 0; }
+        
+        .item { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 12px; }
+        .item-name { font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; display: block; line-height: 1.4; }
+        
+        /* 1-10の横並び選択肢 */
+        .options-container { 
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 6px; 
+            margin-top: 8px;
+        }
+        .options-container label {
+            background: #f0f0f0;
+            padding: 10px 0;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .options-container input { display: none; }
+        .options-container input:checked + span {
+            background: var(--primary);
+            color: white;
+            display: block;
+            border-radius: 8px;
+            padding: 10px 0;
+            margin: -10px 0;
+        }
+
+        .scale-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; }
+
+        /* Footer Result */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .result-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .total-score { font-size: 2rem; font-weight: bold; color: var(--primary); }
+        .total-label { font-size: 0.9rem; font-weight: bold; }
+        .btn-copy { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+<div class="section-card">
+    <h2>Gait Efficacy Scale (GES)</h2>
+    <p style="font-size: 0.75rem; color: var(--muted); margin-bottom: 15px;">
+        各状況において、安全に歩ける自信を1（まったく自信がない）から10（完全に自信がある）で評価してください。
+    </p>
+    <div id="ges-items"></div>
+</div>
+
+<div class="footer">
+    <div class="result-box">
+        <span class="total-label">合計スコア</span>
+        <div>
+            <span id="total-score" class="total-score">0</span>
+            <span style="font-size: 1rem; font-weight: bold;"> / 100</span>
+        </div>
+    </div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+</div>
+
+<script>
+const items = [
+    "1. 床のような固い平面を安全に歩ける自信はどのくらいありますか？",
+    "2. 芝生の上を安全に歩ける自信はどのくらいありますか？",
+    "3. 通路の障害物を安全に越えて歩ける自信はどのくらいありますか？",
+    "4. 縁石から安全に降りられる自信はどのくらいありますか？",
+    "5. 縁石の上に安全に上がれる自信はどのくらいありますか？",
+    "6. 手すりにつかまって階段を安全に昇れる自信はどのくらいありますか？",
+    "7. 手すりにつかまって階段を安全に降りられる自信はどのくらいありますか？",
+    "8. 手すりにつかまらずに階段を安全に昇れる自信はどのくらいありますか？",
+    "9. 手すりにつかまらずに階段を安全に降りられる自信はどのくらいありますか？",
+    "10. 800mくらいの長距離を安全に歩ける自信はどのくらいありますか？"
+];
+
+function renderItems() {
+    const container = document.getElementById('ges-items');
+    container.innerHTML = items.map((text, index) => `
+        <div class="item">
+            <span class="item-name">${text}</span>
+            <div class="scale-label">
+                <span>1: 自信がない</span>
+                <span>10: 自信がある</span>
+            </div>
+            <div class="options-container">
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => `
+                    <label>
+                        <input type="radio" name="q${index}" value="${val}" onchange="calculate()">
+                        <span>${val}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function calculate() {
+    let total = 0;
+    let answeredCount = 0;
+    for (let i = 0; i < items.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (selected) {
+            total += parseInt(selected.value);
+            answeredCount++;
+        }
+    }
+    document.getElementById('total-score').innerText = total;
+}
+
+function copyResult() {
+    const total = document.getElementById('total-score').innerText;
+    let detailText = "";
+    for (let i = 0; i < items.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        detailText += `Q${i+1}: ${selected ? selected.value : "-"} / `;
+    }
+    const txt = `【GES 評価結果】\n合計スコア: ${total} / 100点\n詳細: ${detailText.slice(0, -3)}`;
+    navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+
+renderItems();
+</script>
+</body>
+</html>
