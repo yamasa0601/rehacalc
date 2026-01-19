@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FAB 評価ツール Pro</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 180px; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.95rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 12px 0; }
+        .item { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .item-name { font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 4px; line-height: 1.3; }
+        .item-desc { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; display: block; }
+        .options { display: flex; gap: 5px; }
+        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 0; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
+        .options input { display: none; }
+        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 8px; padding: 10px 0; margin: -10px 0; }
+        /* Footer UI */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .total-score { font-size: 2rem; font-weight: bold; color: var(--primary); }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+        .btn-copy { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; }
+        details { background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #444; margin-top: 5px; }
+        summary { font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="section-card">
+    <h2>FAB (前頭葉機能検査)</h2>
+    
+    <div class="item">
+        <span class="item-name">1. 概念化 (類似性)</span>
+        <span class="item-desc">バナナ-オレンジ、テーブル-イス、チューリップ-バラ-キク の共通点</span>
+        <div class="options">
+            <label><input type="radio" name="q1" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q1" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q1" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q1" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+
+    <div class="item">
+        <span class="item-name">2. 知的柔軟性 (語の流暢性)</span>
+        <span class="item-desc">「か」で始まる言葉 (制限時間60秒)</span>
+        <div class="options">
+            <label><input type="radio" name="q2" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q2" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q2" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q2" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+
+    <div class="item">
+        <span class="item-name">3. 運動プログラミング (運動系列)</span>
+        <span class="item-desc">グー・チョキ・パー (Luria系列)</span>
+        <div class="options">
+            <label><input type="radio" name="q3" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q3" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q3" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q3" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+
+    <div class="item">
+        <span class="item-name">4. 葛藤指示 (反応の選択)</span>
+        <span class="item-desc">1回叩いたら2回、2回叩いたら1回叩く</span>
+        <div class="options">
+            <label><input type="radio" name="q4" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q4" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q4" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q4" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+
+    <div class="item">
+        <span class="item-name">5. GO/NO-GO (自主性)</span>
+        <span class="item-desc">1回叩いたら1回、2回叩いたら叩かない</span>
+        <div class="options">
+            <label><input type="radio" name="q5" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q5" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q5" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q5" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+
+    <div class="item">
+        <span class="item-name">6. 把握行動 (環境依存)</span>
+        <span class="item-desc">「手を握らないでください」と言われた後の反応</span>
+        <div class="options">
+            <label><input type="radio" name="q6" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="q6" value="1" onchange="calc()"><span>1</span></label>
+            <label><input type="radio" name="q6" value="2" onchange="calc()"><span>2</span></label>
+            <label><input type="radio" name="q6" value="3" onchange="calc()"><span>3</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="result-row">
+        <div>
+            <span id="total-score" class="total-score">0</span>
+            <span style="font-weight: bold;"> / 18</span>
+        </div>
+        <span id="status-badge" class="status-badge" style="background:#eee;">未入力</span>
+    </div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <details>
+        <summary>臨床的指標 (参考値)</summary>
+        ・高齢者カットオフ: 12点以下で要注意 <br>
+        ・脳卒中後スクリーニング: 15点未満 <br>
+        ・有意な変化(MDC): 約3点以上の変動 <br>
+        ・臨床的改善目安: 5点以上の向上 [cite: 235]
+    </details>
+</div>
+
+<script>
+function calc() {
+    let total = 0;
+    let count = 0;
+    for (let i = 1; i <= 6; i++) {
+        const val = document.querySelector(`input[name="q${i}"]:checked`);
+        if (val) {
+            total += parseInt(val.value);
+            count++;
+        }
+    }
+    document.getElementById('total-score').innerText = total;
+
+    const badge = document.getElementById('status-badge');
+    if (count === 0) {
+        badge.innerText = "未入力"; badge.style.background = "#eee"; badge.style.color = "#333";
+    } else if (total < 13) {
+        badge.innerText = "認知障害の疑い"; badge.style.background = "#ffe5e5"; badge.style.color = "#d63031";
+    } else if (total < 15) {
+        badge.innerText = "要注意・隠れた障害"; badge.style.background = "#fff9db"; badge.style.color = "#f0932b";
+    } else {
+        badge.innerText = "正常範囲内"; badge.style.background = "#e3f9e5"; badge.style.color = "#27ae60";
+    }
+}
+
+function copyResult() {
+    const score = document.getElementById('total-score').innerText;
+    const status = document.getElementById('status-badge').innerText;
+    let details = "";
+    for (let i = 1; i <= 6; i++) {
+        const val = document.querySelector(`input[name="q${i}"]:checked`);
+        details += `Q${i}:${val ? val.value : "-"} `;
+    }
+    const txt = `【FAB評価結果】\n合計スコア: ${score}/18点 (${status})\n内訳: ${details}`;
+    navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+</script>
+</body>
+</html>
