@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TIS 評価 Pro</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; --warn: #FF9500; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 240px; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.95rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 10px 0; }
+        .item { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .item-name { font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 6px; }
+        .item-note { font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; display: block; line-height: 1.3; }
+        .options { display: flex; gap: 5px; }
+        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 0; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .options input { display: none; }
+        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 8px; padding: 10px 0; margin: -10px 0; }
+        .skip-active { opacity: 0.4; pointer-events: none; }
+        
+        /* Footer UI */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+        .score-box { background: #f1f3f5; padding: 6px; border-radius: 8px; text-align: center; }
+        .score-val { font-size: 1.1rem; font-weight: bold; color: var(--primary); display: block; }
+        .score-label { font-size: 0.6rem; color: var(--muted); font-weight: bold; }
+        .total-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0 12px 0; border-top: 1px solid #eee; padding-top: 10px; }
+        .total-val { font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+        .btn-copy { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; }
+        details { background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #444; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="section-card">
+    <p style="font-size: 0.7rem; color: var(--muted); margin: 0;">開始肢位：背もたれ・肘掛けなし、足底接地、膝90度屈曲。各項目最大3回実施可。練習なし [cite: 258, 260, 262]。</p>
+</div>
+
+<div class="section-card" id="sec-static">
+    <h2>1. 静的座位バランス (/7)</h2>
+    <div class="item" id="item-s1">
+        <span class="item-name">Q1. 上肢支持なしで10秒保持 [cite: 263]</span>
+        <div class="options">
+            <label><input type="radio" name="s1" value="0" onchange="calc()"><span>0:不可</span></label>
+            <label><input type="radio" name="s1" value="2" onchange="calc()"><span>2:可能</span></label>
+        </div>
+        <span class="item-note" style="color:var(--warn)">※0点の場合、TIS合計は0点となります 。</span>
+    </div>
+    <div class="item" id="item-s2">
+        <span class="item-name">Q2. 非麻痺側下肢を麻痺側へ組んで10秒保持 [cite: 263]</span>
+        <div class="options">
+            <label><input type="radio" name="s2" value="0" onchange="calc()"><span>0:不可</span></label>
+            <label><input type="radio" name="s2" value="2" onchange="calc()"><span>2:可能</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-s3">
+        <span class="item-name">Q3. 自力で下肢を組む [cite: 263]</span>
+        <div class="options">
+            <label><input type="radio" name="s3" value="0" onchange="calc()"><span>0:転倒</span></label>
+            <label><input type="radio" name="s3" value="1" onchange="calc()"><span>1:支持必要</span></label>
+            <label><input type="radio" name="s3" value="2" onchange="calc()"><span>2:補助あり</span></label>
+            <label><input type="radio" name="s3" value="3" onchange="calc()"><span>3:自立</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="section-card" id="sec-dynamic">
+    <h2>2. 動的座位バランス (/10)</h2>
+    <div class="item" id="item-d1"><span class="item-name">Q1. 麻痺側へ短縮（肘接地）[cite: 267]</span>
+        <div class="options">
+            <label><input type="radio" name="d1" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d1" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d2"><span class="item-name">Q2. Q1での体幹の適切な短縮/伸張 [cite: 267]</span>
+        <div class="options">
+            <label><input type="radio" name="d2" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d2" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d3"><span class="item-name">Q3. Q1での代償動作なし [cite: 267]</span>
+        <div class="options">
+            <label><input type="radio" name="d3" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d3" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d4"><span class="item-name">Q4. 非麻痺側へ短縮（肘接地）[cite: 267]</span>
+        <div class="options">
+            <label><input type="radio" name="d4" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d4" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d5"><span class="item-name">Q5. Q4での体幹の適切な短縮/伸張 [cite: 267]</span>
+        <div class="options">
+            <label><input type="radio" name="d5" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d5" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d6"><span class="item-name">Q6. Q4での代償動作なし [cite: 268]</span>
+        <div class="options">
+            <label><input type="radio" name="d6" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d6" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d7"><span class="item-name">Q7. 麻痺側骨盤の挙上 [cite: 268]</span>
+        <div class="options">
+            <label><input type="radio" name="d7" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d7" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d8"><span class="item-name">Q8. Q7での代償動作なし [cite: 268]</span>
+        <div class="options">
+            <label><input type="radio" name="d8" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d8" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d9"><span class="item-name">Q9. 非麻痺側骨盤の挙上 [cite: 268]</span>
+        <div class="options">
+            <label><input type="radio" name="d9" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d9" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-d10"><span class="item-name">Q10. Q9での代償動作なし [cite: 268]</span>
+        <div class="options">
+            <label><input type="radio" name="d10" value="0" onchange="calc()"><span>0</span></label>
+            <label><input type="radio" name="d10" value="1" onchange="calc()"><span>1</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="section-card" id="sec-coord">
+    <h2>3. 協調性 (/6)</h2>
+    <div class="item" id="item-c1"><span class="item-name">Q1. 上部体幹の回旋 [cite: 274]</span>
+        <div class="options">
+            <label><input type="radio" name="c1" value="0" onchange="calc()"><span>0:不動</span></label>
+            <label><input type="radio" name="c1" value="1" onchange="calc()"><span>1:非対称</span></label>
+            <label><input type="radio" name="c1" value="2" onchange="calc()"><span>2:対称</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-c2"><span class="item-name">Q2. Q1を6秒以内に実施 [cite: 274]</span>
+        <div class="options">
+            <label><input type="radio" name="c2" value="0" onchange="calc()"><span>0:不可</span></label>
+            <label><input type="radio" name="c2" value="1" onchange="calc()"><span>1:可能</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-c3"><span class="item-name">Q3. 下部体幹の回旋 [cite: 274]</span>
+        <div class="options">
+            <label><input type="radio" name="c3" value="0" onchange="calc()"><span>0:不動</span></label>
+            <label><input type="radio" name="c3" value="1" onchange="calc()"><span>1:非対称</span></label>
+            <label><input type="radio" name="c3" value="2" onchange="calc()"><span>2:対称</span></label>
+        </div>
+    </div>
+    <div class="item" id="item-c4"><span class="item-name">Q4. Q3を6秒以内に実施 [cite: 274]</span>
+        <div class="options">
+            <label><input type="radio" name="c4" value="0" onchange="calc()"><span>0:不可</span></label>
+            <label><input type="radio" name="c4" value="1" onchange="calc()"><span>1:可能</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="score-grid">
+        <div class="score-box"><span class="score-label">静的 (/7)</span><span id="res-static" class="score-val">0</span></div>
+        <div class="score-box"><span class="score-label">動的 (/10)</span><span id="res-dynamic" class="score-val">0</span></div>
+        <div class="score-box"><span class="score-label">協調 (/6)</span><span id="res-coord" class="score-val">0</span></div>
+    </div>
+    <div class="total-row">
+        <span style="font-weight:bold;">TIS 合計スコア</span>
+        <div><span id="total-score" class="total-val">0</span><span style="font-weight:bold;"> / 23</span></div>
+    </div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <details>
+        <summary>臨床的指標 (参考値)</summary>
+        ・歩行自立(FAC≥3)カットオフ: 13点以上<br>
+        ・6ヶ月後BI予測因子: TIS合計、静的項目が強力<br>
+        ・臨床的に意味のある変化(MIC): 2.5点
+    </details>
+</div>
+
+<script>
+function getVal(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? parseInt(el.value) : null;
+}
+
+function setSkip(id, isSkip) {
+    const el = document.getElementById(id);
+    if (isSkip) {
+        el.classList.add('skip-active');
+        const radios = el.querySelectorAll('input');
+        radios.forEach(r => { if(r.value == "0") r.checked = true; });
+    } else {
+        el.classList.remove('skip-active');
+    }
+}
+
+function calc() {
+    // 1. 静的座位
+    let s1 = getVal('s1');
+    let s_score = 0;
+    if (s1 === 0) {
+        // ルール: Q1が0点ならTIS合計は0点 
+        s_score = 0;
+        ['s2','s3','d1','d2','d3','d4','d5','d6','d7','d8','d9','d10','c1','c2','c3','c4'].forEach(n => {
+            const r = document.getElementsByName(n);
+            r.forEach(btn => { if(btn.value == "0") btn.checked = true; });
+        });
+        document.querySelectorAll('.item').forEach((item, idx) => { if(idx > 0) item.classList.add('skip-active'); });
+    } else {
+        document.querySelectorAll('.item').forEach(item => item.classList.remove('skip-active'));
+        s_score = (s1||0) + (getVal('s2')||0) + (getVal('s3')||0);
+    }
+
+    // 2. 動的座位スキップルール [cite: 267-268]
+    const d1 = getVal('d1');
+    setSkip('item-d2', d1 === 0);
+    setSkip('item-d3', d1 === 0);
+    const d4 = getVal('d4');
+    setSkip('item-d5', d4 === 0);
+    setSkip('item-d6', d4 === 0);
+    const d7 = getVal('d7');
+    setSkip('item-d8', d7 === 0);
+    const d9 = getVal('d9');
+    setSkip('item-d10', d9 === 0);
+
+    let d_score = (d1||0) + (getVal('d2')||0) + (getVal('d3')||0) + (getVal('d4')||0) + (getVal('d5')||0) + 
+                  (getVal('d6')||0) + (getVal('d7')||0) + (getVal('d8')||0) + (getVal('d9')||0) + (getVal('d10')||0);
+
+    // 3. 協調性スキップルール [cite: 274]
+    const c1 = getVal('c1');
+    setSkip('item-c2', c1 === 0);
+    const c3 = getVal('c3');
+    setSkip('item-c4', c3 === 0);
+
+    let c_score = (c1||0) + (getVal('c2')||0) + (getVal('c3')||0) + (getVal('c4')||0);
+
+    if (s1 === 0) { d_score = 0; c_score = 0; }
+
+    document.getElementById('res-static').innerText = s_score;
+    document.getElementById('res-dynamic').innerText = d_score;
+    document.getElementById('res-coord').innerText = c_score;
+    document.getElementById('total-score').innerText = s_score + d_score + c_score;
+}
+
+function copyResult() {
+    const total = document.getElementById('total-score').innerText;
+    const s = document.getElementById('res-static').innerText;
+    const d = document.getElementById('res-dynamic').innerText;
+    const c = document.getElementById('res-coord').innerText;
+    const cutoff = total >= 13 ? "歩行自立の可能性大(FAC≥3)" : "歩行自立には不十分";
+    const txt = `【TIS 評価結果】\n合計スコア: ${total}/23点\n(静的:${s}, 動的:${d}, 協調:${c})\n判定目安: ${cutoff}`;
+    navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+</script>
+</body>
+</html>
