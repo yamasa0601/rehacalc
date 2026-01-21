@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SPPB Pro+ (タイマー完全版)</title>
+    <title>SPPB評価アプリ (2回計測版)</title>
     <style>
-        :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --warning: #FF9500; --bg: #F2F2F7; }
+        :root { --primary: #007AFF; --success: #34C759; --danger: #FF3B30; --bg: #F2F2F7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 120px; user-select: none; }
         .card { background: white; border-radius: 15px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         h3 { margin: 0 0 10px 0; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .item-label { font-size: 0.9rem; font-weight: bold; color: #333; margin-top: 10px; display: block; }
-        .timer-row { display: flex; gap: 8px; align-items: center; margin: 5px 0 12px 0; }
+        .item-label { font-size: 0.85rem; font-weight: bold; color: #666; margin-top: 8px; display: block; }
+        .timer-row { display: flex; gap: 8px; align-items: center; margin: 4px 0 10px 0; }
         .time-display { flex: 1; padding: 10px; font-size: 1.3rem; border: 2px solid #DDD; border-radius: 10px; text-align: center; font-variant-numeric: tabular-nums; background: #f9f9f9; }
         .time-display.completed { border-color: var(--success); background: #EFFFF4; color: var(--success); font-weight: bold; }
         .btn-timer { padding: 10px 12px; border: none; border-radius: 10px; color: white; font-weight: bold; min-width: 85px; font-size: 0.9rem; }
@@ -49,10 +49,18 @@
 
 <div class="card">
     <h3>2. 歩行テスト (4m)</h3>
+    <span class="item-label">1回目</span>
     <div class="timer-row">
-        <div id="disp-gait" class="time-display">0.00</div>
-        <button id="btn-gait" class="btn-timer start" onclick="toggleTimer('gait', 0)">スタート</button>
-        <div class="score-badge">点数: <span id="sc-gait">0</span></div>
+        <div id="disp-gait1" class="time-display">0.00</div>
+        <button id="btn-gait1" class="btn-timer start" onclick="toggleTimer('gait1', 0)">スタート</button>
+    </div>
+    <span class="item-label">2回目</span>
+    <div class="timer-row">
+        <div id="disp-gait2" class="time-display">0.00</div>
+        <button id="btn-gait2" class="btn-timer start" onclick="toggleTimer('gait2', 0)">スタート</button>
+    </div>
+    <div style="text-align: right; margin-top: 5px;">
+        <div class="score-badge" style="display: inline-block;">歩行点数: <span id="sc-gait">0</span></div>
     </div>
 </div>
 
@@ -76,18 +84,16 @@
 </div>
 
 <script>
-console.log("SPPB Script Loaded Successfully"); // スクリプトが読み込まれたか確認用
-
 let timers = {
     b1: { interval: null, time: 0 },
     b2: { interval: null, time: 0 },
     b3: { interval: null, time: 0 },
-    gait: { interval: null, time: 0 },
+    gait1: { interval: null, time: 0 },
+    gait2: { interval: null, time: 0 },
     chair: { interval: null, time: 0 }
 };
 
 function toggleTimer(id, limit) {
-    console.log("Button clicked: " + id); // ボタンが反応しているか確認用
     const btn = document.getElementById('btn-' + id);
     const disp = document.getElementById('disp-' + id);
     
@@ -115,6 +121,7 @@ function toggleTimer(id, limit) {
 }
 
 function calc() {
+    // 1. バランス点
     const b1 = timers.b1.time >= 10 ? 1 : 0;
     const b2 = timers.b2.time >= 10 ? 1 : 0;
     let b3 = 0;
@@ -126,8 +133,14 @@ function calc() {
     document.getElementById('sc-b3').innerText = b3;
     const scoreB = b1 + b2 + b3;
 
+    // 2. 歩行点：2回の計測のうち、速い方（最短秒数）を自動採用
+    const g1 = timers.gait1.time;
+    const g2 = timers.gait2.time;
+    let g = 0;
+    if (g1 > 0 && g2 > 0) g = Math.min(g1, g2); // 両方計測した場合は小さい方
+    else g = g1 || g2; // 片方のみの場合はその値、両方0なら0
+
     let scoreG = 0;
-    const g = timers.gait.time;
     if (g > 0) {
         if (g < 4.82) scoreG = 4;
         else if (g <= 6.20) scoreG = 3;
@@ -136,6 +149,7 @@ function calc() {
     }
     document.getElementById('sc-gait').innerText = scoreG;
 
+    // 3. 椅子立ち上がり点
     let scoreC = 0;
     const c = timers.chair.time;
     if (c > 0) {
@@ -146,6 +160,7 @@ function calc() {
     }
     document.getElementById('sc-chair').innerText = scoreC;
 
+    // 合計の更新
     document.getElementById('sum-b').innerText = scoreB;
     document.getElementById('sum-g').innerText = scoreG;
     document.getElementById('sum-c').innerText = scoreC;
