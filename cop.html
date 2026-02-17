@@ -55,7 +55,7 @@
 
 <script>
 const fs = 100; 
-const trimCount = 500; // 5秒分
+const trimCount = 500; 
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -67,20 +67,34 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 function processData(csvText) {
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const idxX = headers.indexOf('copx');
-    const idxY = headers.indexOf('copy');
+    // ヘッダーの読み取りを強化：BOM削除、トリム、小文字化
+    const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.trim().toLowerCase());
+    
+    // 列のインデックスを探す（より柔軟に探すように変更）
+    const idxX = headers.findIndex(h => h.includes('copx'));
+    const idxY = headers.findIndex(h => h.includes('copy'));
+
+    if (idxX === -1 || idxY === -1) {
+        alert("CSV内に 'COPx' または 'COPy' の列が見つかりません。\n現在の列名: " + headers.join(', '));
+        return;
+    }
 
     let rawX = [], rawY = [];
     for(let i=1; i<lines.length; i++) {
         const cols = lines[i].split(',');
-        if(cols.length < 3) continue;
-        rawX.push(parseFloat(cols[idxX]));
-        rawY.push(parseFloat(cols[idxY]));
+        const valX = parseFloat(cols[idxX]);
+        const valY = parseFloat(cols[idxY]);
+        if(!isNaN(valX) && !isNaN(valY)) {
+            rawX.push(valX);
+            rawY.push(valY);
+        }
     }
 
     // 1. 前後5秒除外
-    if(rawX.length <= trimCount * 2) { alert("データが短すぎます"); return; }
+    if(rawX.length <= trimCount * 2) { 
+        alert("データが短すぎます（前後5秒を除外するとデータが残りません）。"); 
+        return; 
+    }
     let x = rawX.slice(trimCount, -trimCount);
     let y = rawY.slice(trimCount, -trimCount);
 
@@ -95,9 +109,9 @@ function processData(csvText) {
     // 4. 95%楕円面積算出 (mmからcmに変換して計算)
     const area = calc95Ellipse(x.map(v => v/10), y.map(v => v/10));
     
-    // 5. 周波数解析 (MF/RPF)
-    const mf = (calcMF(x, fs) + calcMF(y, fs)) / 2;
-    const rpf = (calcRPF(x, fs) + calcRPF(y, fs)) / 2;
+    // 5. 周波数解析 (MF/RPF) - placeholderではなく実計算
+    const mf = (calcFrequencyStats(x, fs).mf + calcFrequencyStats(y, fs).mf) / 2;
+    const rpf = (calcFrequencyStats(x, fs).rpf + calcFrequencyStats(y, fs).rpf) / 2;
 
     document.getElementById('area-val').innerText = area.toFixed(2);
     document.getElementById('mf-val').innerText = mf.toFixed(3);
@@ -112,7 +126,7 @@ function butterworthLowPass(data, fc, fs) {
     const out = new Array(n);
     const omega = 2.0 * Math.PI * fc / fs;
     const cosw = Math.cos(omega);
-    const alpha = Math.sin(omega) / (2.0 * 0.707); // Q=0.707
+    const alpha = Math.sin(omega) / (2.0 * 0.707);
     const a0 = 1.0 + alpha;
     const a1 = -2.0 * cosw;
     const a2 = 1.0 - alpha;
@@ -134,8 +148,44 @@ function calc95Ellipse(x, y) {
     return Math.PI * Math.sqrt(chiSquare * eig.values[0]) * Math.sqrt(chiSquare * eig.values[1]);
 }
 
-function calcMF(s, fs) { return 0.453 + (Math.random()*0.01); } // 簡易MF
-function calcRPF(s, fs) { return 1.106 + (Math.random()*0.01); } // 簡易RPF
+// 実際の周波数解析（パワースペクトル密度ベース）
+function calcFrequencyStats(s, fs) {
+    const n = s.length;
+    let psd = [];
+    // 簡易FFT (実数入力のみに対応した振幅計算)
+    for (let f = 0; f < n / 2; f++) {
+        let re = 0, im = 0;
+        for (let t = 0; t < n; t++) {
+            const angle = (2 * Math.PI * f * t) / n;
+            re += s[t] * Math.cos(angle);
+            im -= s[t] * Math.sin(angle);
+        }
+        psd.push((re * re + im * im) / n);
+    }
+    
+    // 平均周波数 (MF)
+    let sumF = 0, sumP = 0;
+    psd.forEach((p, i) => {
+        const f = i * fs / n;
+        sumF += f * p;
+        sumP += p;
+    });
+    const mf = sumF / sumP;
+
+    // 相対パワー周波数 (RPF 95%)
+    let cumulative = 0;
+    const totalPower = sumP;
+    let rpf = 0;
+    for (let i = 0; i < psd.length; i++) {
+        cumulative += psd[i];
+        if (cumulative >= 0.95 * totalPower) {
+            rpf = i * fs / n;
+            break;
+        }
+    }
+
+    return { mf, rpf };
+}
 
 let chart;
 function drawChart(x, y) {
@@ -151,12 +201,21 @@ function drawChart(x, y) {
                 showLine: true, pointRadius: 0, borderWidth: 1
             }]
         },
-        options: { aspectRatio: 1, scales: { x: {title:{display:true, text:'ML (cm)'}}, y: {title:{display:true, text:'AP (cm)'}} } }
+        options: { 
+            aspectRatio: 1, 
+            scales: { 
+                x: {title:{display:true, text:'ML (cm)'}}, 
+                y: {title:{display:true, text:'AP (cm)'}} 
+            } 
+        }
     });
 }
 
 function copyResult() {
-    const txt = `【重心動揺結果】\n95%楕円面積: ${document.getElementById('area-val').innerText} cm²\n平均周波数: ${document.getElementById('mf-val').innerText} Hz\n相対パワー周波数: ${document.getElementById('rpf-val').innerText} Hz`;
+    const area = document.getElementById('area-val').innerText;
+    const mf = document.getElementById('mf-val').innerText;
+    const rpf = document.getElementById('rpf-val').innerText;
+    const txt = `【重心動揺結果】\n95%楕円面積: ${area} cm²\n平均周波数: ${mf} Hz\n相対パワー周波数: ${rpf} Hz`;
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました"));
 }
 </script>
