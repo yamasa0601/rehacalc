@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>重心動揺解析 (COP)</title>
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#111; --muted:#666; --line:#e8eaf2; --radius:16px; --btn:#111; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP"; background:var(--bg); color:var(--text); }
+    header, main { max-width: 980px; margin: 0 auto; padding: 16px; }
+    header { padding-top: 20px; padding-bottom: 8px; }
+    h1 { margin: 0; font-size: 18px; }
+    p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .card { background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.06); border:1px solid var(--line); }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    label { font-size: 12px; color: var(--muted); }
+    input[type="number"], select {
+      padding: 10px 10px; border-radius: 12px; border: 1px solid var(--line);
+      background: #fff; font-size: 14px; min-width: 120px;
+    }
+    input[type="file"] { font-size: 13px; }
+    .chk { display:flex; gap:8px; align-items:center; padding: 8px 10px; border:1px solid var(--line); border-radius: 12px; background:#fafbfe; }
+    button {
+      appearance:none; border:0; background: var(--btn); color:#fff;
+      padding: 10px 12px; border-radius: 12px; font-size: 14px; cursor:pointer;
+    }
+    button[disabled] { opacity:.45; cursor:not-allowed; }
+    .btnRow { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
+    .msg { margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background:#fafbfe; font-size: 13px; line-height: 1.6; display:none; }
+    .msg.warn { background:#fff5f5; border-color:#ffd6d6; }
+    .msg.ok { background:#f1fff6; border-color:#c9f2d6; }
+    .metrics { margin-top: 10px; display:none; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; font-size: 13px; text-align: left; }
+    th { color: var(--muted); font-weight: 700; }
+    .details { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+
+    .plots { margin-top: 12px; display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 860px) { .plots { grid-template-columns: 1fr 1fr; } }
+    .plotCard { background: #fff; border:1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>重心動揺解析 (COP)</h1>
+    <p>CSVを読み込み、前後除外→（欠損補完/等間隔リサンプル）→センタリング→10Hzローパス→楕円面積/凸包面積/帯域比（Welch）を表示します。<br>
+    ※GitHub Pagesの仕様上、保存は「端末へダウンロード（PNG/CSV）」になります。</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <div>
+            <label>CSV</label><br>
+            <input id="file" type="file" accept=".csv,text/csv" />
+          </div>
+
+          <div>
+            <label>サンプリング周波数 fs (Hz)</label><br>
+            <input id="fs" type="number" min="1" step="1" value="100" />
+          </div>
+
+          <div>
+            <label>前後除外 (秒)</label><br>
+            <input id="trimSec" type="number" min="0" step="0.1" value="5" />
+          </div>
+
+          <div>
+            <label>ローパス cutoff (Hz)</label><br>
+            <input id="cutoff" type="number" min="0.1" step="0.1" value="10" />
+          </div>
+
+          <div>
+            <label>入力単位</label><br>
+            <select id="unit">
+              <option value="mm" selected>mm</option>
+              <option value="cm">cm</option>
+            </select>
+          </div>
+
+          <div class="chk">
+            <input id="autoTrim" type="checkbox" checked />
+            <label for="autoTrim" style="margin:0; color:#333;">試行が短いとき自動で前後除外を調整</label>
+          </div>
+
+          <div class="chk">
+            <input id="resample" type="checkbox" checked />
+            <label for="resample" style="margin:0; color:#333;">等間隔リサンプル（線形補間）</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="btnRow">
+        <button id="run" disabled>解析する</button>
+        <button id="dlMetrics" disabled>数値CSV</button>
+        <button id="dlBands" disabled>帯域CSV</button>
+        <button id="dlPng" disabled>図PNG</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+      <div id="metrics" class="metrics"></div>
+      <div id="details" class="details"></div>
+    </section>
+
+    <div class="plots">
+      <div class="plotCard"><div id="plotCop" style="height:420px;"></div></div>
+      <div class="plotCard"><div id="plotBands" style="height:420px;"></div></div>
+    </div>
+  </main>
+
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <!-- app -->
+  <script src="../copanalyze.js"></script>
+</body>
+</html>
