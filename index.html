@@ -1,120 +1,22 @@
 <!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>リハ計算アプリ一覧</title>
-  <style>
-    :root { --bg:#f6f7fb; --card:#fff; --text:#111; --muted:#666; --line:#e8eaf2; --radius:16px; }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP"; background:var(--bg); color:var(--text); }
-    header { max-width:960px; margin:0 auto; padding:22px 16px 10px; }
-    h1 { margin:0; font-size:18px; }
-    p { margin:8px 0 0; color:var(--muted); font-size:13px; line-height:1.6; }
-    main { max-width:960px; margin:0 auto; padding:12px 16px 24px; }
-    .grid { display:grid; grid-template-columns: 1fr; gap:12px; }
-    @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
-    .card { background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.06); border:1px solid var(--line); }
-    .title { font-size:15px; font-weight:900; margin:0 0 6px; }
-    .meta { color:var(--muted); font-size:12px; margin:0 0 10px; line-height:1.6; }
-    a.btn { display:inline-block; padding:10px 12px; background:#111; color:#fff; text-decoration:none; border-radius:12px; font-size:14px; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f0f1f5; font-size:12px; color:#333; margin-left:6px; }
-    .note { margin-top: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background:#fafbfe; color:#333; font-size:12px; line-height:1.7;}
-    code { background:#f0f1f5; padding:2px 6px; border-radius:8px; }
-  </style>
-</head>
-<body>
- <header>
-    <h1>リハ計算アプリ一覧</h1>
-    <p>現場で使いやすいツール集。iPhoneの場合は各アプリをSafariで開いて「共有 → ホーム画面に追加」して使えます。</p>
-  </header>
-
-  <main>
-    <div class="grid">
-      
-      <section class="card">
-        <div class="title">10m歩行・HHD（筋力→トルク） <span class="pill">計算</span></div>
-        <div class="meta">
-          ・10m歩行（時間・歩数） → 速度/歩幅/ケイデンス<br>
-          ・HHD (N) × モーメントアーム (cm) → Nm / Nm/kg (基準値表示)
-        </div>
-        <a class="btn" href="./calc/">開く</a>
-      </section>
-
-      <section class="card">
-        <div class="title">BBS入力 (脳卒中 / 大腿骨近位部骨折) <span class="pill">評価</span></div>
-        <div class="meta">
-          ・14項目（0〜4点 / 最大56点）タップ入力<br>
-          ・シート切替、cutoff判定、前回との差 (MDC/MCID)
-        </div>
-        <a class="btn" href="./bbs/">開く</a>
-      </section>
-
-      <section class="card">
-        <div class="title">EMG歩行解析（スマホ対応） <span class="pill">EMG</span></div>
-        <div class="meta">
-          ・CSVを選択（HS基準）<br>
-          ・筋活動のみでHS推定（動画目視HSでガード）<br>
-          ・%peak → 歩行周期0-100%正規化 → 平均±SD<br>
-          ・HS一覧CSV / プロットPNG保存
-        </div>
-        <a class="btn" href="./emg/">開く</a>
-      </section>
-
-      <section class="card">
-        <div class="title">SPPB (Short Physical Performance Battery) <span class="pill">評価</span></div>
-        <div class="meta">
-          ・バランス、歩行速度、5回椅子立ち上がり<br>
-          ・ストップウォッチ機能での自動計測<br>
-          ・合計点数の自動計算・結果コピー機能
-        </div>
-        <a class="btn" href="./sppb.html">開く</a>
-      </section>
-     <section class="card">
-    <div class="title">FMA (Fugl-Meyer Assessment) <span class="pill">評価</span></div>
-    <div class="meta">
-        ・上肢(66点)/下肢(34点)の運動スコア計算<br>
-        ・重症度分類(軽度/中等度/重度)の自動判定<br>
-        ・MDC/MCIDの臨床指標を表示
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>COP解析</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 24px; }
+      .box { padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; }
+      a { color: #0b57d0; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <h1>COP解析</h1>
+    <div class="box">
+      <p><a href="./cop/index.html">ブラウザ版（CSVをアップロードして解析）</a></p>
+      <p><a href="./cop-java/README.md">Java版（CLI/アプリ向け）</a></p>
     </div>
-    <a class="btn" href="./fma.html">開く</a>
-</section>
-      <section class="card">
-    <div class="title">GES (Gait Efficacy Scale) <span class="pill">評価</span></div>
-    <div class="meta">
-        ・歩行に対する自己効力感（自信）の評価<br>
-        ・10項目を各1〜10点で採点（100点満点）<br>
-        ・臨床的な歩行の自信を数値化
-    </div>
-    <a class="btn" href="./ges.html">開く</a>
-</section>
-      <section class="card">
-    <div class="title">FAB (Frontal Assessment Battery) <span class="pill">評価</span></div>
-    <div class="meta">
-        ・前頭葉機能（概念化・柔軟性・抑制等）の評価<br>
-        ・6項目各3点（18点満点）の自動計算<br>
-        ・カットオフ値（12点/15点）に基づくフィードバック
-    </div>
-    <a class="btn" href="./fab.html">開く</a>
-</section>
-      <section class="card">
-    <div class="title">TIS (Trunk Impairment Scale) <span class="pill">評価</span></div>
-    <div class="meta">
-        ・脳卒中患者の体幹機能（静的・動的・協調性）評価<br>
-        ・自動スキップルール対応（全23点満点）<br>
-        ・歩行自立カットオフ（13点）の判定表示
-    </div>
-    <a class="btn" href="./tis.html">開く</a>   
-</section>
-    <section class="card">
-  <div class="title">重心動揺解析 (COP) <span class="pill">解析</span></div>
-  <div class="meta">
-    ・CSVを読み込んで自動解析<br>
-    ・前後5秒除外 / 10Hzフィルタ処理<br>
-    ・楕円面積(cm²)、MF、RPFを算出
-  </div>
-  <a class="btn" href="./cop/">開く</a>
-</section>
-</div> </main>
-</body>
+  </body>
 </html>
+
