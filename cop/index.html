@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>重心動揺解析 (COP)</title>
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#111; --muted:#666; --line:#e8eaf2; --radius:16px; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP"; background:var(--bg); color:var(--text); }
+    header { max-width:1100px; margin:0 auto; padding:18px 16px 8px; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+    h1 { margin:0; font-size:18px; }
+    .sub { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
+    main { max-width:1100px; margin:0 auto; padding:10px 16px 26px; display:grid; gap:12px; grid-template-columns: 1fr; }
+    @media (min-width: 980px) { main { grid-template-columns: 360px 1fr; align-items:start; } }
+    .card { background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.06); border:1px solid var(--line); }
+    .title { font-size:15px; font-weight:900; margin:0 0 10px; }
+    label { display:block; font-size:12px; color:#333; font-weight:700; margin:10px 0 6px; }
+    input[type="file"], input[type="number"], select { width:100%; padding:10px 10px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:14px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    button { appearance:none; border:0; border-radius:12px; padding:10px 12px; font-size:14px; cursor:pointer; background:#111; color:#fff; }
+    button.secondary { background:#f0f1f5; color:#111; border:1px solid var(--line); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .warn { margin-top:10px; font-size:12px; line-height:1.6; color:#7a4b00; background:#fff7e6; border:1px solid #ffe0a6; padding:10px 12px; border-radius:12px; }
+    .ok { margin-top:10px; font-size:12px; line-height:1.6; color:#0b5; background:#f0fff4; border:1px solid #b7f5c8; padding:10px 12px; border-radius:12px; }
+    .metrics { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+    .metric { padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#fafbfe; }
+    .metric .k { font-size:12px; color:var(--muted); }
+    .metric .v { font-size:18px; font-weight:900; margin-top:4px; }
+    .metric .u { font-size:12px; color:var(--muted); font-weight:700; margin-left:4px; }
+    .plots { display:grid; gap:12px; }
+    .plot { width:100%; min-height:340px; }
+    .small { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
+    a { color: inherit; }
+    code { background:#f0f1f5; padding:2px 6px; border-radius:8px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.30.0/plotly.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fft.js@0.3.0/dist/fft.min.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>重心動揺解析 (COP)</h1>
+      <div class="sub">
+        CSVを選ぶだけで解析（前後5秒除外・10Hzローパス・95%楕円面積・凸包面積・Welch帯域比）。
+        ※GitHub Pages等の静的サイトではサーバ保存できないため、出力は「端末へダウンロード」になります。
+      </div>
+    </div>
+    <div class="sub"><a href="../">← 一覧へ戻る</a></div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="title">入力</div>
+
+      <label>CSVファイル</label>
+      <input id="file" type="file" accept=".csv,text/csv" />
+
+      <div class="row">
+        <div>
+          <label>サンプリング周波数 (Hz)</label>
+          <input id="fs" type="number" value="100" step="0.1" min="1" />
+        </div>
+        <div>
+          <label>ローパス (Hz)</label>
+          <input id="cutoff" type="number" value="10" step="0.1" min="0.1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>前後除外 (秒)</label>
+          <input id="trimSec" type="number" value="5" step="0.1" min="0" />
+        </div>
+        <div>
+          <label>単位</label>
+          <select id="unit">
+            <option value="mm">mm（→ cmに換算）</option>
+            <option value="cm">cm（そのまま）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="run" disabled>解析する</button>
+        <button id="dlMetrics" class="secondary" disabled>数値CSVを保存</button>
+        <button id="dlBands" class="secondary" disabled>帯域CSVを保存</button>
+        <button id="dlPng" class="secondary" disabled>図PNGを保存</button>
+      </div>
+
+      <div id="msg" class="warn" style="display:none;"></div>
+      <div class="small">
+        必須列：<code>time</code>, <code>COPx</code>, <code>COPy</code>（大文字小文字・前後スペースは無視して探します）
+      </div>
+
+      <div id="metrics" class="metrics" style="display:none;"></div>
+    </section>
+
+    <section class="card plots">
+      <div class="title">可視化</div>
+      <div id="plotCop" class="plot"></div>
+      <div id="plotBands" class="plot" style="min-height:300px;"></div>
+      <div class="small" id="details"></div>
+    </section>
+  </main>
+
+  <script src="./copanalyze.js"></script>
+</body>
+</html>
