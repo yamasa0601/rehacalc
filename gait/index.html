@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>歩行加速度解析（L3腰椎）</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <h1>歩行加速度解析（L3腰椎）</h1>
+    <p class="sub">CSVを読み込むだけで歩行中の加速度データを自動解析します。<br>
+      Butterworth LPF → 歩行区間検出 → ストライド分割 → Harmonic Ratio / RMS / 体幹不安定性を算出</p>
+
+    <div class="box">
+      <div class="row">
+        <input id="file" type="file" accept=".csv" />
+        <button id="run" class="btn primary" disabled>解析開始</button>
+      </div>
+
+      <details class="settings">
+        <summary>詳細設定</summary>
+        <div class="row">
+          <label>サンプリング周波数(Hz) <input id="fs" type="number" value="100" step="1" min="1" /></label>
+          <label><input id="autoFs" type="checkbox" checked /> 自動検出</label>
+          <label>LPFカットオフ(Hz) <input id="cutoff" type="number" value="17" step="0.5" min="1" /></label>
+          <label>歩行検出閾値 <input id="threshold" type="number" value="0.03" step="0.005" min="0" /></label>
+          <label>除外ストライド数 <input id="exceptStride" type="number" value="2" step="1" min="0" /></label>
+          <label>歩行距離(m) <input id="walkDist" type="number" value="10" step="0.5" min="0.1" /></label>
+        </div>
+        <div class="row">
+          <label>AP(前後)列 <select id="colAP"><option value="">自動検出</option></select></label>
+          <label>ML(左右)列 <select id="colML"><option value="">自動検出</option></select></label>
+          <label>VT(上下)列 <select id="colVT"><option value="">自動検出</option></select></label>
+        </div>
+        <div class="note">
+          <strong>CSVフォーマット:</strong> 1行目ヘッダー、列は time, AP(前後), ML(左右), VT(上下) を含む。<br>
+          列名に <code>gFx/AP</code>, <code>gFy/ML</code>, <code>gFz/VT</code> が含まれていれば自動判別します。<br>
+          <strong>歩行プロトコル:</strong> 歩行前後に3秒以上の静止区間を含めてください。
+        </div>
+      </details>
+    </div>
+
+    <div id="msg"></div>
+    <div id="metrics"></div>
+    <div id="details"></div>
+
+    <div class="row export-row">
+      <button id="dlCsv" class="btn" disabled>結果CSVを保存</button>
+      <button id="dlPng" class="btn" disabled>PNGを保存</button>
+    </div>
+
+    <div class="plots">
+      <div id="plotSignal"></div>
+      <div id="plotBout"></div>
+      <div id="plotStride"></div>
+      <div id="plotHR"></div>
+      <div id="plotFFT"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.27.0/plotly.min.js"></script>
+    <script src="./gaitanalyze.js"></script>
+  </body>
+</html>
