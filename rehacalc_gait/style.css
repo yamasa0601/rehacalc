@@ -1,0 +1,38 @@
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; margin: 20px; color: #111; background: #f6f7fb; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.sub { color: #666; font-size: 13px; line-height: 1.6; margin: 0 0 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; }
+.row > * { margin: 4px 0; }
+.box { padding: 12px 16px; border: 1px solid #ddd; border-radius: 12px; background: #fff; }
+.btn { padding: 10px 16px; cursor: pointer; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 14px; }
+.btn.primary { background: #111; color: #fff; border-color: #111; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.settings { margin-top: 10px; }
+.settings summary { cursor: pointer; font-size: 13px; color: #666; }
+.settings label { font-size: 13px; color: #444; }
+.settings input, .settings select { width: 80px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+.settings select { width: 140px; }
+.note { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid #e8eaf2; background: #fafbfe; color: #444; font-size: 12px; line-height: 1.7; }
+code { background: #f0f1f5; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+
+#msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; display: none; font-size: 14px; }
+#msg.ok { background: #e7f7e7; border: 1px solid #b6e3b6; color: #256029; }
+#msg.warn { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; }
+
+#metrics { display: none; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 14px; }
+.metric { border: 1px solid #e8eaf2; border-radius: 10px; padding: 10px 12px; background: #fff; }
+.metric .k { font-size: 12px; color: #666; margin-bottom: 2px; }
+.metric .v { font-size: 20px; font-weight: 700; }
+.metric .u { font-size: 12px; color: #888; margin-left: 4px; font-weight: 400; }
+
+#details { margin-top: 8px; font-size: 12px; color: #666; white-space: pre-wrap; }
+
+.export-row { margin-top: 14px; }
+.plots { margin-top: 18px; }
+.plots > div { margin-bottom: 16px; border: 1px solid #e8eaf2; border-radius: 10px; overflow: hidden; background: #fff; }
+
+@media (max-width: 600px) {
+  body { margin: 12px; }
+  #metrics { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .metric .v { font-size: 16px; }
+}
