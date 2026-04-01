@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FMA Pro - 運動・感覚計算</title>
+    <title>FMA Pro - 上肢・下肢評価</title>
     <style>
         :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 260px; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 280px; }
         .tabs { display: flex; gap: 8px; margin-bottom: 12px; position: sticky; top: 10px; z-index: 100; }
         .tab { flex: 1; padding: 12px; background: #ddd; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .tab.active { background: var(--primary); color: white; }
         .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         h2 { font-size: 0.9rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 10px 0; }
         .note { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; line-height: 1.5; padding: 6px 8px; background: #f8f8fa; border-radius: 8px; }
+        .sub-label { font-size: 0.78rem; font-weight: 600; color: var(--primary); margin: 10px 0 4px; padding-left: 4px; }
         .item { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .item:last-child { border-bottom: none; margin-bottom: 0; }
-        .item-name { font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; display: block; line-height: 1.2; }
+        .item-name { font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; display: block; line-height: 1.3; }
         .item-name .joint { font-size: 0.72rem; color: var(--muted); font-weight: normal; }
+        .item-name .posture { font-size: 0.68rem; color: #888; font-weight: normal; display: block; margin-top: 2px; }
         .options { display: flex; gap: 4px; }
         .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 4px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
         .options input { display: none; }
@@ -24,22 +26,21 @@
         .options input[value="0"]:checked + span { background: #ff3b30; }
         .options input[value="1"]:checked + span { background: #ff9500; }
         .options input[value="2"]:checked + span { background: #34c759; }
+        .scale-hint { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
         .memo-row { margin-top: 4px; }
         .memo-input { width: 100%; padding: 6px 8px; border: 1px solid #e8e8e8; border-radius: 8px; font-size: 0.75rem; color: var(--text); background: #fafafa; }
         .memo-input:focus { outline: none; border-color: var(--primary); background: #fff; }
-        .scale-hint { font-size: 0.68rem; color: var(--muted); margin-top: 2px; text-align: center; }
 
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 12px 15px; border-top: 1px solid #ddd; z-index: 1000; }
-        .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-        .score-grid-le { grid-template-columns: repeat(3, 1fr); }
-        .score-box { background: #f1f3f5; padding: 6px; border-radius: 10px; text-align: center; }
-        .score-val { font-size: 1.1rem; font-weight: bold; color: var(--primary); display: block; }
-        .score-label { font-size: 0.58rem; color: var(--muted); font-weight: bold; }
-        .score-grid-extra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
-        .sev-bar { grid-column: span 3; padding: 6px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85rem; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 10px 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 6px; }
+        .score-box { background: #f1f3f5; padding: 5px; border-radius: 10px; text-align: center; }
+        .score-box.highlight { background: #e3f0ff; }
+        .score-val { font-size: 1.05rem; font-weight: bold; color: var(--primary); display: block; }
+        .score-label { font-size: 0.55rem; color: var(--muted); font-weight: bold; }
+        .sev-bar { padding: 5px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.82rem; margin-bottom: 6px; }
         .hidden { display: none; }
         .btn-row { display: flex; gap: 8px; }
-        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .btn-action { flex: 1; padding: 11px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .btn-copy { background: var(--primary); color: white; }
         .btn-csv { background: #34c759; color: white; }
     </style>
@@ -51,102 +52,43 @@
     <button id="tab-le" class="tab" onclick="switchTab('le')">下肢 (LE)</button>
 </div>
 
-<div id="content-ue">
-    <div class="section-card"><h2>I. 反射 (2項目)</h2><div id="ue-r"></div></div>
-    <div class="section-card"><h2>II. 屈筋共同運動 (肩4, 肘1, 前腕1)</h2><div id="ue-f"></div></div>
-    <div class="section-card"><h2>II. 伸筋共同運動 (肩1, 肘1, 前腕1)</h2><div id="ue-e"></div></div>
-    <div class="section-card"><h2>III. 混合 / IV. 分離</h2><div id="ue-m"></div></div>
-    <div class="section-card"><h2>V. 正常反射 / VI. 手関節</h2><div id="ue-w"></div></div>
-    <div class="section-card"><h2>VII. 手指</h2><div id="ue-h"></div></div>
-    <div class="section-card"><h2>VIII. 協調性</h2><div id="ue-c"></div></div>
-    <div class="section-card"><h2>感覚 (12点)</h2><div id="ue-s"></div></div>
-</div>
+<!-- ==================== UE ==================== -->
+<div id="content-ue"></div>
 
-<div id="content-le" class="hidden">
-    <!-- E-I. 反射 -->
-    <div class="section-card">
-        <h2>E-I. 反射（4点）</h2>
-        <div class="note">背臥位で実施 / 腱反射が減弱でも非麻痺側と同等であれば2点</div>
-        <div id="le-reflex"></div>
-    </div>
+<!-- ==================== LE ==================== -->
+<div id="content-le" class="hidden"></div>
 
-    <!-- E-II. 共同運動 -->
-    <div class="section-card">
-        <h2>E-II. 共同運動（14点）</h2>
-        <div class="note">各要素を別々で評価せず、一つの動きとして評価する / 各要素は運動の最終時点で評価し、運動途中で個別に採点してはならない / 可動域制限がある場合はその範囲内の動きで評価 / 背臥位で実施</div>
-        <div id="le-synergy"></div>
-    </div>
-
-    <!-- E-III. 椅子座位 -->
-    <div class="section-card">
-        <h2>E-III. 椅子座位（4点）</h2>
-        <div class="note">椅子の端と膝を10cm離す / 膝屈曲：1=≦90° 2=＞90° / 膝屈曲を膝屈筋の腱を触知して確認 / 非麻痺側と比較</div>
-        <div id="le-sit"></div>
-    </div>
-
-    <!-- E-IV. 立位 -->
-    <div class="section-card">
-        <h2>E-IV. 立位（4点）</h2>
-        <div class="note">股関節伸展0°以上 / バランス補助は許可 / 膝屈曲：1=途中で股屈曲・膝屈曲90°未満 / 非麻痺側と比較</div>
-        <div id="le-stand"></div>
-    </div>
-
-    <!-- E-V. 正常反射 -->
-    <div class="section-card">
-        <h2>E-V. 正常反射（2点）</h2>
-        <div class="note">IVで満点の場合のみ実施 / 非麻痺側と比較 / 0=無・不可 1=亢進≧1個 or 軽度亢進≧2個 2=十分・可能</div>
-        <div id="le-nreflex"></div>
-    </div>
-
-    <!-- F. 協調性/スピード -->
-    <div class="section-card">
-        <h2>F. 協調性/スピード（6点）</h2>
-        <div class="note">麻痺側踵を非麻痺側膝蓋骨に付ける動作を5回できるだけ速く繰り返す ※仰臥位 / 両側で1回試した後に閉眼で実施 / ストップウォッチ使用（始まりと終わりの肢位は膝に手を置いた状態）</div>
-        <div id="le-coord"></div>
-    </div>
-
-    <!-- H. 感覚 -->
-    <div class="section-card">
-        <h2>H. 感覚（12点）</h2>
-        <div id="le-sens"></div>
-    </div>
-
-    <!-- I. 他動関節可動域 -->
-    <div class="section-card">
-        <h2>I. 他動関節可動域（20点）</h2>
-        <div class="note">一番初めに評価する / 0=微動 1=減少 2=正常</div>
-        <div id="le-rom"></div>
-    </div>
-
-    <!-- J. 関節痛 -->
-    <div class="section-card">
-        <h2>J. 関節痛（20点）</h2>
-        <div class="note">重度：常時どの可動域でも痛み、最終可動域で著明な痛みが出現する / 0=重度 1=軽度 2=無し</div>
-        <div id="le-pain"></div>
-    </div>
-</div>
-
+<!-- ==================== Footer ==================== -->
 <div class="footer">
     <div id="footer-ue">
         <div class="score-grid">
-            <div class="score-box"><span class="score-label">運動合計</span><span id="tot-m" class="score-val">0</span></div>
-            <div class="score-box"><span class="score-label">FMS (随意)</span><span id="fms-val" class="score-val">0</span></div>
-            <div class="score-box"><span class="score-label">感覚 (/12)</span><span id="sens-val" class="score-val">0</span></div>
-            <div id="sev-bar" class="sev-bar">判定中...</div>
+            <div class="score-box"><span class="score-label">A. 肩/肘/前腕</span><span id="ue-scoreA" class="score-val">0/36</span></div>
+            <div class="score-box"><span class="score-label">B. 手関節</span><span id="ue-scoreB" class="score-val">0/10</span></div>
+            <div class="score-box"><span class="score-label">C. 手指</span><span id="ue-scoreC" class="score-val">0/14</span></div>
+        </div>
+        <div class="score-grid">
+            <div class="score-box"><span class="score-label">D. 協調性</span><span id="ue-scoreD" class="score-val">0/6</span></div>
+            <div class="score-box highlight"><span class="score-label">運動合計</span><span id="ue-motor" class="score-val" style="font-size:1.2rem">0/66</span></div>
+            <div class="score-box"><span class="score-label">H. 感覚</span><span id="ue-scoreH" class="score-val">0/12</span></div>
+        </div>
+        <div class="score-grid">
+            <div class="score-box"><span class="score-label">I. 可動域</span><span id="ue-scoreI" class="score-val">0/20</span></div>
+            <div class="score-box"><span class="score-label">J. 関節痛</span><span id="ue-scoreJ" class="score-val">0/20</span></div>
+            <div class="score-box"><span id="ue-sev-bar" class="sev-bar" style="margin:0;padding:8px 5px">判定中</span></div>
         </div>
     </div>
     <div id="footer-le" class="hidden">
-        <div class="score-grid score-grid-le">
+        <div class="score-grid">
             <div class="score-box"><span class="score-label">E. 股/膝/足</span><span id="le-scoreE" class="score-val">0/28</span></div>
             <div class="score-box"><span class="score-label">F. 協調性</span><span id="le-scoreF" class="score-val">0/6</span></div>
-            <div class="score-box" style="background:#e3f0ff"><span class="score-label">運動合計</span><span id="le-motor" class="score-val" style="font-size:1.3rem">0/34</span></div>
+            <div class="score-box highlight"><span class="score-label">運動合計</span><span id="le-motor" class="score-val" style="font-size:1.2rem">0/34</span></div>
         </div>
-        <div class="score-grid-extra">
+        <div class="score-grid">
             <div class="score-box"><span class="score-label">H. 感覚</span><span id="le-scoreH" class="score-val">0/12</span></div>
             <div class="score-box"><span class="score-label">I. 可動域</span><span id="le-scoreI" class="score-val">0/20</span></div>
             <div class="score-box"><span class="score-label">J. 関節痛</span><span id="le-scoreJ" class="score-val">0/20</span></div>
         </div>
-        <div id="le-sev-bar" class="sev-bar" style="margin-bottom:8px">判定中...</div>
+        <div id="le-sev-bar" class="sev-bar">判定中...</div>
     </div>
     <div class="btn-row">
         <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
@@ -155,94 +97,406 @@
 </div>
 
 <script>
-/* ── Upper Extremity data (unchanged) ── */
-const ueData = {
-    r: [{id:"ur1",n:"二頭筋 or 手指屈筋"},{id:"ur3",n:"三頭筋反射"}],
-    f: [{id:"uf1",n:"肩甲骨後退"},{id:"uf2",n:"肩甲骨挙上"},{id:"uf3",n:"肩外転"},{id:"uf4",n:"肩外旋"},{id:"uf5",n:"肘屈曲"},{id:"uf6",n:"前腕回外"}],
-    e: [{id:"ue1",n:"肩内転/内旋"},{id:"ue2",n:"肘伸展"},{id:"ue3",n:"前腕回内"}],
-    m: [{id:"um1",n:"手を腰へ"},{id:"um2",n:"肩屈90(肘伸)"},{id:"um3",n:"回内/外(肘90)"},{id:"um4",n:"肩外転90(肘伸)"},{id:"um5",n:"肩屈90-180"},{id:"um6",n:"回内/外(肘伸)"}],
-    w: [{id:"uw0",n:"正常反射(V)"},{id:"uw1",n:"手関節保持(肘伸)"},{id:"uw2",n:"手関節屈伸(肘伸)"},{id:"uw3",n:"手関節保持(肘90)"},{id:"uw4",n:"手関節屈伸(肘90)"},{id:"uw5",n:"手関節回旋"}],
-    h: [{id:"uh1",n:"集団屈曲"},{id:"uh2",n:"集団伸展"},{id:"uh3",n:"鉤状把持"},{id:"uh4",n:"側方把持"},{id:"uh5",n:"対立把持"},{id:"uh6",n:"円筒把持"},{id:"uh7",n:"球状把持"}],
-    c: [{id:"uc1",n:"測定障害"},{id:"uc2",n:"振戦"},{id:"uc3",n:"スピード"}],
-    s: [{id:"us1",n:"触覚:上腕/前腕"},{id:"us2",n:"触覚:手掌/背"},{id:"us3",n:"位:肩"},{id:"us4",n:"位:肘"},{id:"us5",n:"位:手首"},{id:"us6",n:"位:母指"}]
+/* ================================================================
+   DATA DEFINITIONS
+   ================================================================ */
+
+/* ── UE Sections ── */
+const ueReflex = [
+    {id:"ur1", n:"上腕二頭筋 or 手指屈筋", sub:"どちらか1つを選択", opts:[0,2]},
+    {id:"ur2", n:"上腕三頭筋", opts:[0,2]}
+];
+
+const ueSynergyA = [
+    {id:"usa1", n:"肩関節 屈曲"},
+    {id:"usa2", n:"肩関節 外転(90°)"},
+    {id:"usa3", n:"肩関節 外旋"},
+    {id:"usa4", n:"肩甲骨 後退"},
+    {id:"usa5", n:"肘関節 屈曲"},
+    {id:"usa6", n:"前腕 回外"}
+];
+
+const ueSynergyB = [
+    {id:"usb1", n:"肩関節 内転＋内旋"},
+    {id:"usb2", n:"肘関節 伸展"},
+    {id:"usb3", n:"前腕 回内"}
+];
+
+const ueMixed = [
+    {id:"um1", n:"a) 座位で手を腰椎にまわす", posture:"手は膝に乗せた状態", hint:"0=不可 1=ASISを越す 2=腰椎に届く"},
+    {id:"um2", n:"b) 0°→90° 肩屈曲運動", posture:"肘伸展, 前腕中間位"},
+    {id:"um3", n:"c) 前腕回内外", posture:"肩0°, 肘屈曲90°", hint:"肘は体にくっつける / 介助不可（開始肢位がとれなければ0点）"}
+];
+
+const ueIsolated = [
+    {id:"ui1", n:"a) 0°→90° 肩外転運動", posture:"肘伸展, 前腕回内位（手掌下向き）"},
+    {id:"ui2", n:"b) 90°→180° 肩屈曲運動", posture:"肘伸展, 前腕中間位"},
+    {id:"ui3", n:"c) 前腕回内外", posture:"肘伸展, 前腕中間位", hint:"介助不可（開始肢位がとれなければ0点）"}
+];
+
+const ueNormalReflex = [
+    {id:"unr1", n:"上腕二頭筋、手指屈筋、上腕三頭筋", hint:"0=著明な亢進≧2個 / 1=著明な亢進≧1個 or 軽度亢進≧2個 / 2=正常"}
+];
+
+const ueWrist = [
+    {id:"uw1", n:"a) 15°背屈位での手関節保持", posture:"肘90°, 前腕回内位"},
+    {id:"uw2", n:"b) 掌屈位の最大反復運動", posture:"肘90°, 前腕回内位", hint:"1点には最低でも掌背屈両方向への動きが必要"},
+    {id:"uw3", n:"c) 15°背屈位での手関節保持", posture:"肩軽度屈曲外転, 肘0°, 前腕回内位"},
+    {id:"uw4", n:"d) 掌屈位の最大反復運動", posture:"肩軽度屈曲外転, 肘0°, 前腕回内位", hint:"1点には最低でも掌背屈両方向への動きが必要"},
+    {id:"uw5", n:"e) 手関節の回旋運動", posture:"肘90°", hint:"動きを遮らない範囲で前腕介助可能"}
+];
+
+const ueHand = [
+    {id:"uh1", n:"a) 手指の屈曲", posture:"前腕回内, 手関節中間位", hint:"手指は最大伸展位から開始"},
+    {id:"uh2", n:"b) 手指の伸展", posture:"前腕回内, 手関節中間位", hint:"手指は最大屈曲位から開始"},
+    {id:"uh3", n:"c) 把持A: MCP伸展, PIP/DIP屈曲", posture:"前腕回内, 手関節中間位", hint:"患者から離れるように引っ張る"},
+    {id:"uh4", n:"d) 把持B: 拇指と示指の伸展位把持", posture:"前腕回内位, 手関節は自然な中間位", hint:"A4紙をA6サイズに折って挟む"},
+    {id:"uh5", n:"e) 把持C: 拇指と示指の指腹把持", posture:"前腕, 手関節中間位", hint:"ペンを拇指-示指つまみで上に引っ張る"},
+    {id:"uh6", n:"f) 把持D: 拇指と示指の手掌面把持", posture:"前腕, 手関節中間位", hint:"直径3cm程度の筒を使用"},
+    {id:"uh7", n:"g) 把持E: 球体の把持", posture:"拇指外転, 第2-5指は内転屈曲", hint:"テニスボール程の球体 / 痙縮による保持は0点"}
+];
+
+const ueCoord = [
+    {id:"uco1", n:"a) 振戦", hint:"0=顕著 1=軽度 2=無し（軌道上の動揺が評価対象）"},
+    {id:"uco2", n:"b) 測定障害", hint:"0=顕著 1=軽度 2=無し（到着地点のズレが評価対象）"},
+    {id:"uco3", n:"c) 非麻痺側との時間差", hint:"0=＞6秒 1=2〜5秒 2=＜2秒（ストップウォッチを使用）"}
+];
+
+const ueSens = [
+    {id:"use1", n:"触覚: 前腕または上腕の腹側", hint:"0=脱失 1=鈍麻/過敏 2=正常", sub:"a) 触覚 ─ 左右差を問う"},
+    {id:"use2", n:"触覚: 手掌", hint:"0=脱失 1=鈍麻/過敏 2=正常"},
+    {id:"use3", n:"位置覚: 肩甲上腕関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常", sub:"b) 関節位置覚 ─ 閉眼にて実施"},
+    {id:"use4", n:"位置覚: 肘関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
+    {id:"use5", n:"位置覚: 手関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
+    {id:"use6", n:"位置覚: 拇指IP関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"}
+];
+
+const ueRom = [
+    {id:"uro1", n:"肩関節 屈曲"},
+    {id:"uro2", n:"肩関節 外転90°"},
+    {id:"uro3", n:"肩関節 外旋"},
+    {id:"uro4", n:"肩関節 内旋"},
+    {id:"uro5", n:"肘関節 屈曲"},
+    {id:"uro6", n:"肘関節 伸展"},
+    {id:"uro7", n:"手関節 屈曲"},
+    {id:"uro8", n:"手関節 伸展"},
+    {id:"uro9", n:"手指関節 屈曲"},
+    {id:"uro10",n:"手指関節 伸展"}
+];
+
+const uePain = [
+    {id:"upa1", n:"肩関節 屈曲"},
+    {id:"upa2", n:"肩関節 外転"},
+    {id:"upa3", n:"肩関節 外旋"},
+    {id:"upa4", n:"肩関節 内旋"},
+    {id:"upa5", n:"肘関節 屈曲"},
+    {id:"upa6", n:"肘関節 伸展"},
+    {id:"upa7", n:"手関節 背屈"},
+    {id:"upa8", n:"手関節 底屈"},
+    {id:"upa9", n:"前腕 回内"},
+    {id:"upa10",n:"前腕 回外"}
+];
+
+/* UE scoring groups */
+const ueSectionMap = {
+    a: [ueReflex, ueSynergyA, ueSynergyB, ueMixed, ueIsolated, ueNormalReflex],
+    b: [ueWrist],
+    c: [ueHand],
+    d: [ueCoord],
+    h: [ueSens],
+    i: [ueRom],
+    j: [uePain]
 };
 
-/* ── Lower Extremity data (detailed from PDF) ── */
-const leData = {
-    reflex: [
-        {id:"lr1", n:"膝屈筋", opts:[0,2]},
-        {id:"lr2", n:"膝伸筋 or アキレス腱", sub:"どちらか1つを選択", opts:[0,2]}
-    ],
-    synergy: [
-        {id:"lsa1", n:"股関節 屈曲(外旋・外転)", sub:"a) 屈曲共同運動"},
-        {id:"lsa2", n:"膝関節 屈曲", sub:"a) 屈曲共同運動"},
-        {id:"lsa3", n:"足関節 背屈", sub:"a) 屈曲共同運動"},
-        {id:"lsb1", n:"股関節 伸展", sub:"b) 伸展共同運動"},
-        {id:"lsb2", n:"股関節 内転", sub:"b) 伸展共同運動"},
-        {id:"lsb3", n:"膝関節 伸展", sub:"b) 伸展共同運動"},
-        {id:"lsb4", n:"足関節 底屈", sub:"b) 伸展共同運動"}
-    ],
-    sit: [
-        {id:"ls1", n:"膝屈曲"},
-        {id:"ls2", n:"足背屈"}
-    ],
-    stand: [
-        {id:"lst1", n:"膝屈曲90°"},
-        {id:"lst2", n:"足背屈"}
-    ],
-    nreflex: [
-        {id:"lnr1", n:"膝屈筋、膝蓋腱、アキレス腱"}
-    ],
-    coord: [
-        {id:"lco1", n:"a) 振戦", hint:"0=顕著 1=軽度 2=無し"},
-        {id:"lco2", n:"b) 測定障害", hint:"0=顕著 1=軽度 2=無し"},
-        {id:"lco3", n:"c) 非麻痺側との時間差", hint:"0=＞6秒 1=2〜5秒 2=＜2秒"}
-    ],
-    sens: [
-        {id:"lse1", n:"触覚: 大腿・下腿", hint:"0=脱失 1=鈍麻/過敏 2=正常", sub:"a) 触覚 ─ 左右差を問う"},
-        {id:"lse2", n:"触覚: 足底", hint:"0=脱失 1=鈍麻/過敏 2=正常"},
-        {id:"lse3", n:"位置覚: 股関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常", sub:"b) 関節位置覚 ─ 閉眼にて実施"},
-        {id:"lse4", n:"位置覚: 膝関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
-        {id:"lse5", n:"位置覚: 足関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
-        {id:"lse6", n:"位置覚: 母趾", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"}
-    ],
-    rom: [
-        {id:"lro1", n:"股関節 屈曲"},
-        {id:"lro2", n:"股関節 外転"},
-        {id:"lro3", n:"股関節 外旋"},
-        {id:"lro4", n:"股関節 内旋"},
-        {id:"lro5", n:"膝関節 屈曲"},
-        {id:"lro6", n:"膝関節 伸展"},
-        {id:"lro7", n:"足関節 背屈"},
-        {id:"lro8", n:"足関節 底屈"},
-        {id:"lro9", n:"足部 回内"},
-        {id:"lro10",n:"足部 回外"}
-    ],
-    pain: [
-        {id:"lpa1", n:"股関節 屈曲"},
-        {id:"lpa2", n:"股関節 外転"},
-        {id:"lpa3", n:"股関節 外旋"},
-        {id:"lpa4", n:"股関節 内旋"},
-        {id:"lpa5", n:"膝関節 屈曲"},
-        {id:"lpa6", n:"膝関節 伸展"},
-        {id:"lpa7", n:"足関節 背屈"},
-        {id:"lpa8", n:"足関節 底屈"},
-        {id:"lpa9", n:"足部 回内"},
-        {id:"lpa10",n:"足部 回外"}
-    ]
+/* ── LE Sections ── */
+const leReflex = [
+    {id:"lr1", n:"膝屈筋", opts:[0,2]},
+    {id:"lr2", n:"膝伸筋 or アキレス腱", sub:"どちらか1つを選択", opts:[0,2]}
+];
+
+const leSynergyA = [
+    {id:"lsa1", n:"股関節 屈曲(外旋・外転)"},
+    {id:"lsa2", n:"膝関節 屈曲"},
+    {id:"lsa3", n:"足関節 背屈"}
+];
+
+const leSynergyB = [
+    {id:"lsb1", n:"股関節 伸展"},
+    {id:"lsb2", n:"股関節 内転"},
+    {id:"lsb3", n:"膝関節 伸展"},
+    {id:"lsb4", n:"足関節 底屈"}
+];
+
+const leSit = [
+    {id:"lsi1", n:"膝屈曲", hint:"0=不可 1=≦90° 2=＞90°"},
+    {id:"lsi2", n:"足背屈"}
+];
+
+const leStand = [
+    {id:"lst1", n:"膝屈曲90°", hint:"1=途中で股屈曲・膝屈曲90°未満"},
+    {id:"lst2", n:"足背屈"}
+];
+
+const leNormalReflex = [
+    {id:"lnr1", n:"膝屈筋、膝蓋腱、アキレス腱", hint:"0=無・不可 1=亢進≧1個 or 軽度亢進≧2個 2=十分・可能"}
+];
+
+const leCoord = [
+    {id:"lco1", n:"a) 振戦", hint:"0=顕著 1=軽度 2=無し"},
+    {id:"lco2", n:"b) 測定障害", hint:"0=顕著 1=軽度 2=無し"},
+    {id:"lco3", n:"c) 非麻痺側との時間差", hint:"0=＞6秒 1=2〜5秒 2=＜2秒"}
+];
+
+const leSens = [
+    {id:"lse1", n:"触覚: 大腿・下腿", hint:"0=脱失 1=鈍麻/過敏 2=正常", sub:"a) 触覚 ─ 左右差を問う"},
+    {id:"lse2", n:"触覚: 足底", hint:"0=脱失 1=鈍麻/過敏 2=正常"},
+    {id:"lse3", n:"位置覚: 股関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常", sub:"b) 関節位置覚 ─ 閉眼にて実施"},
+    {id:"lse4", n:"位置覚: 膝関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
+    {id:"lse5", n:"位置覚: 足関節", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"},
+    {id:"lse6", n:"位置覚: 母趾", hint:"0=正解＜3/4 1=正解≧3/4 2=正常"}
+];
+
+const leRom = [
+    {id:"lro1", n:"股関節 屈曲"},
+    {id:"lro2", n:"股関節 外転"},
+    {id:"lro3", n:"股関節 外旋"},
+    {id:"lro4", n:"股関節 内旋"},
+    {id:"lro5", n:"膝関節 屈曲"},
+    {id:"lro6", n:"膝関節 伸展"},
+    {id:"lro7", n:"足関節 背屈"},
+    {id:"lro8", n:"足関節 底屈"},
+    {id:"lro9", n:"足部 回内"},
+    {id:"lro10",n:"足部 回外"}
+];
+
+const lePain = [
+    {id:"lpa1", n:"股関節 屈曲"},
+    {id:"lpa2", n:"股関節 外転"},
+    {id:"lpa3", n:"股関節 外旋"},
+    {id:"lpa4", n:"股関節 内旋"},
+    {id:"lpa5", n:"膝関節 屈曲"},
+    {id:"lpa6", n:"膝関節 伸展"},
+    {id:"lpa7", n:"足関節 背屈"},
+    {id:"lpa8", n:"足関節 底屈"},
+    {id:"lpa9", n:"足部 回内"},
+    {id:"lpa10",n:"足部 回外"}
+];
+
+const leSectionMap = {
+    e: [leReflex, leSynergyA, leSynergyB, leSit, leStand, leNormalReflex],
+    f: [leCoord],
+    h: [leSens],
+    i: [leRom],
+    j: [lePain]
 };
 
-/* ── Section IDs mapping for LE ── */
-const leSections = {
-    e: ['reflex','synergy','sit','stand','nreflex'],
-    f: ['coord'],
-    h: ['sens'],
-    i: ['rom'],
-    j: ['pain']
-};
-
+/* ================================================================
+   RENDERING
+   ================================================================ */
 let currentTab = 'ue';
 
+function renderItem(item) {
+    const opts = item.opts || [0,1,2];
+    let h = '<div class="item">';
+    h += `<span class="item-name">${item.n}`;
+    if (item.sub) h += ` <span class="joint">${item.sub}</span>`;
+    if (item.posture) h += `<span class="posture">${item.posture}</span>`;
+    h += '</span>';
+    h += '<div class="options">';
+    opts.forEach(v => { h += `<label><input type="radio" name="${item.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`; });
+    h += '</div>';
+    if (item.hint) h += `<div class="scale-hint">${item.hint}</div>`;
+    h += `<div class="memo-row"><input type="text" class="memo-input" placeholder="注意点" data-memo="${item.id}"></div>`;
+    h += '</div>';
+    return h;
+}
+
+function renderItems(items) { return items.map(renderItem).join(''); }
+
+function card(title, noteText, content) {
+    return `<div class="section-card"><h2>${title}</h2>${noteText ? '<div class="note">'+noteText+'</div>' : ''}${content}</div>`;
+}
+
+function subLabel(text) { return `<div class="sub-label">${text}</div>`; }
+
+function renderUE() {
+    let html = '';
+
+    /* A-I. 反射 */
+    html += card('A-I. 反射（4点）',
+        '前腕回外位で手は大腿の上に置く / 腱反射が減弱でも非麻痺側と同等であれば2点',
+        renderItems(ueReflex));
+
+    /* A-II. 共同運動 */
+    html += card('A-II. 共同運動（18点）',
+        '各要素を別々で評価せず、一つの動きとして評価する / 各要素は運動の最終時点で評価し、運動途中で個別に採点してはならない / 可動域制限がある場合はその範囲内の動きで評価 / 体幹の側屈・回旋に注意',
+        subLabel('a) 屈曲共同運動「麻痺側の耳まで手をもってくる」') +
+        renderItems(ueSynergyA) +
+        subLabel('b) 伸展共同運動「非麻痺側の膝に手をもっていく」') +
+        renderItems(ueSynergyB));
+
+    /* A-III. 混合動作 */
+    html += card('A-III. 共同運動の混合動作（6点）',
+        'a) 直立肢位保持のための徒手的誘導は可能 / 体幹・胸郭の回旋代償が入ればASISを超えても0点<br>' +
+        'b) 開始肢位のための介助は可能 / 肩外転や肘屈曲の代償が途中から出現すれば1点、開始初期から出現すれば0点<br>' +
+        'c) 肘は体にくっつける / 介助不可',
+        renderItems(ueMixed));
+
+    /* A-IV. 分離動作 */
+    html += card('A-IV. 共同運動を伴わない動作（6点）',
+        'a) 開始肢位の介助は可能（手掌は下向き）/ 肘屈曲・前腕回外の代償が途中から出現すれば1点<br>' +
+        'b) 開始肢位の介助は可能 / 肘屈曲・前腕回内の代償が途中から出現すれば1点<br>' +
+        'c) 介助不可（開始肢位がとれなければ0点）',
+        renderItems(ueIsolated));
+
+    /* A-V. 正常反射 */
+    html += card('A-V. 正常反射（2点）',
+        'IVで満点の場合のみ実施 / 「腱反射の程度」の評価のため非麻痺側と比較する',
+        renderItems(ueNormalReflex));
+
+    /* B. 手関節 */
+    html += card('B. 手関節（10点）',
+        'a,c) 15°の背屈保持が可能であれば抵抗を加えて保持できれば2点<br>' +
+        'b,d) 1点には最低でも掌背屈両方向への動きが必要<br>' +
+        'e) 動きを遮らない範囲で前腕介助可能',
+        renderItems(ueWrist));
+
+    /* C. 手指 */
+    html += card('C. 手指（14点）',
+        'a) 手指は最大伸展位から開始 / b) 手指は最大屈曲位から開始<br>' +
+        'c〜g) 把持動作と保持（抵抗に負けず保持）の2つの要素からなる',
+        renderItems(ueHand));
+
+    /* D. 協調性/スピード */
+    html += card('D. 協調性/スピード（6点）',
+        '指鼻試験5回（できる限り速く）/ 閉眼し、肩外転90°、肘完全伸展位が開始肢位',
+        renderItems(ueCoord));
+
+    /* H. 感覚 */
+    html += card('H. 感覚（12点）',
+        'a) 左右差を問う<br>b) 閉眼にて実施 / 屈曲/伸展方向へわずかな動きを他動的に与える / 最初に非麻痺側で実施 / 屈曲/伸展を4回ずつ評価',
+        renderItems(ueSens));
+
+    /* I. 他動関節可動域 */
+    html += card('I. 他動関節可動域（20点）',
+        '一番初めに評価する / 椅子座位で実施 / 0=微動 1=減少 2=正常',
+        renderItems(ueRom));
+
+    /* J. 関節痛 */
+    html += card('J. 関節痛（20点）',
+        '重度：常時どの可動域でも痛み、最終可動域で著明な痛みが出現する / 0=重度 1=軽度 2=無し',
+        renderItems(uePain));
+
+    document.getElementById('content-ue').innerHTML = html;
+}
+
+function renderLE() {
+    let html = '';
+
+    html += card('E-I. 反射（4点）',
+        '背臥位で実施 / 腱反射が減弱でも非麻痺側と同等であれば2点',
+        renderItems(leReflex));
+
+    html += card('E-II. 共同運動（14点）',
+        '各要素を別々で評価せず、一つの動きとして評価する / 各要素は運動の最終時点で評価 / 可動域制限がある場合はその範囲内で評価 / 背臥位で実施<br>' +
+        'a) 膝屈曲には多少の抵抗を加える / 膝屈筋遠位腱を触知して確認<br>' +
+        'b) 伸展共同運動は全面的に従重力のため多少の抵抗を加える / 非麻痺側と比較',
+        subLabel('a) 屈曲共同運動「下肢伸展位から開始」') +
+        renderItems(leSynergyA) +
+        subLabel('b) 伸展共同運動「下肢屈曲位から開始」') +
+        renderItems(leSynergyB));
+
+    html += card('E-III. 椅子座位（4点）',
+        '椅子の端と膝を10cm離す / 膝屈曲を膝屈筋の腱を触知して確認 / 非麻痺側と比較',
+        renderItems(leSit));
+
+    html += card('E-IV. 立位（4点）',
+        '股関節伸展0°以上 / バランス補助は許可 / 非麻痺側と比較',
+        renderItems(leStand));
+
+    html += card('E-V. 正常反射（2点）',
+        'IVで満点の場合のみ実施 / 非麻痺側と比較',
+        renderItems(leNormalReflex));
+
+    html += card('F. 協調性/スピード（6点）',
+        '麻痺側踵を非麻痺側膝蓋骨に付ける動作を5回できるだけ速く繰り返す ※仰臥位 / 両側で1回試した後に閉眼で実施 / ストップウォッチ使用',
+        renderItems(leCoord));
+
+    html += card('H. 感覚（12点）',
+        'a) 左右差を問う<br>b) 閉眼にて実施 / 患者は口頭もしくは非麻痺側の動きで回答',
+        renderItems(leSens));
+
+    html += card('I. 他動関節可動域（20点）',
+        '一番初めに評価する / 0=微動 1=減少 2=正常',
+        renderItems(leRom));
+
+    html += card('J. 関節痛（20点）',
+        '重度：常時どの可動域でも痛み、最終可動域で著明な痛みが出現する / 0=重度 1=軽度 2=無し',
+        renderItems(lePain));
+
+    document.getElementById('content-le').innerHTML = html;
+}
+
+/* ================================================================
+   SCORE CALCULATION
+   ================================================================ */
+function sumGroup(arrays) {
+    let t = 0;
+    arrays.forEach(arr => arr.forEach(item => {
+        const el = document.querySelector(`input[name="${item.id}"]:checked`);
+        if (el) t += parseInt(el.value, 10);
+    }));
+    return t;
+}
+
+function calc() {
+    if (currentTab === 'ue') {
+        const sA = sumGroup(ueSectionMap.a);
+        const sB = sumGroup(ueSectionMap.b);
+        const sC = sumGroup(ueSectionMap.c);
+        const sD = sumGroup(ueSectionMap.d);
+        const sH = sumGroup(ueSectionMap.h);
+        const sI = sumGroup(ueSectionMap.i);
+        const sJ = sumGroup(ueSectionMap.j);
+        const motor = sA + sB + sC + sD;
+
+        document.getElementById('ue-scoreA').innerText = sA + "/36";
+        document.getElementById('ue-scoreB').innerText = sB + "/10";
+        document.getElementById('ue-scoreC').innerText = sC + "/14";
+        document.getElementById('ue-scoreD').innerText = sD + "/6";
+        document.getElementById('ue-motor').innerText = motor + "/66";
+        document.getElementById('ue-scoreH').innerText = sH + "/12";
+        document.getElementById('ue-scoreI').innerText = sI + "/20";
+        document.getElementById('ue-scoreJ').innerText = sJ + "/20";
+        setSev('ue-sev-bar', motor, 43, 29);
+    } else {
+        const sE = sumGroup(leSectionMap.e);
+        const sF = sumGroup(leSectionMap.f);
+        const sH = sumGroup(leSectionMap.h);
+        const sI = sumGroup(leSectionMap.i);
+        const sJ = sumGroup(leSectionMap.j);
+        const motor = sE + sF;
+
+        document.getElementById('le-scoreE').innerText = sE + "/28";
+        document.getElementById('le-scoreF').innerText = sF + "/6";
+        document.getElementById('le-motor').innerText = motor + "/34";
+        document.getElementById('le-scoreH').innerText = sH + "/12";
+        document.getElementById('le-scoreI').innerText = sI + "/20";
+        document.getElementById('le-scoreJ').innerText = sJ + "/20";
+        setSev('le-sev-bar', motor, 28, 19);
+    }
+}
+
+function setSev(id, s, light, mod) {
+    const el = document.getElementById(id);
+    if (s >= light) { el.innerText = "軽度麻痺"; el.style.background = "#e1f5fe"; }
+    else if (s >= mod) { el.innerText = "中等度麻痺"; el.style.background = "#fff9c4"; }
+    else { el.innerText = "重度麻痺"; el.style.background = "#ffccbc"; }
+}
+
+/* ================================================================
+   TAB SWITCHING
+   ================================================================ */
 function switchTab(t) {
     currentTab = t;
     document.getElementById('tab-ue').className = t === 'ue' ? 'tab active' : 'tab';
@@ -254,174 +508,95 @@ function switchTab(t) {
     calc();
 }
 
-/* ── Render functions ── */
-function renderItem(item, withMemo) {
-    const opts = item.opts || [0,1,2];
-    let html = '<div class="item">';
-    html += `<span class="item-name">${item.n}${item.sub ? ' <span class="joint">'+item.sub+'</span>' : ''}</span>`;
-    html += '<div class="options">';
-    opts.forEach(v => {
-        html += `<label><input type="radio" name="${item.id}" value="${v}" onchange="calc()"><span>${v}</span></label>`;
-    });
-    html += '</div>';
-    if (item.hint) html += `<div class="scale-hint">${item.hint}</div>`;
-    if (withMemo) html += `<div class="memo-row"><input type="text" class="memo-input" placeholder="注意点" data-memo="${item.id}"></div>`;
-    html += '</div>';
-    return html;
-}
-
-function renderUE() {
-    const gen = (key, target) => {
-        const el = document.getElementById(target);
-        if (!el) return;
-        el.innerHTML = ueData[key].map(i => renderItem(i, false)).join('');
-    };
-    ['r','f','e','m','w','h','c','s'].forEach(s => gen(s, 'ue-'+s));
-}
-
-function renderLE() {
-    let prevSub = '';
-    for (const [section, items] of Object.entries(leData)) {
-        const el = document.getElementById('le-' + section);
-        if (!el) continue;
-        let html = '';
-        items.forEach(item => {
-            if (item.sub && item.sub !== prevSub) {
-                html += `<div style="font-size:0.78rem; font-weight:600; color:var(--primary); margin:8px 0 4px; padding-left:4px;">${item.sub}</div>`;
-                prevSub = item.sub;
-            }
-            html += renderItem(item, true);
-        });
-        el.innerHTML = html;
-    }
-}
-
-/* ── Score calculation ── */
-function sumIds(ids) {
-    return ids.reduce((a, id) => {
-        const el = document.querySelector(`input[name="${id}"]:checked`);
-        return a + (el ? parseInt(el.value, 10) : 0);
-    }, 0);
-}
-
-function sumSection(keys) {
-    let total = 0;
-    keys.forEach(key => {
-        leData[key].forEach(item => {
-            const el = document.querySelector(`input[name="${item.id}"]:checked`);
-            if (el) total += parseInt(el.value, 10);
-        });
-    });
-    return total;
-}
-
-function calc() {
-    if (currentTab === 'ue') {
-        const allUeM = [...ueData.r, ...ueData.f, ...ueData.e, ...ueData.m, {id:"uw0"}, ...ueData.w.slice(1), ...ueData.h, ...ueData.c];
-        const tot = sumIds(allUeM.map(i => i.id));
-        const fms = tot - sumIds(ueData.r.map(i=>i.id)) - sumIds(["uw0"]) - sumIds(ueData.c.map(i=>i.id));
-        document.getElementById('tot-m').innerText = tot + "/66";
-        document.getElementById('fms-val').innerText = fms + "/54";
-        document.getElementById('sens-val').innerText = sumIds(ueData.s.map(i=>i.id)) + "/12";
-        setSev('sev-bar', tot, 43, 29);
-    } else {
-        const scoreE = sumSection(leSections.e);
-        const scoreF = sumSection(leSections.f);
-        const scoreH = sumSection(leSections.h);
-        const scoreI = sumSection(leSections.i);
-        const scoreJ = sumSection(leSections.j);
-        const motor = scoreE + scoreF;
-
-        document.getElementById('le-scoreE').innerText = scoreE + "/28";
-        document.getElementById('le-scoreF').innerText = scoreF + "/6";
-        document.getElementById('le-motor').innerText = motor + "/34";
-        document.getElementById('le-scoreH').innerText = scoreH + "/12";
-        document.getElementById('le-scoreI').innerText = scoreI + "/20";
-        document.getElementById('le-scoreJ').innerText = scoreJ + "/20";
-        setSev('le-sev-bar', motor, 28, 19);
-    }
-}
-
-function setSev(barId, s, light, mod) {
-    const el = document.getElementById(barId);
-    if (s >= light) { el.innerText = "軽度麻痺"; el.style.background = "#e1f5fe"; }
-    else if (s >= mod) { el.innerText = "中等度麻痺"; el.style.background = "#fff9c4"; }
-    else { el.innerText = "重度麻痺"; el.style.background = "#ffccbc"; }
-}
-
-/* ── Copy result ── */
+/* ================================================================
+   COPY / CSV
+   ================================================================ */
 function copyResult() {
     let txt;
     if (currentTab === 'ue') {
-        txt = `FMA UE結果\n運動合計: ${document.getElementById('tot-m').innerText}\nFMS(随意): ${document.getElementById('fms-val').innerText}\n感覚: ${document.getElementById('sens-val').innerText}\n判定: ${document.getElementById('sev-bar').innerText}`;
+        txt = `FMA UE結果\n` +
+            `A. 肩/肘/前腕: ${document.getElementById('ue-scoreA').innerText}\n` +
+            `B. 手関節: ${document.getElementById('ue-scoreB').innerText}\n` +
+            `C. 手指: ${document.getElementById('ue-scoreC').innerText}\n` +
+            `D. 協調性: ${document.getElementById('ue-scoreD').innerText}\n` +
+            `運動合計: ${document.getElementById('ue-motor').innerText}\n` +
+            `H. 感覚: ${document.getElementById('ue-scoreH').innerText}\n` +
+            `I. 可動域: ${document.getElementById('ue-scoreI').innerText}\n` +
+            `J. 関節痛: ${document.getElementById('ue-scoreJ').innerText}\n` +
+            `判定: ${document.getElementById('ue-sev-bar').innerText}`;
     } else {
         txt = `FMA LE結果\n` +
-              `E. 股/膝/足: ${document.getElementById('le-scoreE').innerText}\n` +
-              `F. 協調性: ${document.getElementById('le-scoreF').innerText}\n` +
-              `運動合計: ${document.getElementById('le-motor').innerText}\n` +
-              `H. 感覚: ${document.getElementById('le-scoreH').innerText}\n` +
-              `I. 可動域: ${document.getElementById('le-scoreI').innerText}\n` +
-              `J. 関節痛: ${document.getElementById('le-scoreJ').innerText}\n` +
-              `判定: ${document.getElementById('le-sev-bar').innerText}`;
+            `E. 股/膝/足: ${document.getElementById('le-scoreE').innerText}\n` +
+            `F. 協調性: ${document.getElementById('le-scoreF').innerText}\n` +
+            `運動合計: ${document.getElementById('le-motor').innerText}\n` +
+            `H. 感覚: ${document.getElementById('le-scoreH').innerText}\n` +
+            `I. 可動域: ${document.getElementById('le-scoreI').innerText}\n` +
+            `J. 関節痛: ${document.getElementById('le-scoreJ').innerText}\n` +
+            `判定: ${document.getElementById('le-sev-bar').innerText}`;
     }
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました"));
 }
 
-/* ── CSV export ── */
 function exportCSV() {
     const rows = [["セクション", "項目", "スコア", "注意点"]];
-    const addRows = (sectionName, items) => {
-        items.forEach(item => {
-            const el = document.querySelector(`input[name="${item.id}"]:checked`);
-            const score = el ? el.value : "";
-            const memoEl = document.querySelector(`input[data-memo="${item.id}"]`);
-            const memo = memoEl ? memoEl.value : "";
-            rows.push([sectionName, item.n, score, memo]);
-        });
-    };
+    const add = (sec, items) => items.forEach(item => {
+        const el = document.querySelector(`input[name="${item.id}"]:checked`);
+        const memo = document.querySelector(`input[data-memo="${item.id}"]`);
+        rows.push([sec, item.n, el ? el.value : "", memo ? memo.value : ""]);
+    });
 
     if (currentTab === 'ue') {
-        addRows("反射", ueData.r);
-        addRows("屈筋共同運動", ueData.f);
-        addRows("伸筋共同運動", ueData.e);
-        addRows("混合/分離", ueData.m);
-        addRows("正常反射/手関節", ueData.w);
-        addRows("手指", ueData.h);
-        addRows("協調性", ueData.c);
-        addRows("感覚", ueData.s);
-        rows.push(["合計", "運動合計", document.getElementById('tot-m').innerText, ""]);
-        rows.push(["合計", "感覚", document.getElementById('sens-val').innerText, ""]);
+        add("A-I.反射", ueReflex);
+        add("A-II.屈曲共同運動", ueSynergyA);
+        add("A-II.伸展共同運動", ueSynergyB);
+        add("A-III.混合動作", ueMixed);
+        add("A-IV.分離動作", ueIsolated);
+        add("A-V.正常反射", ueNormalReflex);
+        add("B.手関節", ueWrist);
+        add("C.手指", ueHand);
+        add("D.協調性", ueCoord);
+        add("H.感覚", ueSens);
+        add("I.可動域", ueRom);
+        add("J.関節痛", uePain);
+        rows.push(["合計","A.肩/肘/前腕", document.getElementById('ue-scoreA').innerText, ""]);
+        rows.push(["合計","B.手関節", document.getElementById('ue-scoreB').innerText, ""]);
+        rows.push(["合計","C.手指", document.getElementById('ue-scoreC').innerText, ""]);
+        rows.push(["合計","D.協調性", document.getElementById('ue-scoreD').innerText, ""]);
+        rows.push(["合計","運動合計", document.getElementById('ue-motor').innerText, ""]);
+        rows.push(["合計","H.感覚", document.getElementById('ue-scoreH').innerText, ""]);
+        rows.push(["合計","I.可動域", document.getElementById('ue-scoreI').innerText, ""]);
+        rows.push(["合計","J.関節痛", document.getElementById('ue-scoreJ').innerText, ""]);
     } else {
-        addRows("E-I.反射", leData.reflex);
-        addRows("E-II.共同運動", leData.synergy);
-        addRows("E-III.座位", leData.sit);
-        addRows("E-IV.立位", leData.stand);
-        addRows("E-V.正常反射", leData.nreflex);
-        addRows("F.協調性", leData.coord);
-        addRows("H.感覚", leData.sens);
-        addRows("I.可動域", leData.rom);
-        addRows("J.関節痛", leData.pain);
-        rows.push(["合計", "E.股/膝/足", document.getElementById('le-scoreE').innerText, ""]);
-        rows.push(["合計", "F.協調性", document.getElementById('le-scoreF').innerText, ""]);
-        rows.push(["合計", "運動合計", document.getElementById('le-motor').innerText, ""]);
-        rows.push(["合計", "H.感覚", document.getElementById('le-scoreH').innerText, ""]);
-        rows.push(["合計", "I.可動域", document.getElementById('le-scoreI').innerText, ""]);
-        rows.push(["合計", "J.関節痛", document.getElementById('le-scoreJ').innerText, ""]);
+        add("E-I.反射", leReflex);
+        add("E-II.屈曲共同運動", leSynergyA);
+        add("E-II.伸展共同運動", leSynergyB);
+        add("E-III.座位", leSit);
+        add("E-IV.立位", leStand);
+        add("E-V.正常反射", leNormalReflex);
+        add("F.協調性", leCoord);
+        add("H.感覚", leSens);
+        add("I.可動域", leRom);
+        add("J.関節痛", lePain);
+        rows.push(["合計","E.股/膝/足", document.getElementById('le-scoreE').innerText, ""]);
+        rows.push(["合計","F.協調性", document.getElementById('le-scoreF').innerText, ""]);
+        rows.push(["合計","運動合計", document.getElementById('le-motor').innerText, ""]);
+        rows.push(["合計","H.感覚", document.getElementById('le-scoreH').innerText, ""]);
+        rows.push(["合計","I.可動域", document.getElementById('le-scoreI').innerText, ""]);
+        rows.push(["合計","J.関節痛", document.getElementById('le-scoreJ').innerText, ""]);
     }
 
     const bom = '\uFEFF';
     const csv = bom + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a');
-    a.href = url;
-    const tabName = currentTab === 'ue' ? 'UE' : 'LE';
-    a.download = `FMA_${tabName}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = URL.createObjectURL(blob);
+    a.download = `FMA_${currentTab.toUpperCase()}_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
 }
 
-/* ── Init ── */
+/* ================================================================
+   INIT
+   ================================================================ */
 renderUE();
 renderLE();
 switchTab('ue');
