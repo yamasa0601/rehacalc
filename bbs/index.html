@@ -33,8 +33,18 @@
     .item { border-top: 1px solid var(--line); padding: 10px 0; }
     .item:first-child { border-top: 0; }
     .itemname { font-size: 14px; font-weight: 700; line-height: 1.35; }
+    .item-meta { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .item-meta .equip { color: #0071e3; }
+    .criteria-toggle { font-size: 11px; color: #0071e3; cursor: pointer; margin-top: 4px; display: inline-block; user-select: none; }
+    .criteria-toggle:hover { text-decoration: underline; }
+    .criteria-list { display: none; margin-top: 6px; padding: 8px 10px; background: #f8f9fc; border-radius: 10px; border: 1px solid var(--line); }
+    .criteria-list.open { display: block; }
+    .criteria-list .cl { font-size: 12px; line-height: 1.6; color: #333; padding: 2px 0; }
+    .criteria-list .cl b { color: var(--text); min-width: 18px; display: inline-block; }
+    .criteria-list .cl.active-criteria { background: #e8f5e9; border-radius: 6px; padding: 2px 6px; margin: 1px -6px; }
     .btns { display:flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    .btn { border:1px solid var(--line); background:#fff; color:#111; padding: 8px 10px; border-radius: 999px; font-size: 14px; cursor:pointer; min-width: 44px; }
+    .btn { border:1px solid var(--line); background:#fff; color:#111; padding: 8px 10px; border-radius: 999px; font-size: 14px; cursor:pointer; min-width: 44px; transition: all 0.15s; }
+    .btn:hover { border-color: #999; }
     .btn.active { background:#111; color:#fff; border-color:#111; }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.55; }
     .kv { display:grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
@@ -49,15 +59,16 @@
     .actions { display:flex; gap: 10px; flex-wrap: wrap; align-items:center; margin-top: 10px; }
     button.action { appearance:none; border:0; background:#111; color:#fff; padding: 10px 12px; border-radius: 12px; font-size: 14px; cursor:pointer; }
     button.action.secondary { background:#f0f1f5; color:#111; border: 1px solid var(--line); }
-    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; background:#111; color:#fff; padding: 10px 12px; border-radius: 999px; font-size: 13px; display:none; }
+    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; background:#111; color:#fff; padding: 10px 12px; border-radius: 999px; font-size: 13px; display:none; z-index: 100; }
     .help { margin-top: 10px; }
+    .criteria-expand-all { font-size: 12px; color: #0071e3; cursor: pointer; margin-top: 8px; display: inline-block; user-select: none; }
   </style>
 </head>
 <body>
 <header>
-  <h1>BBS入力（1〜4点 / 合計56点）</h1>
+  <h1>BBS入力（0〜4点 / 合計56点）</h1>
   <p>脳卒中 / 大腿骨近位部骨折（2つのCSV相当）を切替。合計点・静的/動的・カットオフ判定をその場で表示します。<br>
-  ※BBSは本来0〜4点です。必要なら「0点も表示」をONにしてください。</p>
+  各項目の「判定基準」を開くと、0〜4点の詳細な採点基準を確認できます。</p>
 </header>
 
 <main>
@@ -85,16 +96,19 @@
 
       <div class="row" style="margin-top:12px;">
         <label style="display:flex; gap:10px; align-items:center;">
-          <input type="checkbox" id="showZero" style="width:20px;height:20px;" />
+          <input type="checkbox" id="showZero" style="width:20px;height:20px;" checked />
           0点も表示（BBS標準）
         </label>
       </div>
+
+      <span class="criteria-expand-all" id="expandAll">全ての判定基準を開く</span>
 
       <div class="items" id="items"></div>
 
       <div class="actions">
         <button class="action secondary" id="reset">全リセット</button>
         <button class="action" id="copy">結果をコピー</button>
+        <button class="action secondary" id="csvExport">CSV出力</button>
       </div>
 
       <div class="help muted">
@@ -118,7 +132,7 @@
       <div style="margin-top:12px;">
         <details open>
           <summary>カットオフ判定（合計点）</summary>
-          <div class="muted" style="margin-top:6px;">表示は“参考”。閾値の方向（高いほど良い/低いほど良い）は運用に合わせて解釈してください。</div>
+          <div class="muted" style="margin-top:6px;">表示は"参考"。閾値の方向（高いほど良い/低いほど良い）は運用に合わせて解釈してください。</div>
           <div id="cutoffs" style="margin-top:8px;"></div>
         </details>
       </div>
@@ -151,17 +165,226 @@
     navigator.serviceWorker.register("./service-worker.js");
   }
 
-  const ITEMS = ["1. 立ち上がり", "2. 立位保持", "3. 座位保持", "4. 着座", "5. 移乗", "6. 閉眼立位保持", "7. 閉脚立位保持", "8. 上肢前方リーチ", "9. 床から物拾い", "10. 左右振り返り", "11. 360度回転", "12. 段差踏み替え", "13. タンデム立位保持", "14. 片脚立位保持"];
-  const DATASETS = {"stroke": {"name": "シート1：脳卒中BBS", "cutoffs": [{"label": "歩行自立", "type": "ge", "value": 42}, {"label": "転倒予測（研究により）", "type": "ge", "value": 47}, {"label": "転倒予測（研究により）", "type": "ge", "value": 51}], "mdc": {"label": "MDC（誤差）", "low": 3, "high": 5}, "mcid": {"label": "MCID（効果があったと言える）", "low": 5, "high": 6}, "tests": []}, "hip": {"name": "シート2：大腿骨近位部骨折BBS", "cutoffs": [{"label": "屋内自立", "type": "ge", "value": 43}, {"label": "歩行補助具あり自立", "type": "ge", "value": 45.5}, {"label": "転倒予測カットオフ（解釈は運用に合わせて）", "type": "ge", "value": 50}, {"label": "歩行補助具なし自立", "type": "ge", "value": 51.5}, {"label": "車輪付き歩行器監視", "type": "ge", "value": 19}, {"label": "監視", "type": "ge", "value": 21}, {"label": "車輪付き歩行器自立", "type": "ge", "value": 25}, {"label": "自立", "type": "ge", "value": 28}], "mdc": {"label": "MDC（誤差）", "low": 5, "high": 5}, "mcid": {"label": "MCID（効果があったと言える）", "low": 12, "high": 12}, "tests": [{"label": "TUG", "unit": "秒", "type": "le", "value": 12}, {"label": "5回立ち座り", "unit": "秒", "type": "le", "value": 12}]}};
+  /* ── BBS Items with full criteria from original assessment ── */
+  const ITEMS_DATA = [
+    {
+      name: "1. 椅子からの立ち上がり",
+      equip: "椅子",
+      instruction: "「手を使わないで立ってください」",
+      criteria: [
+        "4: 立ち上がり可能",
+        "3: 手を使用して1人で立ち上がり可能",
+        "2: 数回の施行後、手を使用して立ち上がり可能",
+        "1: 立ち上がり、安定のために最小の介助が必要",
+        "0: 立ち上がりに中等度以上の介助が必要"
+      ]
+    },
+    {
+      name: "2. 立位保持",
+      equip: "ストップウォッチ",
+      instruction: "「何もつかまらずに2分間立っていてください」",
+      criteria: [
+        "4: 安全に2分間の立位保持が可能",
+        "3: 監視下で2分間の立位保持が可能",
+        "2: 30秒間の立位保持が可能",
+        "1: 数回の施行で30秒間の立位保持が可能",
+        "0: 介助なしには30秒間の立位保持が不可能"
+      ]
+    },
+    {
+      name: "3. 座位保持",
+      equip: "椅子、ストップウォッチ",
+      instruction: "「手を組んで2分間座っていてください」",
+      criteria: [
+        "4: 安全に2分間の座位保持が可能",
+        "3: 監視下で2分間の座位保持が可能",
+        "2: 30秒間の座位保持が可能",
+        "1: 10秒間の座位保持が可能",
+        "0: 介助なしには10秒間の座位保持が不可能"
+      ]
+    },
+    {
+      name: "4. 着座",
+      equip: "椅子",
+      instruction: "「腰かけてください」",
+      note: "両足を床につけて座り、背もたれは使用しない",
+      criteria: [
+        "4: ほとんど手を用いずに安全に座れる",
+        "3: 手を用いて着座を制御する",
+        "2: 下腿後面を椅子に押し付けて着座を制御する",
+        "1: 座れるが、着座を制御できない",
+        "0: 座るのに介助が必要"
+      ]
+    },
+    {
+      name: "5. 移乗",
+      equip: "椅子",
+      instruction: "「椅子からベッドに移って、またベッドに戻ってください」",
+      criteria: [
+        "4: ほとんど手を用いずに安全に移乗可能",
+        "3: 手を用いれば安全に移乗可能",
+        "2: 言語指示あるいは監視下で移乗可能",
+        "1: 移乗に介助者1名が必要",
+        "0: 安全確保のために2名の介助者が必要"
+      ]
+    },
+    {
+      name: "6. 閉眼立位保持",
+      equip: "ストップウォッチ",
+      instruction: "「目を閉じて10秒間立っていてください」",
+      criteria: [
+        "4: 安全に10秒間の閉眼立位保持が可能",
+        "3: 監視下で10秒間の閉眼立位保持が可能",
+        "2: 3秒間の閉眼立位保持が可能",
+        "1: 3秒間の閉眼立位保持は困難だが安定して立てる",
+        "0: 転倒を防ぐ介助が必要"
+      ]
+    },
+    {
+      name: "7. 閉脚立位保持",
+      equip: "ストップウォッチ",
+      instruction: "「両足を揃えて、何もつかまらずに立っていてください」",
+      criteria: [
+        "4: 自分で閉脚立位ができ、1分間安全に保持できる",
+        "3: 自分で閉脚立位ができ、監視下で1分間保持できる",
+        "2: 自分で閉脚立位ができるが、30秒間保持できない",
+        "1: 閉脚立位に介助が必要だが、15秒間保持できる",
+        "0: 閉脚立位に介助が必要で、15秒間保持できない"
+      ]
+    },
+    {
+      name: "8. 上肢の前方リーチ",
+      equip: "定規（メジャー）",
+      instruction: "「手を90度まであげて、遠くまで伸ばしてください」",
+      criteria: [
+        "4: 25cm以上のリーチが可能",
+        "3: 12.5cm以上のリーチが可能",
+        "2: 5cmのリーチが可能",
+        "1: 手を伸ばせるが、監視が必要",
+        "0: 転倒を防ぐ介助が必要"
+      ]
+    },
+    {
+      name: "9. 床から物を拾う",
+      equip: "靴",
+      instruction: "「足元の靴を拾ってください」",
+      criteria: [
+        "4: 安全かつ簡単に拾うことが可能",
+        "3: 監視下で拾うことが可能",
+        "2: 拾えないが、2.5〜5cm位の所まで手を伸ばせる",
+        "1: 拾えず、監視が必要",
+        "0: 転倒を防ぐ介助が必要"
+      ]
+    },
+    {
+      name: "10. 左右の肩ごしに後を振り向く",
+      equip: "",
+      instruction: "「肩越しに振り返ってください、同様に反対も行ってください」",
+      criteria: [
+        "4: 両側とも後を振り向くことができる",
+        "3: 片側のみ振り向くことができる",
+        "2: 側方までしか振り向けないが、安定している",
+        "1: 振り向く時に監視が必要",
+        "0: 転倒を防ぐ介助が必要"
+      ]
+    },
+    {
+      name: "11. 360°回転",
+      equip: "ストップウォッチ",
+      instruction: "「その場で1回転してください、同様に反対も行ってください」",
+      criteria: [
+        "4: 左右とも4秒以内で安全に360°回転が可能",
+        "3: 一側のみ4秒以内で安全に360°回転が可能",
+        "2: 360°回転が可能だが、両側とも4秒以上かかる",
+        "1: 監視か言語指示が必要",
+        "0: 回転中に介助が必要"
+      ]
+    },
+    {
+      name: "12. 段差踏み替え",
+      equip: "20cmの台",
+      instruction: "「足を交互に台に乗せてください」",
+      criteria: [
+        "4: 支持なしで安全に20秒以内に8回の踏み替えが可能",
+        "3: 8回の踏み替えが可能だが、20秒以上かかる",
+        "2: 監視下で補助具を使用せず4回の踏み替えが可能",
+        "1: 最小限の介助で2回の踏み替えが可能",
+        "0: 転倒を防ぐ介助が必要、または実施困難"
+      ]
+    },
+    {
+      name: "13. 継ぎ足位での立位保持",
+      equip: "",
+      instruction: "「片方の足をもう片方の前に置いて立ってください」",
+      criteria: [
+        "4: 自分で継ぎ足をとり、30秒間の保持が可能",
+        "3: 自分で足を他方の足の前に置くことができ、30秒間の保持が可能",
+        "2: 自分で足をわずかにずらし、30秒間の保持が可能",
+        "1: 足を出すのに介助を要すが、15秒間の保持が可能",
+        "0: 足を出すとき、立位時にバランスを崩す"
+      ]
+    },
+    {
+      name: "14. 片脚立位",
+      equip: "",
+      instruction: "「支えなしでできるだけ長く片脚で立ってください」",
+      criteria: [
+        "4: 自分で片脚をあげ、10秒以上の保持が可能",
+        "3: 自分で片脚をあげ、5〜10秒間の保持が可能",
+        "2: 自分で片脚をあげ、3秒以上の保持が可能",
+        "1: 片脚をあげ、3秒以上の保持が不可能",
+        "0: 検査実施困難、転倒を防ぐ介助が必要"
+      ]
+    }
+  ];
+
+  const ITEMS = ITEMS_DATA.map(d => d.name);
+
+  const DATASETS = {
+    "stroke": {
+      "name": "シート1：脳卒中BBS",
+      "cutoffs": [
+        {"label": "歩行自立", "type": "ge", "value": 42},
+        {"label": "転倒予測（研究により）", "type": "ge", "value": 47},
+        {"label": "転倒予測（研究により）", "type": "ge", "value": 51}
+      ],
+      "mdc": {"label": "MDC（誤差）", "low": 3, "high": 5},
+      "mcid": {"label": "MCID（効果があったと言える）", "low": 5, "high": 6},
+      "tests": []
+    },
+    "hip": {
+      "name": "シート2：大腿骨近位部骨折BBS",
+      "cutoffs": [
+        {"label": "屋内自立", "type": "ge", "value": 43},
+        {"label": "歩行補助具あり自立", "type": "ge", "value": 45.5},
+        {"label": "転倒予測カットオフ（解釈は運用に合わせて）", "type": "ge", "value": 50},
+        {"label": "歩行補助具なし自立", "type": "ge", "value": 51.5},
+        {"label": "車輪付き歩行器監視", "type": "ge", "value": 19},
+        {"label": "監視", "type": "ge", "value": 21},
+        {"label": "車輪付き歩行器自立", "type": "ge", "value": 25},
+        {"label": "自立", "type": "ge", "value": 28}
+      ],
+      "mdc": {"label": "MDC（誤差）", "low": 5, "high": 5},
+      "mcid": {"label": "MCID（効果があったと言える）", "low": 12, "high": 12},
+      "tests": [
+        {"label": "TUG", "unit": "秒", "type": "le", "value": 12},
+        {"label": "5回立ち座り", "unit": "秒", "type": "le", "value": 12}
+      ]
+    }
+  };
 
   const $ = (id) => document.getElementById(id);
-
-  const LS_KEY = "bbs_pwa_state_v1";
+  const LS_KEY = "bbs_pwa_state_v2";
+  let allCriteriaOpen = false;
 
   function loadState() {
     try {
       const s = localStorage.getItem(LS_KEY);
-      return s ? JSON.parse(s) : null;
+      if (s) return JSON.parse(s);
+      // migrate from v1
+      const v1 = localStorage.getItem("bbs_pwa_state_v1");
+      if (v1) return JSON.parse(v1);
+      return null;
     } catch { return null; }
   }
   function saveState(state) {
@@ -173,10 +396,6 @@
     return Math.max(0, Math.min(4, Math.round(x)));
   }
 
-  function fmt(n, digits=1) {
-    return Number.isFinite(n) ? n.toFixed(digits) : "-";
-  }
-
   function makeToast(msg) {
     const t = $("toast");
     t.textContent = msg;
@@ -185,7 +404,6 @@
     makeToast._timer = setTimeout(() => t.style.display = "none", 1200);
   }
 
-  // Build dataset select
   function buildDatasetSelect(selectedKey) {
     const sel = $("dataset");
     sel.innerHTML = "";
@@ -202,18 +420,29 @@
     const root = $("items");
     root.innerHTML = "";
 
-    ITEMS.forEach((name, idx) => {
+    ITEMS_DATA.forEach((data, idx) => {
       const wrap = document.createElement("div");
       wrap.className = "item";
 
+      // Item name
       const title = document.createElement("div");
       title.className = "itemname";
-      title.textContent = name;
+      title.textContent = data.name;
       wrap.appendChild(title);
 
+      // Instruction & equipment
+      const meta = document.createElement("div");
+      meta.className = "item-meta";
+      let metaHtml = '';
+      if (data.equip) metaHtml += `<span class="equip">${data.equip}</span> | `;
+      metaHtml += data.instruction;
+      if (data.note) metaHtml += `<br>${data.note}`;
+      meta.innerHTML = metaHtml;
+      wrap.appendChild(meta);
+
+      // Score buttons
       const btns = document.createElement("div");
       btns.className = "btns";
-
       const start = showZero ? 0 : 1;
       for (let s = start; s <= 4; s++) {
         const b = document.createElement("button");
@@ -227,14 +456,43 @@
         btns.appendChild(b);
       }
       wrap.appendChild(btns);
+
+      // Criteria toggle
+      const toggle = document.createElement("span");
+      toggle.className = "criteria-toggle";
+      toggle.textContent = "判定基準を表示";
+      toggle.setAttribute("data-idx", idx);
+
+      const criteriaDiv = document.createElement("div");
+      criteriaDiv.className = "criteria-list" + (allCriteriaOpen ? " open" : "");
+      criteriaDiv.id = "criteria-" + idx;
+
+      data.criteria.forEach(c => {
+        const line = document.createElement("div");
+        line.className = "cl";
+        const scoreVal = parseInt(c.charAt(0), 10);
+        if (scores[idx] === scoreVal) line.classList.add("active-criteria");
+        line.innerHTML = `<b>${c.charAt(0)}</b>${c.substring(1)}`;
+        criteriaDiv.appendChild(line);
+      });
+
+      toggle.addEventListener("click", () => {
+        const isOpen = criteriaDiv.classList.toggle("open");
+        toggle.textContent = isOpen ? "判定基準を閉じる" : "判定基準を表示";
+      });
+
+      if (allCriteriaOpen) toggle.textContent = "判定基準を閉じる";
+
+      wrap.appendChild(toggle);
+      wrap.appendChild(criteriaDiv);
       root.appendChild(wrap);
     });
   }
 
   function sumScores(scores) {
-    const total = scores.reduce((a,b)=>a + (Number.isFinite(b)?b:0), 0);
-    const staticScore = scores.slice(0,7).reduce((a,b)=>a+b, 0);
-    const dynamicScore = scores.slice(7,14).reduce((a,b)=>a+b, 0);
+    const total = scores.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
+    const staticScore = scores.slice(0, 7).reduce((a, b) => a + b, 0);
+    const dynamicScore = scores.slice(7, 14).reduce((a, b) => a + b, 0);
     return { total, staticScore, dynamicScore };
   }
 
@@ -254,7 +512,6 @@
     const d = DATASETS[datasetKey];
     const root = $("cutoffs");
     root.innerHTML = "";
-
     d.cutoffs.forEach((c) => {
       const ok = (c.type === "ge") ? (total >= c.value) : (total <= c.value);
       const line = document.createElement("div");
@@ -275,16 +532,13 @@
     const d = DATASETS[datasetKey];
     const root = $("tests");
     root.innerHTML = "";
-
     if (!d.tests || d.tests.length === 0) {
       root.innerHTML = '<div class="muted">このシートには関連テストの閾値がありません。</div>';
       return;
     }
-
     d.tests.forEach((t) => {
       const id = `test_${datasetKey}_${t.label}`.replaceAll(/[^a-zA-Z0-9_]/g, "_");
       const val = state.tests?.[t.label] ?? "";
-
       const wrap = document.createElement("div");
       wrap.className = "row";
       const lab = document.createElement("label");
@@ -299,24 +553,17 @@
         state.tests = state.tests || {};
         state.tests[t.label] = inp.value;
         saveState(state);
-        render(); // rejudge
+        render();
       });
-
       const num = Number(String(inp.value).trim().replaceAll(",", ""));
-      const ok = Number.isFinite(num) ? ((t.type==="le") ? (num <= t.value) : (num >= t.value)) : null;
-
+      const ok = Number.isFinite(num) ? ((t.type === "le") ? (num <= t.value) : (num >= t.value)) : null;
       const judge = document.createElement("div");
       judge.className = "muted";
       if (ok === null) {
-        judge.textContent = `基準：${t.type==="le" ? "≦" : "≧"} ${t.value}${t.unit}`;
+        judge.textContent = `基準：${t.type === "le" ? "≦" : "≧"} ${t.value}${t.unit}`;
       } else {
-        judge.innerHTML = ok ? `◯ 満たす <span class="badge">基準 ${
-          t.type==="le" ? "≦" : "≧"
-        } ${t.value}${t.unit}</span>` : `× 下回る <span class="badge">基準 ${
-          t.type==="le" ? "≦" : "≧"
-        } ${t.value}${t.unit}</span>`;
+        judge.innerHTML = ok ? `◯ 満たす <span class="badge">基準 ${t.type === "le" ? "≦" : "≧"} ${t.value}${t.unit}</span>` : `× 下回る <span class="badge">基準 ${t.type === "le" ? "≦" : "≧"} ${t.value}${t.unit}</span>`;
       }
-
       wrap.appendChild(lab);
       wrap.appendChild(inp);
       wrap.appendChild(judge);
@@ -334,44 +581,62 @@
     lines.push("");
     ITEMS.forEach((it, i) => lines.push(`${it}：${state.scores[i]}`));
     lines.push("");
-    // cutoffs
     lines.push("【カットオフ（参考）】");
     d.cutoffs.forEach(c => {
       const ok = (c.type === "ge") ? (totals.total >= c.value) : (totals.total <= c.value);
-      lines.push(`${c.label}（${c.type==="ge"?"≧":"≦"}${c.value}）：${ok ? "満たす" : "下回る"}`);
+      lines.push(`${c.label}（${c.type === "ge" ? "≧" : "≦"}${c.value}）：${ok ? "満たす" : "下回る"}`);
     });
-    // delta
-    const prev = Number(String(state.prevTotal||"").trim().replaceAll(",", ""));
+    const prev = Number(String(state.prevTotal || "").trim().replaceAll(",", ""));
     if (Number.isFinite(prev)) {
       const delta = totals.total - prev;
       lines.push("");
       lines.push(`前回：${prev}　差：${delta}`);
-      lines.push(`${d.mdc.label}：${d.mdc.low}${d.mdc.low===d.mdc.high?"":"-"+d.mdc.high}点`);
-      lines.push(`${d.mcid.label}：${d.mcid.low}${d.mcid.low===d.mcid.high?"":"-"+d.mcid.high}点`);
+      lines.push(`${d.mdc.label}：${d.mdc.low}${d.mdc.low === d.mdc.high ? "" : "-" + d.mdc.high}点`);
+      lines.push(`${d.mcid.label}：${d.mcid.low}${d.mcid.low === d.mcid.high ? "" : "-" + d.mcid.high}点`);
     }
-    // tests
     if (d.tests?.length) {
       lines.push("");
       lines.push("【関連テスト】");
       d.tests.forEach(t => {
         const v = state.tests?.[t.label];
-        lines.push(`${t.label}：${v||"-"}（基準：${t.type==="le"?"≦":"≧"}${t.value}${t.unit}）`);
+        lines.push(`${t.label}：${v || "-"}（基準：${t.type === "le" ? "≦" : "≧"}${t.value}${t.unit}）`);
       });
     }
     return lines.join("\n");
+  }
+
+  function exportCSV(state, totals) {
+    const d = DATASETS[state.datasetKey];
+    const rows = [["項目", "スコア", "判定基準"]];
+    ITEMS_DATA.forEach((data, i) => {
+      const score = state.scores[i];
+      const criteriaText = data.criteria.find(c => parseInt(c.charAt(0), 10) === score) || "";
+      rows.push([data.name, String(score), criteriaText]);
+    });
+    rows.push(["静的（1〜7）", String(totals.staticScore), "/28"]);
+    rows.push(["動的（8〜14）", String(totals.dynamicScore), "/28"]);
+    rows.push(["合計", String(totals.total), "/56"]);
+    rows.push(["データセット", d.name, ""]);
+
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `BBS_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
   }
 
   // State init
   const saved = loadState();
   const state = saved || {
     datasetKey: "stroke",
-    showZero: false,
-    scores: Array(ITEMS.length).fill(1), // 1〜4運用に合わせて初期1
+    showZero: true,
+    scores: Array(ITEMS.length).fill(0),
     prevTotal: "",
     tests: {}
   };
 
-  // If showZero is off, ensure minimum 1 for practical usage
   function normalizeScores() {
     state.scores = state.scores.map(s => {
       s = clampScore(s);
@@ -383,11 +648,9 @@
   function render() {
     normalizeScores();
     saveState(state);
-
     buildDatasetSelect(state.datasetKey);
     $("showZero").checked = !!state.showZero;
     $("prevTotal").value = state.prevTotal ?? "";
-
     buildItems(state.scores, state.showZero);
 
     const totals = sumScores(state.scores);
@@ -395,11 +658,10 @@
     $("dynamicScore").textContent = totals.dynamicScore;
     $("totalScore").textContent = totals.total;
 
-    // delta + mdc/mcid
-    const prev = Number(String(state.prevTotal||"").trim().replaceAll(",", ""));
+    const prev = Number(String(state.prevTotal || "").trim().replaceAll(",", ""));
     const d = DATASETS[state.datasetKey];
-    $("mdcLabel").textContent = `${d.mdc.label}（${d.mdc.low}${d.mdc.low===d.mdc.high?"":"-"+d.mdc.high}点）`;
-    $("mcidLabel").textContent = `${d.mcid.label}（${d.mcid.low}${d.mcid.low===d.mcid.high?"":"-"+d.mcid.high}点）`;
+    $("mdcLabel").textContent = `${d.mdc.label}（${d.mdc.low}${d.mdc.low === d.mdc.high ? "" : "-" + d.mdc.high}点）`;
+    $("mcidLabel").textContent = `${d.mcid.label}（${d.mcid.low}${d.mcid.low === d.mcid.high ? "" : "-" + d.mcid.high}点）`;
 
     if (Number.isFinite(prev)) {
       const delta = totals.total - prev;
@@ -430,7 +692,6 @@
     saveState(state);
     render();
   });
-
   $("reset").addEventListener("click", () => {
     if (!confirm("全項目を初期化しますか？")) return;
     state.scores = Array(ITEMS.length).fill(state.showZero ? 0 : 1);
@@ -438,7 +699,6 @@
     state.tests = {};
     render();
   });
-
   $("copy").addEventListener("click", async () => {
     const totals = sumScores(state.scores);
     const text = makeSummary(state, totals);
@@ -446,7 +706,6 @@
       await navigator.clipboard.writeText(text);
       makeToast("コピーしました");
     } catch {
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
@@ -455,6 +714,20 @@
       ta.remove();
       makeToast("コピーしました");
     }
+  });
+  $("csvExport").addEventListener("click", () => {
+    const totals = sumScores(state.scores);
+    exportCSV(state, totals);
+  });
+  $("expandAll").addEventListener("click", () => {
+    allCriteriaOpen = !allCriteriaOpen;
+    $("expandAll").textContent = allCriteriaOpen ? "全ての判定基準を閉じる" : "全ての判定基準を開く";
+    document.querySelectorAll(".criteria-list").forEach(el => {
+      el.classList.toggle("open", allCriteriaOpen);
+    });
+    document.querySelectorAll(".criteria-toggle").forEach(el => {
+      el.textContent = allCriteriaOpen ? "判定基準を閉じる" : "判定基準を表示";
+    });
   });
 
   // init
