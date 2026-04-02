@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Keyform - バランス評価マップ</title>
+    <style>
+        :root { --primary:#007AFF; --bg:#f2f2f7; --card:#fff; --text:#1c1c1e; --muted:#8e8e93; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --blue:#007AFF; }
+        body { font-family:-apple-system,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:10px; padding-bottom:40px; }
+        .card { background:var(--card); border-radius:14px; padding:15px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+        h1 { font-size:1.1rem; margin:0 0 6px; }
+        h2 { font-size:0.95rem; border-left:4px solid var(--primary); padding-left:8px; color:var(--primary); margin:0 0 10px; }
+        .note { font-size:0.72rem; color:var(--muted); line-height:1.5; margin-bottom:10px; }
+        select { width:100%; padding:12px; border-radius:12px; border:1px solid #ddd; font-size:16px; background:#fff; margin-bottom:8px; }
+        label.sel-label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+
+        /* Keyform grid */
+        .kf-container { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .kf-table { width:100%; border-collapse:collapse; font-size:0.78rem; min-width:360px; }
+        .kf-table th, .kf-table td { padding:6px 4px; text-align:center; border-bottom:1px solid #eee; white-space:nowrap; }
+        .kf-table th { background:#f8f9fc; font-size:0.7rem; color:var(--muted); position:sticky; top:0; z-index:2; }
+        .kf-item-name { text-align:left !important; font-weight:600; font-size:0.75rem; min-width:100px; position:sticky; left:0; background:var(--card); z-index:1; }
+        .kf-item-name .diff-rank { font-size:0.6rem; color:var(--muted); font-weight:normal; }
+        .kf-cell { width:36px; height:36px; cursor:pointer; position:relative; }
+        .kf-dot { width:12px; height:12px; border-radius:50%; background:#ddd; margin:0 auto; transition:all 0.15s; }
+        .kf-cell.available .kf-dot { background:#ccc; }
+        .kf-cell.available:hover .kf-dot { background:#999; transform:scale(1.3); }
+        .kf-cell.selected .kf-dot { width:22px; height:22px; border-radius:50%; }
+        .kf-cell.selected.score-0 .kf-dot { background:var(--red); }
+        .kf-cell.selected.score-1 .kf-dot { background:var(--orange); }
+        .kf-cell.selected.score-2 .kf-dot { background:var(--green); }
+        .kf-cell.selected.score-3 .kf-dot { background:var(--green); }
+        .kf-cell.selected.score-4 .kf-dot { background:var(--green); }
+        .kf-cell:not(.available) { opacity:0.15; pointer-events:none; }
+
+        /* Zone highlight */
+        .kf-row { transition: background 0.2s; }
+        .kf-row.zone-mastered { background:#f0fdf4; }
+        .kf-row.zone-transition { background:#fffbeb; }
+        .kf-row.zone-challenge { background:#fef2f2; }
+
+        .zone-label { display:inline-block; font-size:0.65rem; font-weight:700; padding:1px 6px; border-radius:4px; margin-left:4px; vertical-align:middle; }
+        .zone-label.mastered { background:#dcfce7; color:#166534; }
+        .zone-label.transition { background:#fef3c7; color:#92400e; }
+        .zone-label.challenge { background:#fee2e2; color:#991b1b; }
+
+        /* Total line */
+        .kf-total-line { position:relative; }
+
+        /* Score summary */
+        .summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+        .summary-box { background:#f1f3f5; padding:8px; border-radius:10px; text-align:center; }
+        .summary-box .sv { font-size:1.2rem; font-weight:bold; color:var(--primary); }
+        .summary-box .sl { font-size:0.6rem; color:var(--muted); font-weight:600; }
+        .strata-badge { display:inline-block; padding:4px 12px; border-radius:8px; font-weight:700; font-size:0.85rem; }
+
+        /* Interpretation */
+        .interp-card { border-left:4px solid var(--orange); }
+        .tz-item { padding:4px 8px; margin:4px 0; border-radius:8px; font-size:0.8rem; }
+        .tz-item.tz { background:#fef3c7; }
+        .tz-item.outlier { background:#fee2e2; font-weight:600; }
+        .cutoff-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; font-size:0.8rem; }
+        .cutoff-row:last-child { border-bottom:none; }
+        .cutoff-ok { color:var(--green); font-weight:700; }
+        .cutoff-ng { color:var(--red); font-weight:700; }
+
+        .btn-row { display:flex; gap:8px; margin-top:10px; }
+        .btn-action { flex:1; padding:11px; border:none; border-radius:12px; font-weight:bold; font-size:0.85rem; cursor:pointer; }
+        .btn-copy { background:var(--primary); color:white; }
+        .btn-csv { background:var(--green); color:white; }
+        .btn-reset { background:#fee2e2; color:var(--red); }
+
+        .legend { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
+        .legend-item { display:flex; align-items:center; gap:4px; font-size:0.7rem; color:var(--muted); }
+        .legend-dot { width:10px; height:10px; border-radius:50%; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Keyform - バランス評価マップ</h1>
+    <div class="note">
+        Keyformは項目を難易度順（下＝易、上＝難）に並べ、得点パターンから<b>Transition Zone</b>（改善すべき短期目標）を視覚化します。
+    </div>
+    <label class="sel-label">評価尺度を選択</label>
+    <select id="scaleSelect" onchange="init()">
+        <option value="bbs_stroke">BBS Keyform for Stroke（脳卒中）</option>
+        <option value="bbs_hip">BBS Keyform for Hip Fracture（大腿骨骨折）</option>
+        <option value="mini_stroke">Mini-BESTest Keyform for Stroke（脳卒中）</option>
+        <option value="mini_hip">Mini-BESTest Keyform for Hip/Vertebral Fx（大腿骨/椎体骨折）</option>
+    </select>
+</div>
+
+<div class="card">
+    <h2>スコア入力 &amp; Keyformマップ</h2>
+    <div class="note">各項目の得点をタップしてください。難しい項目が上、易しい項目が下です。</div>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#dcfce7;border:1px solid #86efac"></div>習得済み</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border:1px solid #fcd34d"></div>Transition Zone</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fee2e2;border:1px solid #fca5a5"></div>未到達</div>
+    </div>
+    <div class="kf-container">
+        <table class="kf-table" id="kfTable"></table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>スコアサマリー</h2>
+    <div class="summary-grid">
+        <div class="summary-box"><div class="sl">合計点</div><div class="sv" id="totalScore">0</div></div>
+        <div class="summary-box"><div class="sl">Strata</div><div class="sv" id="strataVal">-</div></div>
+        <div class="summary-box"><div class="sl">重症度</div><div id="severityBadge" class="strata-badge" style="font-size:0.7rem">-</div></div>
+    </div>
+    <div id="cutoffArea"></div>
+</div>
+
+<div class="card interp-card">
+    <h2>Transition Zone 解釈</h2>
+    <div class="note">
+        <b>Transition Zone</b>：得点が満点から低下し始める領域（3〜5課題）。これから改善すべき<b>短期目標</b>となる課題群です。<br>
+        <b>外れ値</b>：予想より極端に低い得点の項目は、特異的な問題点の候補です。
+    </div>
+    <div id="tzResult"></div>
+</div>
+
+<div class="btn-row">
+    <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
+    <button class="btn-action btn-csv" onclick="exportCSV()">CSV出力</button>
+    <button class="btn-action btn-reset" onclick="resetAll()">リセット</button>
+</div>
+
+<script>
+/* ================================================================
+   SCALE DEFINITIONS
+   ================================================================ */
+const SCALES = {
+    bbs_stroke: {
+        name: "BBS Keyform for Stroke",
+        maxScore: 4,
+        totalMax: 56,
+        // hardest first (top of keyform)
+        items: [
+            {id:14, name:"14. 片足立ち保持"},
+            {id:13, name:"13. 片足を前に出して立位保持"},
+            {id:12, name:"12. 段差踏み換え"},
+            {id:11, name:"11. 360°回転"},
+            {id:7,  name:"7. 閉脚立位保持"},
+            {id:8,  name:"8. 上肢前方到達"},
+            {id:9,  name:"9. 床から物を拾う"},
+            {id:5,  name:"5. 移乗"},
+            {id:6,  name:"6. 閉眼立位保持"},
+            {id:10, name:"10. 左右の肩越しに後ろを振り向く"},
+            {id:4,  name:"4. 着座"},
+            {id:2,  name:"2. 立位保持"},
+            {id:1,  name:"1. 椅子からの立ち上がり"},
+            {id:3,  name:"3. 座位保持"}
+        ],
+        strata: [
+            {num:1, min:0, max:4, label:"Strata 1"},
+            {num:2, min:5, max:10, label:"Strata 2"},
+            {num:3, min:11, max:18, label:"Strata 3"},
+            {num:4, min:19, max:26, label:"Strata 4"},
+            {num:5, min:27, max:34, label:"Strata 5"},
+            {num:6, min:35, max:41, label:"Strata 6"},
+            {num:7, min:42, max:47, label:"Strata 7"},
+            {num:8, min:48, max:52, label:"Strata 8"},
+            {num:9, min:53, max:56, label:"Strata 9"}
+        ],
+        severity: [
+            {min:0, max:18, label:"Severe balance deficit", color:"#fee2e2", textColor:"#991b1b"},
+            {min:19, max:41, label:"Moderate deficit", color:"#fef3c7", textColor:"#92400e"},
+            {min:42, max:47, label:"歩行自立レベル", color:"#dbeafe", textColor:"#1e40af"},
+            {min:48, max:52, label:"転倒予測レベル", color:"#d1fae5", textColor:"#065f46"},
+            {min:53, max:56, label:"Almost Normal", color:"#dcfce7", textColor:"#166534"}
+        ],
+        cutoffs: [
+            {label:"歩行自立", value:42, se:"92.4%", sp:"89.6%"},
+            {label:"転倒予測", value:47, se:"75.0%", sp:"76.9%"},
+            {label:"転倒予測(厳)", value:51, se:"52.0%", sp:"80.2%"}
+        ],
+        mdc: "3-5点",
+        mcid: "5-6点"
+    },
+    bbs_hip: {
+        name: "BBS Keyform for Hip Fracture",
+        maxScore: 4,
+        totalMax: 56,
+        items: [
+            {id:14, name:"14. 片足立ち保持"},
+            {id:13, name:"13. 段差踏み換え"},
+            {id:11, name:"11. 片足を前に出して立位保持"},
+            {id:8,  name:"8. 床から物を拾う"},
+            {id:12, name:"12. 360°回転"},
+            {id:5,  name:"5. 閉眼立位保持"},
+            {id:9,  name:"9. 閉脚立位保持"},
+            {id:10, name:"10. 上肢前方到達"},
+            {id:7,  name:"7. 左右の肩越しに後ろを振り向く"},
+            {id:1,  name:"1. 椅子からの立ち上がり"},
+            {id:4,  name:"4. 立位保持"},
+            {id:6,  name:"6. 移乗"},
+            {id:2,  name:"2. 着座"},
+            {id:3,  name:"3. 座位保持"}
+        ],
+        strata: [
+            {num:1, min:0, max:5, label:"Strata 1"},
+            {num:2, min:6, max:12, label:"Strata 2"},
+            {num:3, min:13, max:19, label:"Strata 3"},
+            {num:4, min:20, max:27, label:"Strata 4"},
+            {num:5, min:28, max:35, label:"Strata 5"},
+            {num:6, min:36, max:42, label:"Strata 6"},
+            {num:7, min:43, max:48, label:"Strata 7"},
+            {num:8, min:49, max:56, label:"Strata 8"}
+        ],
+        severity: [
+            {min:0, max:19, label:"Severe balance deficit", color:"#fee2e2", textColor:"#991b1b"},
+            {min:20, max:42, label:"Moderate deficit", color:"#fef3c7", textColor:"#92400e"},
+            {min:43, max:48, label:"Mild to moderate", color:"#dbeafe", textColor:"#1e40af"},
+            {min:49, max:56, label:"転倒予測レベル", color:"#dcfce7", textColor:"#166534"}
+        ],
+        cutoffs: [
+            {label:"転倒予測(高齢者)", value:50, se:"41%", sp:"88%"}
+        ],
+        mdc: "5点",
+        mcid: "12点",
+        largeChange: "19点"
+    },
+    mini_stroke: {
+        name: "Mini-BESTest Keyform for Stroke",
+        maxScore: 2,
+        totalMax: 28,
+        items: [
+            {id:14, name:"14. TUG二重課題"},
+            {id:3,  name:"3. 片足立ち"},
+            {id:12, name:"12. 歩行時ピボットターン"},
+            {id:6,  name:"6. 代償的な修正ステップ-側方"},
+            {id:5,  name:"5. 代償的な修正ステップ-後方"},
+            {id:2,  name:"2. つま先立ち"},
+            {id:11, name:"11. 頭を水平回転させながらの歩行"},
+            {id:4,  name:"4. 代償的な修正ステップ-前方"},
+            {id:8,  name:"8. 静止立位；閉眼, フォーム"},
+            {id:13, name:"13. 障害物またぎ"},
+            {id:10, name:"10. 歩行速度の変化"},
+            {id:9,  name:"9. 傾斜台-閉眼"},
+            {id:1,  name:"1. 座位から立位"},
+            {id:7,  name:"7. 静止立位；開眼, 固い地面"}
+        ],
+        strata: [
+            {num:1, min:0, max:3, label:"Very severe"},
+            {num:2, min:4, max:8, label:"Severe"},
+            {num:3, min:9, max:14, label:"Rather severe"},
+            {num:4, min:15, max:20, label:"Moderately severe"},
+            {num:5, min:21, max:25, label:"Moderate"},
+            {num:6, min:26, max:28, label:"Mild to normal"}
+        ],
+        severity: [
+            {min:0, max:3, label:"Very severe", color:"#fee2e2", textColor:"#991b1b"},
+            {min:4, max:8, label:"Severe", color:"#fed7aa", textColor:"#9a3412"},
+            {min:9, max:14, label:"Rather severe", color:"#fef3c7", textColor:"#92400e"},
+            {min:15, max:20, label:"Moderately severe", color:"#fef9c3", textColor:"#854d0e"},
+            {min:21, max:25, label:"Moderate", color:"#dbeafe", textColor:"#1e40af"},
+            {min:26, max:28, label:"Mild to normal", color:"#dcfce7", textColor:"#166534"}
+        ],
+        cutoffs: [
+            {label:"低/高機能カットオフ", value:9},
+            {label:"転倒予測", value:18, se:"64.0%", sp:"64.2%"}
+        ],
+        mdc: "4点",
+        mcid: "3-8点"
+    },
+    mini_hip: {
+        name: "Mini-BESTest Keyform for Hip/Vertebral Fx",
+        maxScore: 2,
+        totalMax: 25,
+        note: "※項目7（静止立位；開眼，固い地面）は除外。先行研究で全対象者が満点のため。",
+        items: [
+            {id:3,  name:"3. 片足立ち"},
+            {id:14, name:"14. TUG二重課題"},
+            {id:12, name:"12. 歩行時ピボットターン"},
+            {id:6,  name:"6. 代償的な修正ステップ-側方"},
+            {id:5,  name:"5. 代償的な修正ステップ-後方"},
+            {id:2,  name:"2. つま先立ち"},
+            {id:10, name:"10. 歩行速度の変化"},
+            {id:4,  name:"4. 代償的な修正ステップ-前方"},
+            {id:11, name:"11. 頭を水平回転させながらの歩行"},
+            {id:13, name:"13. 障害物またぎ"},
+            {id:8,  name:"8. 静止立位；閉眼, フォーム"},
+            {id:9,  name:"9. 傾斜台-閉眼"},
+            {id:1,  name:"1. 座位から立位"}
+        ],
+        strata: [],
+        severity: [],
+        cutoffs: [
+            {label:"転倒予測", value:20, se:"74.0%", sp:"71.0%"},
+            {label:"転倒予測(厳)", value:16, se:"85.0%", sp:"75.0%"}
+        ],
+        mdc: "4点",
+        mcid: "-",
+        note2: "転倒予測参考範囲: 17-25点"
+    }
+};
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let currentScale = 'bbs_stroke';
+let scores = {}; // {itemId: score}
+
+function init() {
+    currentScale = document.getElementById('scaleSelect').value;
+    scores = {};
+    render();
+}
+
+/* ================================================================
+   RENDERING
+   ================================================================ */
+function render() {
+    const scale = SCALES[currentScale];
+    renderKeyform(scale);
+    calcAndDisplay(scale);
+}
+
+function renderKeyform(scale) {
+    const table = document.getElementById('kfTable');
+    const maxS = scale.maxScore;
+
+    let html = '<thead><tr><th class="kf-item-name" style="text-align:left">項目（難→易）</th>';
+    for (let s = 0; s <= maxS; s++) {
+        html += `<th>${s}</th>`;
+    }
+    html += '<th>Zone</th></tr></thead><tbody>';
+
+    scale.items.forEach((item, idx) => {
+        const score = scores[item.id];
+        const zone = getItemZone(scale, item.id);
+        const zoneClass = zone === 'mastered' ? 'zone-mastered' : zone === 'transition' ? 'zone-transition' : zone === 'challenge' ? 'zone-challenge' : '';
+
+        html += `<tr class="kf-row ${zoneClass}">`;
+        html += `<td class="kf-item-name">${item.name} <span class="diff-rank">難${idx+1}</span></td>`;
+
+        for (let s = 0; s <= maxS; s++) {
+            const isSelected = score === s;
+            const selClass = isSelected ? `selected score-${s}` : '';
+            html += `<td class="kf-cell available ${selClass}" onclick="setScore(${item.id}, ${s})"><div class="kf-dot"></div></td>`;
+        }
+
+        // Zone label
+        let zoneLabel = '';
+        if (zone === 'mastered') zoneLabel = '<span class="zone-label mastered">習得</span>';
+        else if (zone === 'transition') zoneLabel = '<span class="zone-label transition">TZ</span>';
+        else if (zone === 'challenge') zoneLabel = '<span class="zone-label challenge">未到達</span>';
+        html += `<td style="font-size:0.65rem">${zoneLabel}</td>`;
+
+        html += '</tr>';
+    });
+
+    html += '</tbody>';
+    table.innerHTML = html;
+}
+
+function setScore(itemId, score) {
+    if (scores[itemId] === score) {
+        delete scores[itemId]; // toggle off
+    } else {
+        scores[itemId] = score;
+    }
+    render();
+}
+
+/* ================================================================
+   TRANSITION ZONE DETECTION
+   ================================================================ */
+function getItemZone(scale, itemId) {
+    const answered = Object.keys(scores).length;
+    if (answered < 3) return ''; // not enough data
+
+    const maxS = scale.maxScore;
+    const items = scale.items; // hardest first
+
+    // Build score array (hardest to easiest)
+    const scoreArr = items.map(it => scores[it.id] !== undefined ? scores[it.id] : null);
+
+    // Find transition zone: scan from easiest (bottom) to hardest (top)
+    // Items at max score = mastered
+    // First non-max item from bottom = start of transition zone
+    // Items at 0 from top = challenge zone
+
+    let firstNonMaxFromBottom = -1;
+    let lastNonZeroFromTop = -1;
+
+    for (let i = items.length - 1; i >= 0; i--) {
+        if (scoreArr[i] !== null && scoreArr[i] < maxS) {
+            firstNonMaxFromBottom = i;
+            break;
+        }
+    }
+
+    for (let i = 0; i < items.length; i++) {
+        if (scoreArr[i] !== null && scoreArr[i] > 0) {
+            lastNonZeroFromTop = i;
+            break;
+        }
+    }
+
+    // Find the actual transition zone boundaries
+    // Mastered: items from bottom that are all max score
+    // Challenge: items from top that are 0
+    // Transition: everything in between
+
+    const idx = items.findIndex(it => it.id === itemId);
+    const myScore = scores[itemId];
+    if (myScore === undefined) return '';
+
+    // Count from bottom: how many consecutive max scores?
+    let masteredUpTo = -1;
+    for (let i = items.length - 1; i >= 0; i--) {
+        if (scoreArr[i] === maxS) {
+            masteredUpTo = i;
+        } else if (scoreArr[i] !== null) {
+            break;
+        }
+    }
+
+    // Count from top: how many consecutive 0 scores?
+    let challengeDownTo = items.length;
+    for (let i = 0; i < items.length; i++) {
+        if (scoreArr[i] === 0) {
+            challengeDownTo = i;
+        } else if (scoreArr[i] !== null) {
+            break;
+        }
+    }
+
+    if (idx >= masteredUpTo && myScore === maxS && idx > challengeDownTo) {
+        return 'mastered';
+    }
+
+    // Simple approach: max score = mastered, 0 = challenge, otherwise transition
+    if (myScore === maxS) return 'mastered';
+    if (myScore === 0) return 'challenge';
+    return 'transition';
+}
+
+function getTransitionItems(scale) {
+    const maxS = scale.maxScore;
+    const items = scale.items;
+    const tz = [];
+    const outliers = [];
+
+    // Calculate expected score based on position
+    const answered = items.filter(it => scores[it.id] !== undefined);
+    if (answered.length < 3) return { tz: [], outliers: [] };
+
+    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+
+    items.forEach((item, idx) => {
+        const s = scores[item.id];
+        if (s === undefined) return;
+        if (s > 0 && s < maxS) {
+            tz.push({ item, score: s, idx });
+        }
+        // Outlier: item should be easy (low idx from bottom) but has very low score
+        const difficultyRank = idx; // 0 = hardest
+        const easinessRank = items.length - 1 - idx; // 0 = hardest, high = easy
+        if (s === 0 && easinessRank > items.length * 0.4) {
+            outliers.push({ item, score: s, idx });
+        }
+        if (s <= 1 && maxS === 4 && easinessRank > items.length * 0.5) {
+            if (!outliers.find(o => o.item.id === item.id)) {
+                outliers.push({ item, score: s, idx });
+            }
+        }
+    });
+
+    return { tz, outliers };
+}
+
+/* ================================================================
+   SCORE CALCULATION & DISPLAY
+   ================================================================ */
+function calcAndDisplay(scale) {
+    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+    const answered = Object.keys(scores).length;
+
+    document.getElementById('totalScore').innerText = total + "/" + scale.totalMax;
+
+    // Strata
+    let strataLabel = "-";
+    let sevLabel = "-", sevColor = "#f1f3f5", sevTextColor = "#333";
+
+    if (scale.strata.length > 0) {
+        const s = scale.strata.find(st => total >= st.min && total <= st.max);
+        if (s) strataLabel = s.label;
+    }
+    if (scale.severity.length > 0) {
+        const sv = scale.severity.find(sv => total >= sv.min && total <= sv.max);
+        if (sv) { sevLabel = sv.label; sevColor = sv.color; sevTextColor = sv.textColor; }
+    }
+
+    document.getElementById('strataVal').innerText = strataLabel;
+    const badge = document.getElementById('severityBadge');
+    badge.innerText = sevLabel;
+    badge.style.background = sevColor;
+    badge.style.color = sevTextColor;
+
+    // Cutoffs
+    let cutHtml = '';
+    if (scale.cutoffs.length > 0) {
+        cutHtml += '<div style="margin-top:8px">';
+        scale.cutoffs.forEach(c => {
+            const ok = total >= c.value;
+            cutHtml += `<div class="cutoff-row">
+                <span>${c.label}（≧${c.value}点${c.se ? ' Se:'+c.se+' Sp:'+c.sp : ''}）</span>
+                <span class="${ok ? 'cutoff-ok' : 'cutoff-ng'}">${ok ? '◯ 満たす' : '× 下回る'}</span>
+            </div>`;
+        });
+        cutHtml += `<div style="font-size:0.72rem;color:var(--muted);margin-top:6px">MDC: ${scale.mdc}${scale.mcid ? ' / MCID: ' + scale.mcid : ''}${scale.largeChange ? ' / 大幅な変化: ' + scale.largeChange : ''}</div>`;
+        cutHtml += '</div>';
+    }
+    document.getElementById('cutoffArea').innerHTML = cutHtml;
+
+    // Transition Zone interpretation
+    const { tz, outliers } = getTransitionItems(scale);
+    let tzHtml = '';
+    if (answered < 3) {
+        tzHtml = '<div class="note">3項目以上入力するとTransition Zoneが表示されます。</div>';
+    } else {
+        if (tz.length > 0) {
+            tzHtml += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">Transition Zone（短期目標候補）</div>';
+            tz.forEach(t => {
+                tzHtml += `<div class="tz-item tz">${t.item.name}：<b>${t.score}/${scale.maxScore}点</b></div>`;
+            });
+        } else if (answered > 0) {
+            tzHtml += '<div class="note">Transition Zoneに該当する項目がありません（全項目が満点もしくは0点）。</div>';
+        }
+        if (outliers.length > 0) {
+            tzHtml += '<div style="font-weight:700;font-size:0.85rem;margin:10px 0 6px;color:var(--red)">外れ値（特異的問題点の候補）</div>';
+            outliers.forEach(o => {
+                tzHtml += `<div class="tz-item outlier">${o.item.name}：<b>${o.score}/${scale.maxScore}点</b>（易しい項目なのに低得点）</div>`;
+            });
+        }
+        if (tz.length === 0 && outliers.length === 0 && answered > 0) {
+            tzHtml += '<div class="note">全ての入力項目が満点か0点のため、Transition Zoneの検出にはより多くの項目の入力が必要です。</div>';
+        }
+    }
+    if (scale.note) {
+        tzHtml += `<div class="note" style="margin-top:8px">${scale.note}</div>`;
+    }
+    if (scale.note2) {
+        tzHtml += `<div class="note">${scale.note2}</div>`;
+    }
+    document.getElementById('tzResult').innerHTML = tzHtml;
+}
+
+/* ================================================================
+   COPY / CSV / RESET
+   ================================================================ */
+function copyResult() {
+    const scale = SCALES[currentScale];
+    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+    const { tz, outliers } = getTransitionItems(scale);
+
+    let lines = [`【${scale.name}】`, `合計: ${total}/${scale.totalMax}点`];
+
+    if (scale.strata.length > 0) {
+        const s = scale.strata.find(st => total >= st.min && total <= st.max);
+        if (s) lines.push(`Strata: ${s.label}`);
+    }
+
+    lines.push('');
+    scale.items.forEach(item => {
+        const s = scores[item.id];
+        lines.push(`${item.name}: ${s !== undefined ? s : '-'}/${scale.maxScore}`);
+    });
+
+    if (tz.length > 0) {
+        lines.push('', '【Transition Zone（短期目標）】');
+        tz.forEach(t => lines.push(`  ${t.item.name}: ${t.score}/${scale.maxScore}`));
+    }
+    if (outliers.length > 0) {
+        lines.push('', '【外れ値（問題点候補）】');
+        outliers.forEach(o => lines.push(`  ${o.item.name}: ${o.score}/${scale.maxScore}`));
+    }
+
+    lines.push('', `MDC: ${scale.mdc}${scale.mcid ? ' / MCID: ' + scale.mcid : ''}`);
+    scale.cutoffs.forEach(c => {
+        const ok = total >= c.value;
+        lines.push(`${c.label}(≧${c.value}): ${ok ? '満たす' : '下回る'}`);
+    });
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => alert('コピーしました'));
+}
+
+function exportCSV() {
+    const scale = SCALES[currentScale];
+    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+    const { tz, outliers } = getTransitionItems(scale);
+
+    const rows = [["難易度順", "項目", "スコア", "満点", "Zone"]];
+    scale.items.forEach((item, idx) => {
+        const s = scores[item.id];
+        const zone = s !== undefined ? (s === scale.maxScore ? '習得' : s === 0 ? '未到達' : 'Transition') : '';
+        rows.push([idx + 1, item.name, s !== undefined ? s : '', scale.maxScore, zone]);
+    });
+    rows.push(["", "合計", total, scale.totalMax, ""]);
+
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Keyform_${currentScale}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+}
+
+function resetAll() {
+    if (!confirm('全てのスコアをリセットしますか？')) return;
+    scores = {};
+    render();
+}
+
+// Init
+init();
+</script>
+</body>
+</html>
