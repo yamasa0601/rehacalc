@@ -121,6 +121,13 @@
       <h2 style="margin:0 0 10px;font-size:15px;">フィードバック</h2>
 
       <div class="row">
+        <label for="prevRecordSearch">評価記録から前回BBSを選択</label>
+        <input id="prevRecordSearch" placeholder="IDまたは氏名で検索" />
+        <select id="prevRecordSelect"></select>
+        <div class="muted">評価記録に保存したBBSを検索し、前回BBSへ反映できます。</div>
+      </div>
+
+      <div class="row">
         <label for="prevTotal">前回BBS（任意）</label>
         <input id="prevTotal" inputmode="decimal" placeholder="例：38" />
         <div class="muted">前回との差を MDC / MCID と照合します。</div>
@@ -377,7 +384,24 @@
   const $ = (id) => document.getElementById(id);
   const LS_KEY = "bbs_pwa_state_v2";
   const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+  const EVAL_RECORDS_KEY = "rehacalc_evaluation_records_v1";
+  const STAGE_LABELS = {
+    admission: "入棟",
+    fac3: "FAC3",
+    month1: "1M",
+    month2: "2M",
+    month3: "3M",
+    discharge: "退院"
+  };
   let allCriteriaOpen = false;
+
+  const clean = (value) => String(value ?? "").trim();
+  const parseNumber = (value) => {
+    const text = clean(value).replaceAll(",", "");
+    if (text === "") return null;
+    const number = Number(text);
+    return Number.isFinite(number) ? number : null;
+  };
 
   function loadState() {
     try {
@@ -391,6 +415,80 @@
   }
   function saveState(state) {
     localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }
+
+  function loadEvaluationRecords() {
+    try {
+      const records = JSON.parse(localStorage.getItem(EVAL_RECORDS_KEY) || "[]");
+      return Array.isArray(records) ? records : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function stageLabel(stage) {
+    return STAGE_LABELS[stage] || clean(stage) || "-";
+  }
+
+  function patientLabel(record) {
+    const name = clean(record.patientName) || "氏名未入力";
+    const id = clean(record.patientId);
+    return id ? `${name} (${id})` : name;
+  }
+
+  function previousBbsRecords(query) {
+    const keyword = clean(query).toLowerCase();
+    return loadEvaluationRecords()
+      .map((record, index) => {
+        const bbsText = clean(record.measurements?.bbs);
+        const bbs = parseNumber(bbsText);
+        if (bbs === null) return null;
+        return {
+          record,
+          bbsText,
+          optionId: record.id || `record_${index}`,
+          searchText: [
+            patientLabel(record),
+            record.patientName,
+            record.patientId,
+            record.recordDate,
+            stageLabel(record.stage),
+            bbsText
+          ].map(clean).join(" ").toLowerCase()
+        };
+      })
+      .filter(Boolean)
+      .filter((item) => !keyword || item.searchText.includes(keyword))
+      .sort((a, b) => {
+        const aKey = `${clean(a.record.recordDate)}|${clean(a.record.updatedAt || a.record.createdAt)}|${clean(a.record.id)}`;
+        const bKey = `${clean(b.record.recordDate)}|${clean(b.record.updatedAt || b.record.createdAt)}|${clean(b.record.id)}`;
+        return bKey.localeCompare(aKey);
+      });
+  }
+
+  function renderPreviousBbsSelector() {
+    const search = $("prevRecordSearch");
+    const select = $("prevRecordSelect");
+    if (!search || !select) return;
+    search.value = state.prevRecordQuery ?? "";
+    select.innerHTML = "";
+    const records = previousBbsRecords(state.prevRecordQuery);
+
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = records.length ? "評価記録から選択" : "評価記録にBBSがありません";
+    select.appendChild(blank);
+
+    records.forEach(({ record, bbsText, optionId }) => {
+      const opt = document.createElement("option");
+      opt.value = optionId;
+      opt.dataset.bbs = bbsText;
+      opt.textContent = `${patientLabel(record)} / ${clean(record.recordDate) || "-"} ${stageLabel(record.stage)} / BBS ${bbsText}点`;
+      select.appendChild(opt);
+    });
+
+    select.disabled = records.length === 0;
+    select.value = records.some(item => item.optionId === state.prevRecordId) ? state.prevRecordId : "";
   }
 
   function clampScore(x) {
@@ -636,6 +734,8 @@
     showZero: true,
     scores: Array(ITEMS.length).fill(0),
     prevTotal: "",
+    prevRecordId: "",
+    prevRecordQuery: "",
     tests: {}
   };
 
@@ -653,6 +753,7 @@
     buildDatasetSelect(state.datasetKey);
     $("showZero").checked = !!state.showZero;
     $("prevTotal").value = state.prevTotal ?? "";
+    renderPreviousBbsSelector();
     buildItems(state.scores, state.showZero);
 
     const totals = sumScores(state.scores);
@@ -691,13 +792,34 @@
   });
   $("prevTotal").addEventListener("input", (e) => {
     state.prevTotal = e.target.value;
+    state.prevRecordId = "";
     saveState(state);
     render();
+  });
+  $("prevRecordSearch").addEventListener("input", (e) => {
+    state.prevRecordQuery = e.target.value;
+    state.prevRecordId = "";
+    saveState(state);
+    renderPreviousBbsSelector();
+  });
+  $("prevRecordSelect").addEventListener("change", (e) => {
+    const option = e.target.selectedOptions[0];
+    state.prevRecordId = e.target.value;
+    if (option?.dataset.bbs) {
+      state.prevTotal = option.dataset.bbs;
+      saveState(state);
+      render();
+      makeToast("前回BBSを反映しました");
+      return;
+    }
+    saveState(state);
   });
   $("reset").addEventListener("click", () => {
     if (!confirm("全項目を初期化しますか？")) return;
     state.scores = Array(ITEMS.length).fill(state.showZero ? 0 : 1);
     state.prevTotal = "";
+    state.prevRecordId = "";
+    state.prevRecordQuery = "";
     state.tests = {};
     render();
   });

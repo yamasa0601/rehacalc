@@ -712,7 +712,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 const stageLabel = (stage) => STAGES.find(s => s.id === stage)?.label || stage || "-";
 const clean = (value) => String(value ?? "").trim();
 const num = (value) => {
-  const n = Number(clean(value).replaceAll(",", ""));
+  const text = clean(value).replaceAll(",", "");
+  if (text === "") return null;
+  const n = Number(text);
   return Number.isFinite(n) ? n : null;
 };
 
