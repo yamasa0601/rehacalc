@@ -1,17 +1,24 @@
-const CACHE_NAME = "rehacalc-v42";
+const CACHE_NAME = "rehacalc-v50";
 
 const ASSETS = [
   "./",
   "./index.html",
+  "./evaluation.html",
   "./manifest.json",
   "./service-worker.js",
   "./icon-192.png",
   "./icon-512.png",
-
-  // EMG（追加）
+  "./assets/evaluation-form.pdf",
+  "./assets/hdsr-mmse-sheet.pdf",
+  "./assets/pdf-lib.min.js",
+  "./calc/index.html",
+  "./bbs/index.html",
+  "./ges.html",
+  "./mmse.html",
+  "./fab.html",
   "./emg/index.html",
   "./emg/app.js",
-  "./emg/style.css",
+  "./emg/style.css"
 ];
 
 self.addEventListener("install", (event) => {
@@ -28,14 +35,31 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  // 画面遷移（URL直打ち/リロード）は network-first
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        return response;
+      });
+    })
+  );
+});

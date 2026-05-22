@@ -6,7 +6,7 @@
     <title>GES 評価ツール</title>
     <style>
         :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 120px; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 170px; }
         .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         h2 { font-size: 0.9rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 12px 0; }
         
@@ -47,6 +47,7 @@
         .total-score { font-size: 2rem; font-weight: bold; color: var(--primary); }
         .total-label { font-size: 0.9rem; font-weight: bold; }
         .btn-copy { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
+        .btn-record { width: 100%; padding: 14px; background: #0f766e; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -68,9 +69,12 @@
         </div>
     </div>
     <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <button class="btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
 </div>
 
 <script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
 const items = [
     "1. 床のような固い平面を安全に歩ける自信はどのくらいありますか？",
     "2. 芝生の上を安全に歩ける自信はどのくらいありますか？",
@@ -127,6 +131,16 @@ function copyResult() {
     }
     const txt = `【GES 評価結果】\n合計スコア: ${total} / 100点\n詳細: ${detailText.slice(0, -3)}`;
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+
+function sendToEvaluation() {
+    const total = document.getElementById('total-score').innerText;
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+        sourceLabel: "GES",
+        recordDate: new Date().toISOString().slice(0, 10),
+        measurements: { mfes: total }
+    }));
+    location.href = "./evaluation.html";
 }
 
 renderItems();

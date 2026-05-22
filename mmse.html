@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+  <title>HDS-R・MMSE 共通シート</title>
+  <script src="./assets/pdf-lib.min.js"></script>
+  <style>
+    :root {
+      --primary:#0f766e;
+      --bg:#f2f2f7;
+      --card:#fff;
+      --text:#1c1c1e;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      padding:10px;
+      padding-bottom:28px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      max-width:900px;
+      margin:0 auto 10px;
+    }
+    h1 { margin:6px 0 0; font-size:18px; }
+    .back {
+      color:#111;
+      text-decoration:none;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    main {
+      max-width:900px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:860px) {
+      main { grid-template-columns:.8fr 1.2fr; align-items:start; }
+    }
+    .card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:15px;
+      box-shadow:0 1px 4px rgba(0,0,0,.08);
+    }
+    h2 {
+      font-size:15px;
+      border-left:4px solid var(--primary);
+      padding-left:8px;
+      margin:0 0 12px;
+      color:var(--primary);
+    }
+    label {
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:5px;
+    }
+    input {
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:13px;
+      font-size:18px;
+      background:#fff;
+    }
+    .score-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      padding:18px 0 12px;
+    }
+    .score-box {
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fafafa;
+      padding:12px;
+      text-align:center;
+    }
+    .score-box .label {
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:4px;
+    }
+    .score-box strong {
+      color:var(--primary);
+      font-size:34px;
+      line-height:1;
+    }
+    .note {
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+      margin:10px 0;
+    }
+    .actions {
+      display:grid;
+      gap:8px;
+      margin-top:12px;
+    }
+    button {
+      appearance:none;
+      border:0;
+      border-radius:11px;
+      padding:13px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      color:#fff;
+      background:var(--primary);
+    }
+    button.secondary {
+      color:#111;
+      background:#f3f4f6;
+      border:1px solid var(--line);
+    }
+    iframe {
+      display:block;
+      width:100%;
+      height:620px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HDS-R・MMSE 共通シート</h1>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>合計点入力</h2>
+      <label for="hdsrScore">HDS-R (0-30点)</label>
+      <input id="hdsrScore" type="number" inputmode="numeric" min="0" max="30" placeholder="例: 21" />
+      <label for="mmseScore">MMSE (0-30点)</label>
+      <input id="mmseScore" type="number" inputmode="numeric" min="0" max="30" placeholder="例: 24" />
+      <div class="score-grid">
+        <div class="score-box">
+          <span class="label">HDS-R</span>
+          <strong id="hdsrPreview">0</strong>
+          <span>/ 30</span>
+        </div>
+        <div class="score-box">
+          <span class="label">MMSE</span>
+          <strong id="mmsePreview">0</strong>
+          <span>/ 30</span>
+        </div>
+      </div>
+      <p class="note">
+        評価記録へ送信されるデータはMMSE合計点のみです。PDFにはHDS-RとMMSEの入力済み合計点を転記します。
+      </p>
+      <div class="actions">
+        <button id="sendRecord" type="button">MMSEを評価記録へ送る</button>
+        <button id="createPdf" type="button">HDS-R・MMSE用紙PDFを作成</button>
+        <button id="clearScore" type="button" class="secondary">クリア</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>HDS-R/MMSE共通シート</h2>
+      <iframe src="./assets/hdsr-mmse-sheet.pdf" title="HDS-R/MMSE共通シート"></iframe>
+    </section>
+  </main>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
+
+const $ = (id) => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0, 10);
+
+function cleanScore(id) {
+  const value = String($(id).value || "").trim();
+  if (!value) return "";
+  const score = Number(value);
+  if (!Number.isFinite(score) || score < 0 || score > 30) return null;
+  return String(score);
+}
+
+function updatePreview() {
+  $("hdsrPreview").textContent = cleanScore("hdsrScore") ?? "-";
+  $("mmsePreview").textContent = cleanScore("mmseScore") ?? "-";
+}
+
+function requireMmseScore() {
+  const score = cleanScore("mmseScore");
+  if (score === null || score === "") {
+    alert("MMSEは0〜30点で入力してください。");
+    return null;
+  }
+  return score;
+}
+
+function collectScoresForPdf() {
+  const hdsr = cleanScore("hdsrScore");
+  const mmse = cleanScore("mmseScore");
+  if (hdsr === null || mmse === null) {
+    alert("HDS-R/MMSEは0〜30点で入力してください。");
+    return null;
+  }
+  if (hdsr === "" && mmse === "") {
+    alert("HDS-RまたはMMSEを入力してください。");
+    return null;
+  }
+  return { hdsr, mmse };
+}
+
+function sendToEvaluation() {
+  const score = requireMmseScore();
+  if (score === null) return;
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel: "MMSE",
+    recordDate: today(),
+    measurements: { mmse: score }
+  }));
+  location.href = "./evaluation.html";
+}
+
+async function createPdf() {
+  const scores = collectScoresForPdf();
+  if (!scores) return;
+  if (!window.PDFLib) {
+    alert("PDF生成ライブラリを読み込めませんでした。");
+    return;
+  }
+  const template = await fetch(MMSE_TEMPLATE_URL).then((res) => res.arrayBuffer());
+  const pdfDoc = await PDFLib.PDFDocument.load(template);
+  const page = pdfDoc.getPage(0);
+  const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const size = 12;
+  if (scores.hdsr) {
+    const hdsrWidth = font.widthOfTextAtSize(scores.hdsr, size);
+    page.drawText(scores.hdsr, { x:474 - hdsrWidth / 2, y:28, size, font });
+  }
+  if (scores.mmse) {
+    const mmseWidth = font.widthOfTextAtSize(scores.mmse, size);
+    page.drawText(scores.mmse, { x:535 - mmseWidth / 2, y:28, size, font });
+  }
+  const bytes = await pdfDoc.save();
+  const blob = new Blob([bytes], { type:"application/pdf" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `HDS-R_MMSE共通シート_${today()}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+$("hdsrScore").addEventListener("input", updatePreview);
+$("mmseScore").addEventListener("input", updatePreview);
+$("sendRecord").addEventListener("click", sendToEvaluation);
+$("createPdf").addEventListener("click", createPdf);
+$("clearScore").addEventListener("click", () => {
+  $("hdsrScore").value = "";
+  $("mmseScore").value = "";
+  updatePreview();
+});
+updatePreview();
+</script>
+</body>
+</html>

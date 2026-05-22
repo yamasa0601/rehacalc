@@ -108,6 +108,7 @@
       <div class="actions">
         <button class="action secondary" id="reset">全リセット</button>
         <button class="action" id="copy">結果をコピー</button>
+        <button class="action" id="sendEval" style="background:#0f766e;">評価記録へ送る</button>
         <button class="action secondary" id="csvExport">CSV出力</button>
       </div>
 
@@ -375,6 +376,7 @@
 
   const $ = (id) => document.getElementById(id);
   const LS_KEY = "bbs_pwa_state_v2";
+  const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
   let allCriteriaOpen = false;
 
   function loadState() {
@@ -718,6 +720,15 @@
   $("csvExport").addEventListener("click", () => {
     const totals = sumScores(state.scores);
     exportCSV(state, totals);
+  });
+  $("sendEval").addEventListener("click", () => {
+    const totals = sumScores(state.scores);
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+      sourceLabel: "BBS",
+      recordDate: new Date().toISOString().slice(0, 10),
+      measurements: { bbs: String(totals.total) }
+    }));
+    location.href = "../evaluation.html";
   });
   $("expandAll").addEventListener("click", () => {
     allCriteriaOpen = !allCriteriaOpen;

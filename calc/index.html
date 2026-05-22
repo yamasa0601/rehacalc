@@ -25,15 +25,30 @@
     .feedback { margin-top: 12px; padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; background: #f0f4ff; border: 1px solid #d0daff; }
     .kv { display: grid; grid-template-columns: 1fr auto; padding: 10px 0; border-bottom: 1px solid #eee; }
     .v { font-weight: 800; text-align:right; color: var(--primary); }
-    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; }
+    input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background:#fff; }
     .actions { display:flex; gap: 10px; margin-top: 10px; }
     button { border:0; background: var(--primary); color:#fff; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor:pointer; flex: 1; }
     button.btn-stop { background: var(--danger); }
     button.btn-reset { background:#f0f1f5; color:#111; border: 1px solid #e0e2ea; }
     .btn-copy { background: var(--success); margin-top: 15px; width: 100%; }
+    .btn-record { background: #0f766e; margin-top: 10px; width: 100%; }
     .hidden { display:none !important; }
     .mini { font-size: 11px; color: var(--muted); line-height: 1.4; }
     details { background:#fafbfe; border:1px solid #e8eaf2; border-radius: 10px; padding: 10px; margin-top: 10px; }
+    .modal-backdrop { position:fixed; inset:0; display:none; align-items:flex-end; justify-content:center; background:rgba(17,24,39,.45); padding:12px; z-index:1000; }
+    .modal-backdrop.open { display:flex; }
+    .strength-modal { width:100%; max-width:720px; max-height:92vh; overflow:auto; background:#fff; border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.24); padding:14px; }
+    @media (min-width: 760px) { .modal-backdrop { align-items:center; } }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+    .modal-header h2 { border:0; padding:0; margin:0; font-size:16px; }
+    .modal-close { flex:0 0 auto; background:#f0f1f5; color:#111; border:1px solid #e0e2ea; padding:8px 10px; border-radius:10px; }
+    .strength-tools { display:grid; grid-template-columns:1fr; gap:8px; background:#fafbfe; border:1px solid #e8eaf2; border-radius:12px; padding:10px; margin:10px 0; }
+    @media (min-width: 640px) { .strength-tools { grid-template-columns:1fr auto; align-items:end; } }
+    .strength-list { display:grid; gap:8px; margin-top:10px; }
+    .strength-row { display:grid; grid-template-columns:92px 1fr; gap:8px; align-items:center; border:1px solid #e8eaf2; background:#fff; border-radius:12px; padding:9px; }
+    .strength-name { font-size:13px; font-weight:800; }
+    .strength-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .modal-actions { display:flex; gap:8px; margin-top:12px; }
   </style>
 </head>
 <body>
@@ -77,6 +92,7 @@
             <summary style="font-size:13px; cursor:pointer;">判定の根拠・参考値</summary>
             <div id="g-ref" class="mini"></div>
           </details>
+          <button id="g-send" class="btn-record">評価記録へ送る</button>
         </section>
       </div>
     </section>
@@ -106,22 +122,118 @@
               ・HHD MDC: 患側 2.3kg / 健側 3.4kg
             </div>
           </details>
+          <div class="row" style="margin-top:12px;">
+            <label style="font-size:12px; font-weight:bold;">評価記録の転記先</label>
+            <select id="h-target">
+              <option value="hipFlexor">股屈筋</option>
+              <option value="kneeExtensor" selected>膝伸展</option>
+              <option value="ankleDorsiflexor">足背屈</option>
+              <option value="hipExtensor">股伸展</option>
+              <option value="hipAbductor">股外転</option>
+              <option value="anklePlantarflexor">足底屈</option>
+            </select>
+          </div>
+          <button id="h-send" class="btn-record">選択中の1項目を送る</button>
+          <button id="h-bulk-open" class="btn-record" style="background:#111;">筋力一覧でまとめて送る</button>
         </section>
       </div>
     </section>
   </main>
 
+  <div id="strengthModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="strengthModalTitle">
+    <section class="strength-modal">
+      <div class="modal-header">
+        <h2 id="strengthModalTitle">筋力一覧入力</h2>
+        <button id="strengthModalClose" type="button" class="modal-close">閉じる</button>
+      </div>
+      <div class="mini">入力した欄だけ評価記録へ送ります。未入力の欄は送信しません。</div>
+
+      <div class="strength-tools">
+        <div>
+          <label style="font-size:12px; font-weight:bold;">現在のHHD入力値を入れる行</label>
+          <select id="bulk-copy-target">
+            <option value="hipFlexor">股屈筋</option>
+            <option value="kneeExtensor" selected>膝伸展</option>
+            <option value="ankleDorsiflexor">足背屈</option>
+            <option value="hipExtensor">股伸展</option>
+            <option value="hipAbductor">股外転</option>
+            <option value="anklePlantarflexor">足底屈</option>
+          </select>
+        </div>
+        <button id="bulk-copy-current" type="button">現在値を反映</button>
+      </div>
+
+      <div class="strength-list">
+        <div class="strength-row">
+          <div class="strength-name">股屈筋</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="hipFlexorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+        <div class="strength-row">
+          <div class="strength-name">膝伸展</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+        <div class="strength-row">
+          <div class="strength-name">足背屈</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+        <div class="strength-row">
+          <div class="strength-name">股伸展</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="hipExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+        <div class="strength-row">
+          <div class="strength-name">股外転</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="hipAbductorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+        <div class="strength-row">
+          <div class="strength-name">足底屈</div>
+          <div class="strength-pair">
+            <input class="strength-input" data-field="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右 N">
+            <input class="strength-input" data-field="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="bulk-clear" type="button" class="btn-reset">一覧クリア</button>
+        <button id="bulk-send" type="button">入力分だけ送る</button>
+      </div>
+    </section>
+  </div>
+
 <script>
   const $ = (id) => document.getElementById(id);
+  const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
   let gT = null, gS = 0, gE = 0;
+
+  function activateCalcTab(tab) {
+    const activeTab = tab === "hhd" ? "hhd" : "gait";
+    document.querySelectorAll(".tabbtn").forEach(x => x.classList.remove("active"));
+    document.querySelector(`.tabbtn[data-tab="${activeTab}"]`)?.classList.add("active");
+    $("tab-gait").classList.toggle("hidden", activeTab !== "gait");
+    $("tab-hhd").classList.toggle("hidden", activeTab !== "hhd");
+  }
 
   // タブ切り替え
   document.querySelectorAll(".tabbtn").forEach(b => b.onclick = () => {
-    document.querySelectorAll(".tabbtn").forEach(x => x.classList.remove("active"));
-    b.classList.add("active");
-    $("tab-gait").classList.toggle("hidden", b.dataset.tab !== "gait");
-    $("tab-hhd").classList.toggle("hidden", b.dataset.tab !== "hhd");
+    activateCalcTab(b.dataset.tab);
+    history.replaceState(null, "", `?tab=${b.dataset.tab}`);
   });
+  activateCalcTab(new URLSearchParams(location.search).get("tab"));
 
   // 歩行計測
   $("g-btn").onclick = () => {
@@ -193,6 +305,94 @@
   $("g-copy").onclick = () => {
     const t = `【10m歩行】時間:${gE.toFixed(2)}s, 速度:${$("res-mps").innerText}m/s, 歩数:${$("g-steps").value}\n判定:${$("g-fb").innerText}`;
     navigator.clipboard.writeText(t).then(() => alert("コピーしました"));
+  };
+  $("g-send").onclick = () => {
+    const speed = $("res-mps").innerText;
+    if (!speed || speed === "-") {
+      alert("10m歩行を計測してから送ってください。");
+      return;
+    }
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+      sourceLabel: "10m歩行",
+      recordDate: new Date().toISOString().slice(0, 10),
+      measurements: { comfortable10mSpeed: speed }
+    }));
+    location.href = "../evaluation.html";
+  };
+  $("h-send").onclick = () => {
+    const right = $("h-rn").value;
+    const left = $("h-ln").value;
+    if (!right && !left) {
+      alert("右または左のHHD値を入力してから送ってください。");
+      return;
+    }
+    const target = $("h-target").value;
+    const measurements = {};
+    measurements[`${target}Right`] = right;
+    measurements[`${target}Left`] = left;
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+      sourceLabel: "HHD",
+      recordDate: new Date().toISOString().slice(0, 10),
+      measurements
+    }));
+    location.href = "../evaluation.html";
+  };
+
+  function openStrengthModal() {
+    $("strengthModal").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeStrengthModal() {
+    $("strengthModal").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  function collectBulkStrength() {
+    const measurements = {};
+    document.querySelectorAll(".strength-input").forEach((input) => {
+      const value = input.value.trim();
+      if (value) measurements[input.dataset.field] = value;
+    });
+    return measurements;
+  }
+
+  $("h-bulk-open").onclick = openStrengthModal;
+  $("strengthModalClose").onclick = closeStrengthModal;
+  $("strengthModal").onclick = (event) => {
+    if (event.target === $("strengthModal")) closeStrengthModal();
+  };
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && $("strengthModal").classList.contains("open")) closeStrengthModal();
+  });
+  $("bulk-copy-current").onclick = () => {
+    const right = $("h-rn").value;
+    const left = $("h-ln").value;
+    if (!right && !left) {
+      alert("右または左のHHD値を入力してから反映してください。");
+      return;
+    }
+    const target = $("bulk-copy-target").value;
+    const rightInput = document.querySelector(`[data-field="${target}Right"]`);
+    const leftInput = document.querySelector(`[data-field="${target}Left"]`);
+    if (rightInput) rightInput.value = right;
+    if (leftInput) leftInput.value = left;
+  };
+  $("bulk-clear").onclick = () => {
+    document.querySelectorAll(".strength-input").forEach((input) => input.value = "");
+  };
+  $("bulk-send").onclick = () => {
+    const measurements = collectBulkStrength();
+    if (Object.keys(measurements).length === 0) {
+      alert("送信する筋力値を1つ以上入力してください。");
+      return;
+    }
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+      sourceLabel: "HHD 筋力一覧",
+      recordDate: new Date().toISOString().slice(0, 10),
+      measurements
+    }));
+    location.href = "../evaluation.html";
   };
 </script>
 </body>

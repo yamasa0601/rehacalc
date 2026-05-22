@@ -1,0 +1,1462 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>評価記録・評価用紙出力</title>
+  <script src="./assets/pdf-lib.min.js"></script>
+  <style>
+    :root {
+      --bg:#f6f7fb;
+      --panel:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#0f766e;
+      --primary-dark:#115e59;
+      --accent:#2563eb;
+      --danger:#dc2626;
+      --soft:#f0fdfa;
+      --radius:10px;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    header {
+      max-width:1120px;
+      margin:0 auto;
+      padding:18px 14px 8px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    h1 { margin:0; font-size:19px; line-height:1.25; }
+    header p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    a.back {
+      color:#111;
+      text-decoration:none;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+      padding:8px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    main {
+      max-width:1120px;
+      margin:0 auto;
+      padding:10px 14px 28px;
+    }
+    .tabs {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:4px 0 12px;
+    }
+    .tab {
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      border-radius:999px;
+      padding:9px 13px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .tab.active { background:#111827; color:#fff; border-color:#111827; }
+    .view { display:none; }
+    .view.active { display:block; }
+    .layout {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:980px) {
+      .layout { grid-template-columns:1.1fr .9fr; align-items:start; }
+    }
+    section.panel {
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 1px 5px rgba(15,23,42,.05);
+    }
+    h2 {
+      margin:0 0 10px;
+      font-size:15px;
+      border-left:4px solid var(--primary);
+      padding-left:8px;
+    }
+    h3 {
+      margin:14px 0 8px;
+      font-size:13px;
+      color:#0f172a;
+    }
+    .form-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    @media (min-width:680px) {
+      .form-grid.cols-2 { grid-template-columns:1fr 1fr; }
+      .form-grid.cols-3 { grid-template-columns:1fr 1fr 1fr; }
+    }
+    label { display:block; color:var(--muted); font-size:12px; margin-bottom:4px; }
+    input, select {
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:9px;
+      padding:10px 11px;
+      font-size:16px;
+      background:#fff;
+      color:var(--text);
+    }
+    input[type="date"] { min-height:42px; }
+    .paired {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .row-title {
+      color:#374151;
+      font-size:12px;
+      font-weight:800;
+      margin-bottom:5px;
+    }
+    .measure-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    @media (min-width:680px) {
+      .measure-grid { grid-template-columns:1fr 1fr; }
+    }
+    .measure-row {
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:9px;
+      background:#fafafa;
+    }
+    .actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+    button.action {
+      appearance:none;
+      border:0;
+      background:var(--primary);
+      color:#fff;
+      border-radius:9px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button.action:hover { background:var(--primary-dark); }
+    button.action.secondary {
+      background:#f3f4f6;
+      color:#111827;
+      border:1px solid var(--line);
+    }
+    button.action.secondary:hover { background:#e5e7eb; }
+    button.action.danger { background:#fee2e2; color:var(--danger); border:1px solid #fecaca; }
+    button.action.danger:hover { background:#fecaca; }
+    .notice {
+      display:none;
+      margin-bottom:12px;
+      padding:10px 12px;
+      border-radius:9px;
+      background:var(--soft);
+      border:1px solid #99f6e4;
+      color:#134e4a;
+      font-size:13px;
+    }
+    .note {
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.65;
+    }
+    .summary-strip {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    @media (min-width:680px) {
+      .summary-strip { grid-template-columns:repeat(4,1fr); }
+    }
+    .summary-box {
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fafafa;
+      padding:9px;
+    }
+    .summary-box .k { font-size:11px; color:var(--muted); }
+    .summary-box .v { font-size:18px; font-weight:900; margin-top:2px; }
+    .history-table-wrap {
+      overflow-x:auto;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    table {
+      border-collapse:collapse;
+      width:100%;
+      min-width:760px;
+      font-size:13px;
+    }
+    th, td {
+      padding:8px 9px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:middle;
+      white-space:nowrap;
+    }
+    th { background:#f9fafb; color:#4b5563; font-size:12px; }
+    tr:last-child td { border-bottom:0; }
+    .mini-btn {
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      border-radius:8px;
+      padding:6px 8px;
+      font-size:12px;
+      cursor:pointer;
+      margin-right:4px;
+    }
+    .mini-btn.danger { color:var(--danger); background:#fff5f5; border-color:#fecaca; }
+    canvas {
+      display:block;
+      width:100%;
+      height:280px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    .empty {
+      border:1px dashed #cbd5e1;
+      border-radius:9px;
+      padding:18px;
+      color:var(--muted);
+      text-align:center;
+      background:#fff;
+      font-size:13px;
+    }
+    .pdf-preview {
+      width:100%;
+      height:520px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    .toast {
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:#111827;
+      color:#fff;
+      border-radius:999px;
+      padding:10px 13px;
+      font-size:13px;
+      display:none;
+      z-index:20;
+      box-shadow:0 6px 18px rgba(15,23,42,.2);
+    }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>評価記録・評価用紙出力</h1>
+      <p>LSA、最大歩行速度、6分間歩行テストは入力・グラフ・自動転記の対象外です。</p>
+    </div>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <div id="notice" class="notice"></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" type="button" data-view="entry">評価記録</button>
+      <button class="tab" type="button" data-view="history">履歴・グラフ</button>
+      <button class="tab" type="button" data-view="pdf">評価用紙PDF</button>
+    </div>
+
+    <div id="view-entry" class="view active">
+      <div class="layout">
+        <section class="panel">
+          <h2>対象者・評価時期</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="entryPatientSelect">既存対象者から選択</label>
+              <select id="entryPatientSelect"></select>
+            </div>
+            <div>
+              <label>選択時の動作</label>
+              <input value="氏名・ID・基本情報だけを反映します" disabled />
+            </div>
+          </div>
+          <div class="form-grid cols-3">
+            <div>
+              <label for="patientName">氏名</label>
+              <input id="patientName" autocomplete="off" />
+            </div>
+            <div>
+              <label for="patientId">対象者ID</label>
+              <input id="patientId" autocomplete="off" placeholder="任意" />
+            </div>
+            <div>
+              <label for="recordDate">評価日</label>
+              <input id="recordDate" type="date" />
+            </div>
+            <div>
+              <label for="stage">評価時期</label>
+              <select id="stage">
+                <option value="admission">入棟</option>
+                <option value="fac3">FAC3</option>
+                <option value="month1">1M</option>
+                <option value="month2">2M</option>
+                <option value="month3">3M</option>
+                <option value="discharge">退院</option>
+              </select>
+            </div>
+            <div>
+              <label for="age">年齢</label>
+              <input id="age" type="number" inputmode="numeric" />
+            </div>
+            <div>
+              <label for="sex">性別</label>
+              <select id="sex">
+                <option value="">未選択</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+            </div>
+          </div>
+
+          <h3>基本情報</h3>
+          <div class="form-grid cols-3">
+            <div>
+              <label for="height">身長 (cm)</label>
+              <input id="height" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="weight">体重 (kg)</label>
+              <input id="weight" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="surgicalSide">術側</label>
+              <select id="surgicalSide">
+                <option value="">未選択</option>
+                <option value="右">右</option>
+                <option value="左">左</option>
+              </select>
+            </div>
+            <div>
+              <label for="walkingAid">歩行補助具</label>
+              <select id="walkingAid">
+                <option value="">未選択</option>
+                <option value="杖">杖</option>
+                <option value="4点杖">4点杖</option>
+                <option value="独歩">独歩</option>
+                <option value="歩行器">歩行器</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+            <div>
+              <label for="procedure">術式</label>
+              <input id="procedure" autocomplete="off" />
+            </div>
+            <div>
+              <label for="injuryDate">受傷日</label>
+              <input id="injuryDate" type="date" />
+            </div>
+            <div>
+              <label for="dischargeDestination">退院先</label>
+              <select id="dischargeDestination">
+                <option value="">未選択</option>
+                <option value="在宅">在宅</option>
+                <option value="施設">施設</option>
+                <option value="転院">転院</option>
+              </select>
+            </div>
+            <div>
+              <label for="daysSinceOnset">発症からの経過 (日)</label>
+              <input id="daysSinceOnset" type="number" inputmode="numeric" />
+            </div>
+          </div>
+
+          <h3>評価結果</h3>
+          <div class="measure-grid">
+            <div class="measure-row">
+              <div class="row-title">体重変化</div>
+              <input id="weightChange" type="number" inputmode="decimal" placeholder="kg または % など" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">歩行時のNRS</div>
+              <input id="painNrs" type="number" inputmode="decimal" min="0" max="10" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股屈筋 (N 右/左)</div>
+              <div class="paired">
+                <input id="hipFlexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">膝伸展 (N 右/左)</div>
+              <div class="paired">
+                <input id="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">足背屈 (N 右/左)</div>
+              <div class="paired">
+                <input id="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股伸展 (N 右/左)</div>
+              <div class="paired">
+                <input id="hipExtensorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股外転 (N 右/左)</div>
+              <div class="paired">
+                <input id="hipAbductorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">足底屈 (N 右/左)</div>
+              <div class="paired">
+                <input id="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">10mCWS (m/s)</div>
+              <input id="comfortable10mSpeed" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">BBS (点)</div>
+              <input id="bbs" type="number" inputmode="numeric" min="0" max="56" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">GES (点)</div>
+              <input id="mfes" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">FAB (点)</div>
+              <input id="fab" type="number" inputmode="numeric" min="0" max="18" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">partA / TMT-A (秒)</div>
+              <input id="tmtA" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">MMSE (点)</div>
+              <input id="mmse" type="number" inputmode="numeric" min="0" max="30" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="saveRecord" class="action" type="button">記録を保存</button>
+            <button id="newRecord" class="action secondary" type="button">新規入力</button>
+            <button id="goHistory" class="action secondary" type="button">履歴を見る</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>このページでできること</h2>
+          <div class="summary-strip">
+            <div class="summary-box"><div class="k">対象者数</div><div id="patientCount" class="v">0</div></div>
+            <div class="summary-box"><div class="k">総記録数</div><div id="recordCount" class="v">0</div></div>
+            <div class="summary-box"><div class="k">選択中</div><div id="activePatient" class="v">-</div></div>
+            <div class="summary-box"><div class="k">最新時期</div><div id="latestStage" class="v">-</div></div>
+          </div>
+          <p class="note">
+            既存の「歩行速度」「筋力」「BBS」「GES」「FAB」画面から送られた結果は、この入力欄に自動反映されます。
+            ここで対象者・評価時期を選んで保存すると、履歴とグラフ、評価用紙PDF出力に使えます。
+          </p>
+          <p class="note">
+            保存先はこの端末のブラウザ内です。個人情報を扱う場合は、端末の共有やブラウザデータ削除に注意してください。
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <div id="view-history" class="view">
+      <div class="layout">
+        <section class="panel">
+          <h2>過去の評価結果</h2>
+          <p class="note" style="margin:0 0 10px;">BBS MCIDは、同一対象者の直前BBSから +12点以上を達成として判定します。</p>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="patientFilter">対象者</label>
+              <select id="patientFilter"></select>
+            </div>
+            <div>
+              <label for="metricSelect">グラフ項目</label>
+              <select id="metricSelect"></select>
+            </div>
+          </div>
+          <div id="historyEmpty" class="empty hidden">保存された評価記録がありません。</div>
+          <div id="historyWrap" class="history-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>評価日</th>
+                  <th>時期</th>
+                  <th>対象者</th>
+                  <th>10mCWS</th>
+                  <th>BBS</th>
+                  <th>BBS前回差</th>
+                  <th>BBS MCID</th>
+                  <th>FAB</th>
+                  <th>MMSE</th>
+                  <th id="selectedMetricHeader">選択項目</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>フィードバック用 折れ線グラフ</h2>
+          <canvas id="trendChart"></canvas>
+          <p id="chartCaption" class="note" style="margin:8px 0 0;">対象者と項目を選ぶと推移を表示します。</p>
+          <div class="actions">
+            <button id="downloadGraph" class="action secondary" type="button">グラフPNG保存</button>
+            <button id="goPdf" class="action" type="button">PDF出力へ</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="view-pdf" class="view">
+      <div class="layout">
+        <section class="panel">
+          <h2>評価用紙PDF</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="pdfPatient">対象者</label>
+              <select id="pdfPatient"></select>
+            </div>
+            <div>
+              <label for="mmsePdfStage">HDS-R/MMSE共通シートのMMSE</label>
+              <select id="mmsePdfStage">
+                <option value="">最新のMMSE</option>
+                <option value="admission">入棟</option>
+                <option value="fac3">FAC3</option>
+                <option value="month1">1M</option>
+                <option value="month2">2M</option>
+                <option value="month3">3M</option>
+                <option value="discharge">退院</option>
+              </select>
+            </div>
+          </div>
+          <p class="note">
+            保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
+            LSA、最大歩行速度、6分間歩行テストの行は空欄のまま出力します。
+          </p>
+          <p class="note">
+            HDS-R/MMSE共通シートは、MMSE合計点のみを右下のMMSE合計欄へ転記します。
+          </p>
+          <div class="actions">
+            <button id="exportPdf" class="action" type="button">PDFを作成</button>
+            <button id="exportMmsePdf" class="action" type="button">MMSE用紙PDFを作成</button>
+            <button id="copyCsv" class="action secondary" type="button">記録CSV保存</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>テンプレート確認</h2>
+          <iframe class="pdf-preview" src="./assets/evaluation-form.pdf" title="評価用紙テンプレート"></iframe>
+          <iframe class="pdf-preview" src="./assets/hdsr-mmse-sheet.pdf" title="HDS-R/MMSE共通シート" style="margin-top:10px;"></iframe>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">保存しました</div>
+
+<script>
+const STORAGE_KEY = "rehacalc_evaluation_records_v1";
+const DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const TEMPLATE_URL = "./assets/evaluation-form.pdf";
+const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
+
+const STAGES = [
+  { id:"admission", label:"入棟", x:265.5 },
+  { id:"fac3", label:"FAC3", x:319.5 },
+  { id:"month1", label:"1M", x:373.5 },
+  { id:"month2", label:"2M", x:427.5 },
+  { id:"month3", label:"3M", x:481.5 },
+  { id:"discharge", label:"退院", x:535.5 }
+];
+
+const PROFILE_FIELDS = [
+  "patientName","patientId","recordDate","stage","age","sex","height","weight",
+  "surgicalSide","walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
+];
+
+const MEASUREMENT_FIELDS = [
+  "weightChange","painNrs",
+  "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
+  "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
+  "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
+  "comfortable10mSpeed","bbs","mfes","fab","tmtA","mmse"
+];
+
+const BBS_MCID_POINTS = 12;
+
+const GRAPH_METRICS = [
+  { id:"comfortable10mSpeed", label:"10mCWS", unit:"m/s" },
+  { id:"bbs", label:"BBS", unit:"点" },
+  { id:"fab", label:"FAB", unit:"点" },
+  { id:"mmse", label:"MMSE", unit:"点" },
+  { id:"tmtA", label:"partA / TMT-A", unit:"秒" },
+  { id:"painNrs", label:"歩行時NRS", unit:"" },
+  { id:"weightChange", label:"体重変化", unit:"" },
+  { id:"mfes", label:"GES", unit:"点" },
+  { id:"hipFlexorRight", label:"股屈筋 右", unit:"N" },
+  { id:"hipFlexorLeft", label:"股屈筋 左", unit:"N" },
+  { id:"kneeExtensorRight", label:"膝伸展 右", unit:"N" },
+  { id:"kneeExtensorLeft", label:"膝伸展 左", unit:"N" },
+  { id:"ankleDorsiflexorRight", label:"足背屈 右", unit:"N" },
+  { id:"ankleDorsiflexorLeft", label:"足背屈 左", unit:"N" },
+  { id:"hipExtensorRight", label:"股伸展 右", unit:"N" },
+  { id:"hipExtensorLeft", label:"股伸展 左", unit:"N" },
+  { id:"hipAbductorRight", label:"股外転 右", unit:"N" },
+  { id:"hipAbductorLeft", label:"股外転 左", unit:"N" },
+  { id:"anklePlantarflexorRight", label:"足底屈 右", unit:"N" },
+  { id:"anklePlantarflexorLeft", label:"足底屈 左", unit:"N" }
+];
+
+const PDF_ROWS = [
+  { y:570.9, value:r => r.measurements.weightChange },
+  { y:540.9, value:r => r.measurements.painNrs },
+  { y:511.9, value:r => pair(r.measurements.hipFlexorRight, r.measurements.hipFlexorLeft) },
+  { y:482.9, value:r => pair(r.measurements.kneeExtensorRight, r.measurements.kneeExtensorLeft) },
+  { y:454.9, value:r => pair(r.measurements.ankleDorsiflexorRight, r.measurements.ankleDorsiflexorLeft) },
+  { y:426.9, value:r => pair(r.measurements.hipExtensorRight, r.measurements.hipExtensorLeft) },
+  { y:397.9, value:r => pair(r.measurements.hipAbductorRight, r.measurements.hipAbductorLeft) },
+  { y:368.9, value:r => pair(r.measurements.anklePlantarflexorRight, r.measurements.anklePlantarflexorLeft) },
+  { y:340.9, value:r => r.measurements.comfortable10mSpeed },
+  { y:261.9, value:r => r.measurements.bbs },
+  { y:216.9, value:r => r.measurements.mfes },
+  { y:193.9, value:r => r.measurements.fab },
+  { y:171.9, value:r => r.measurements.tmtA },
+  { y:147.9, value:r => r.measurements.mmse }
+];
+
+let editingId = null;
+
+const $ = (id) => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0, 10);
+const stageLabel = (stage) => STAGES.find(s => s.id === stage)?.label || stage || "-";
+const clean = (value) => String(value ?? "").trim();
+const num = (value) => {
+  const n = Number(clean(value).replaceAll(",", ""));
+  return Number.isFinite(n) ? n : null;
+};
+
+function pair(right, left) {
+  const r = clean(right);
+  const l = clean(left);
+  if (!r && !l) return "";
+  return `${r || "-"} / ${l || "-"}`;
+}
+
+function loadRecords() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function patientKey(record) {
+  return clean(record.patientId) || clean(record.patientName);
+}
+
+function patientLabel(record) {
+  const name = clean(record.patientName) || "氏名未入力";
+  const id = clean(record.patientId);
+  return id ? `${name} (${id})` : name;
+}
+
+function getPatients(records) {
+  const map = new Map();
+  records.forEach((record) => {
+    const key = patientKey(record);
+    if (!key) return;
+    if (!map.has(key)) map.set(key, patientLabel(record));
+  });
+  return [...map.entries()].map(([key, label]) => ({ key, label }));
+}
+
+function getCurrentPatientKey() {
+  return clean($("patientId").value) || clean($("patientName").value);
+}
+
+function setNotice(text) {
+  const notice = $("notice");
+  if (!text) {
+    notice.style.display = "none";
+    return;
+  }
+  notice.textContent = text;
+  notice.style.display = "block";
+}
+
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.style.display = "block";
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => t.style.display = "none", 1500);
+}
+
+function switchView(viewName) {
+  document.querySelectorAll(".tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === viewName);
+  });
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("active", view.id === `view-${viewName}`);
+  });
+  if (viewName === "history") {
+    renderHistory();
+  }
+  if (viewName === "pdf") {
+    renderPdfPatientSelect();
+  }
+}
+
+function formToRecord() {
+  const record = {
+    id: editingId || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    patientName: clean($("patientName").value),
+    patientId: clean($("patientId").value),
+    recordDate: $("recordDate").value || today(),
+    stage: $("stage").value,
+    age: clean($("age").value),
+    sex: $("sex").value,
+    height: clean($("height").value),
+    weight: clean($("weight").value),
+    surgicalSide: $("surgicalSide").value,
+    walkingAid: $("walkingAid").value,
+    procedure: clean($("procedure").value),
+    injuryDate: $("injuryDate").value,
+    dischargeDestination: $("dischargeDestination").value,
+    daysSinceOnset: clean($("daysSinceOnset").value),
+    measurements: {},
+    updatedAt: new Date().toISOString()
+  };
+  MEASUREMENT_FIELDS.forEach((field) => {
+    record.measurements[field] = clean($(field).value);
+  });
+  return record;
+}
+
+function fillForm(record) {
+  editingId = record?.id || null;
+  PROFILE_FIELDS.forEach((field) => {
+    if (!$(field)) return;
+    $(field).value = record?.[field] ?? (field === "recordDate" ? today() : "");
+  });
+  MEASUREMENT_FIELDS.forEach((field) => {
+    $(field).value = record?.measurements?.[field] ?? "";
+  });
+  $("saveRecord").textContent = editingId ? "記録を更新" : "記録を保存";
+  updateStats();
+}
+
+function clearMeasurements() {
+  MEASUREMENT_FIELDS.forEach((field) => {
+    $(field).value = "";
+  });
+}
+
+function newRecord() {
+  const keep = {
+    patientName: $("patientName").value,
+    patientId: $("patientId").value,
+    age: $("age").value,
+    sex: $("sex").value,
+    height: $("height").value,
+    weight: $("weight").value,
+    surgicalSide: $("surgicalSide").value,
+    walkingAid: $("walkingAid").value,
+    procedure: $("procedure").value,
+    injuryDate: $("injuryDate").value,
+    dischargeDestination: $("dischargeDestination").value,
+    daysSinceOnset: $("daysSinceOnset").value
+  };
+  editingId = null;
+  PROFILE_FIELDS.forEach((field) => {
+    if ($(field)) $(field).value = keep[field] ?? "";
+  });
+  $("recordDate").value = today();
+  $("stage").value = "admission";
+  clearMeasurements();
+  $("saveRecord").textContent = "記録を保存";
+  renderEntryPatientSelect();
+  setNotice("");
+}
+
+function saveCurrentRecord() {
+  const record = formToRecord();
+  if (!patientKey(record)) {
+    alert("氏名または対象者IDを入力してください。");
+    return;
+  }
+  const records = loadRecords();
+  const existingIndex = records.findIndex(r => r.id === record.id);
+  if (existingIndex >= 0) {
+    records[existingIndex] = { ...records[existingIndex], ...record };
+  } else {
+    record.createdAt = new Date().toISOString();
+    records.push(record);
+  }
+  saveRecords(records);
+  editingId = record.id;
+  $("saveRecord").textContent = "記録を更新";
+  toast("記録を保存しました");
+  renderEntryPatientSelect();
+  updateStats();
+  renderHistory();
+  renderPdfPatientSelect();
+}
+
+function updateStats() {
+  const records = loadRecords();
+  const patients = getPatients(records);
+  $("patientCount").textContent = String(patients.length);
+  $("recordCount").textContent = String(records.length);
+  const key = getCurrentPatientKey();
+  $("activePatient").textContent = key || "-";
+  const patientRecords = records
+    .filter(r => patientKey(r) === key)
+    .sort((a, b) => clean(b.recordDate).localeCompare(clean(a.recordDate)));
+  $("latestStage").textContent = patientRecords[0] ? stageLabel(patientRecords[0].stage) : "-";
+}
+
+function renderPatientOptions(selectEl, includeAll) {
+  const records = loadRecords();
+  const patients = getPatients(records);
+  const selected = selectEl.value || getCurrentPatientKey() || patients[0]?.key || "";
+  selectEl.innerHTML = "";
+  if (includeAll) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "すべて";
+    selectEl.appendChild(opt);
+  }
+  patients.forEach((patient) => {
+    const opt = document.createElement("option");
+    opt.value = patient.key;
+    opt.textContent = patient.label;
+    selectEl.appendChild(opt);
+  });
+  selectEl.value = selected;
+}
+
+function renderEntryPatientSelect() {
+  const select = $("entryPatientSelect");
+  const records = loadRecords();
+  const patients = getPatients(records);
+  const current = getCurrentPatientKey();
+  const selected = patients.some(patient => patient.key === current) ? current : "";
+  select.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = patients.length ? "新規/手入力" : "保存済み対象者なし";
+  select.appendChild(blank);
+  patients.forEach((patient) => {
+    const opt = document.createElement("option");
+    opt.value = patient.key;
+    opt.textContent = patient.label;
+    select.appendChild(opt);
+  });
+  select.value = selected;
+}
+
+function applyPatientProfile(patient) {
+  if (!patient) return;
+  const latest = latestPatientRecord(patient);
+  if (!latest) return;
+  const keepDate = $("recordDate").value || today();
+  const keepStage = $("stage").value || "admission";
+  [
+    "patientName","patientId","age","sex","height","weight","surgicalSide",
+    "walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
+  ].forEach((field) => {
+    $(field).value = latest[field] ?? "";
+  });
+  $("recordDate").value = keepDate;
+  $("stage").value = keepStage;
+  updateStats();
+}
+
+function renderMetricOptions() {
+  const selected = $("metricSelect").value || "comfortable10mSpeed";
+  $("metricSelect").innerHTML = "";
+  GRAPH_METRICS.forEach((metric) => {
+    const opt = document.createElement("option");
+    opt.value = metric.id;
+    opt.textContent = metric.unit ? `${metric.label} (${metric.unit})` : metric.label;
+    $("metricSelect").appendChild(opt);
+  });
+  $("metricSelect").value = selected;
+}
+
+function selectedMetric() {
+  return GRAPH_METRICS.find(metric => metric.id === $("metricSelect").value) || GRAPH_METRICS[0];
+}
+
+function buildBbsChangeMap() {
+  const map = new Map();
+  const lastByPatient = new Map();
+  loadRecords()
+    .filter(record => clean(record.measurements?.bbs))
+    .sort(compareRecordsAscending)
+    .forEach((record) => {
+      const bbs = num(record.measurements?.bbs);
+      if (bbs === null) return;
+      const key = patientKey(record);
+      const previous = lastByPatient.get(key);
+      if (previous) {
+        const delta = bbs - previous.bbs;
+        map.set(record.id, {
+          previous: previous.bbs,
+          delta,
+          judge: delta >= BBS_MCID_POINTS ? "MCID達成" : "未達成"
+        });
+      } else {
+        map.set(record.id, { previous:null, delta:null, judge:"初回" });
+      }
+      lastByPatient.set(key, { bbs, record });
+    });
+  return map;
+}
+
+function formatBbsDelta(change) {
+  if (!change) return "-";
+  if (change.delta === null) return "初回";
+  return `${change.delta > 0 ? "+" : ""}${change.delta}`;
+}
+
+function renderHistory() {
+  renderPatientOptions($("patientFilter"), true);
+  renderMetricOptions();
+  const metric = selectedMetric();
+  $("selectedMetricHeader").textContent = metric.unit ? `${metric.label} (${metric.unit})` : metric.label;
+  const bbsChangeMap = buildBbsChangeMap();
+  const filter = $("patientFilter").value;
+  const records = loadRecords()
+    .filter(record => !filter || patientKey(record) === filter)
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    });
+
+  $("historyEmpty").classList.toggle("hidden", records.length > 0);
+  $("historyWrap").classList.toggle("hidden", records.length === 0);
+  $("historyBody").innerHTML = "";
+  records.forEach((record) => {
+    const tr = document.createElement("tr");
+    const m = record.measurements || {};
+    const bbsChange = bbsChangeMap.get(record.id);
+    tr.innerHTML = `
+      <td>${escapeHtml(record.recordDate || "-")}</td>
+      <td>${escapeHtml(stageLabel(record.stage))}</td>
+      <td>${escapeHtml(patientLabel(record))}</td>
+      <td>${escapeHtml(m.comfortable10mSpeed || "-")}</td>
+      <td>${escapeHtml(m.bbs || "-")}</td>
+      <td>${escapeHtml(formatBbsDelta(bbsChange))}</td>
+      <td>${escapeHtml(bbsChange?.judge || "-")}</td>
+      <td>${escapeHtml(m.fab || "-")}</td>
+      <td>${escapeHtml(m.mmse || "-")}</td>
+      <td>${escapeHtml(m[metric.id] || "-")}</td>
+      <td>
+        <button class="mini-btn" type="button" data-edit="${record.id}">編集</button>
+        <button class="mini-btn danger" type="button" data-delete="${record.id}">削除</button>
+      </td>
+    `;
+    $("historyBody").appendChild(tr);
+  });
+
+  document.querySelectorAll("[data-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const record = loadRecords().find(r => r.id === button.dataset.edit);
+      if (record) {
+        fillForm(record);
+        switchView("entry");
+        setNotice("保存済みの記録を編集中です。");
+      }
+    });
+  });
+  document.querySelectorAll("[data-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteRecord(button.dataset.delete));
+  });
+  renderChart();
+}
+
+function deleteRecord(id) {
+  if (!confirm("この記録を削除しますか？")) return;
+  const records = loadRecords().filter(record => record.id !== id);
+  saveRecords(records);
+  if (editingId === id) newRecord();
+  toast("記録を削除しました");
+  renderEntryPatientSelect();
+  updateStats();
+  renderHistory();
+  renderPdfPatientSelect();
+}
+
+function renderChart() {
+  const canvas = $("trendChart");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+  canvas.height = Math.floor(280 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  const metric = GRAPH_METRICS.find(m => m.id === $("metricSelect").value) || GRAPH_METRICS[0];
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .map(record => ({ record, value:num(record.measurements?.[metric.id]) }))
+    .filter(item => item.value !== null)
+    .sort((a, b) => {
+      const d = clean(a.record.recordDate).localeCompare(clean(b.record.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.record.stage) - STAGES.findIndex(s => s.id === b.record.stage);
+    });
+
+  if (!patient || records.length === 0) {
+    drawEmptyChart(ctx, w, h, "グラフ化できる記録がありません");
+    $("chartCaption").textContent = "対象者と項目を選ぶと推移を表示します。";
+    return;
+  }
+
+  const values = records.map(item => item.value);
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  const pad = (max - min) * 0.12;
+  min -= pad;
+  max += pad;
+
+  const margin = { left:46, right:18, top:22, bottom:54 };
+  const plotW = w - margin.left - margin.right;
+  const plotH = h - margin.top - margin.bottom;
+  const xAt = (i) => margin.left + (records.length === 1 ? plotW / 2 : (plotW * i) / (records.length - 1));
+  const yAt = (v) => margin.top + plotH - ((v - min) / (max - min)) * plotH;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 1;
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.fillStyle = "#6b7280";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const y = margin.top + (plotH * i) / 4;
+    const value = max - ((max - min) * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, y);
+    ctx.lineTo(w - margin.right, y);
+    ctx.stroke();
+    ctx.fillText(formatNumber(value), margin.left - 8, y);
+  }
+
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const y = yAt(item.value);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const y = yAt(item.value);
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#111827";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(formatNumber(item.value), x, y - 9);
+  });
+
+  ctx.fillStyle = "#374151";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const label = `${stageLabel(item.record.stage)} ${item.record.recordDate?.slice(5) || ""}`;
+    ctx.save();
+    ctx.translate(x, h - margin.bottom + 18);
+    if (records.length > 3) ctx.rotate(-Math.PI / 8);
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
+
+  const label = GRAPH_METRICS.find(m => m.id === metric.id)?.label || metric.id;
+  $("chartCaption").textContent = `${patient}：${label} の推移${metric.unit ? "（" + metric.unit + "）" : ""}`;
+}
+
+function drawEmptyChart(ctx, w, h, message) {
+  ctx.fillStyle = "#f9fafb";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "14px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, w / 2, h / 2);
+}
+
+function formatNumber(value) {
+  if (!Number.isFinite(value)) return "-";
+  if (Math.abs(value) >= 10) return value.toFixed(1).replace(/\.0$/, "");
+  return value.toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
+}
+
+function renderPdfPatientSelect() {
+  renderPatientOptions($("pdfPatient"), false);
+  const current = getCurrentPatientKey();
+  if (current) $("pdfPatient").value = current;
+}
+
+function compareRecordsAscending(a, b) {
+  const aKey = `${clean(a.recordDate)}|${clean(a.updatedAt || a.createdAt)}|${clean(a.id)}`;
+  const bKey = `${clean(b.recordDate)}|${clean(b.updatedAt || b.createdAt)}|${clean(b.id)}`;
+  return aKey.localeCompare(bKey);
+}
+
+function mergeRecordInto(base, record) {
+  PROFILE_FIELDS.forEach((field) => {
+    if (field === "stage") return;
+    const value = clean(record[field]);
+    if (value) base[field] = value;
+  });
+  base.stage = record.stage || base.stage;
+  base.measurements = base.measurements || {};
+  MEASUREMENT_FIELDS.forEach((field) => {
+    const value = clean(record.measurements?.[field]);
+    if (value) base.measurements[field] = value;
+  });
+  return base;
+}
+
+function getMergedRecordsByStage(patient) {
+  const stageMap = new Map();
+  loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort(compareRecordsAscending)
+    .forEach((record) => {
+      const current = stageMap.get(record.stage) || {
+        patientName: record.patientName,
+        patientId: record.patientId,
+        stage: record.stage,
+        measurements: {}
+      };
+      stageMap.set(record.stage, mergeRecordInto(current, record));
+    });
+  return stageMap;
+}
+
+function latestPatientRecord(patient) {
+  const merged = { measurements:{} };
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort(compareRecordsAscending);
+  records.forEach((record) => mergeRecordInto(merged, record));
+  return records.length ? merged : null;
+}
+
+async function exportFilledPdf() {
+  if (!window.PDFLib) {
+    alert("PDF生成ライブラリを読み込めませんでした。");
+    return;
+  }
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stageMap.size === 0) {
+    alert("この対象者の保存済み記録がありません。");
+    return;
+  }
+
+  const template = await fetch(TEMPLATE_URL).then(res => res.arrayBuffer());
+  const pdfDoc = await PDFLib.PDFDocument.load(template);
+  const page = pdfDoc.getPage(0);
+  const profile = latestPatientRecord(patient) || {};
+
+  await drawText(pdfDoc, page, [
+    profile.patientName,
+    profile.age,
+    profile.sex,
+    profile.height,
+    profile.weight
+  ].map(v => clean(v) || "　").join(" / "), 304, 735.9, { fontSize:11, maxWidth:250 });
+  await drawText(pdfDoc, page, profile.surgicalSide, 172, 702.9, { fontSize:12, align:"center" });
+  await drawText(pdfDoc, page, profile.walkingAid, 178, 676.9, { fontSize:12, align:"center" });
+  await drawText(pdfDoc, page, profile.procedure, 422, 676.9, { fontSize:11, maxWidth:128 });
+  await drawText(pdfDoc, page, jpDate(profile.injuryDate), 438, 702.9, { fontSize:10, maxWidth:120 });
+  await drawText(pdfDoc, page, profile.dischargeDestination, 138, 639.9, { fontSize:12, align:"center" });
+  await drawText(pdfDoc, page, profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : "", 468, 639.9, { fontSize:12, align:"center" });
+
+  for (const stage of STAGES) {
+    const record = stageMap.get(stage.id);
+    if (!record) continue;
+    for (const row of PDF_ROWS) {
+      const value = clean(row.value(record));
+      if (!value) continue;
+      await drawText(pdfDoc, page, value, stage.x, row.y, { fontSize:9.5, align:"center", maxWidth:50 });
+    }
+  }
+
+  const bytes = await pdfDoc.save();
+  const blob = new Blob([bytes], { type:"application/pdf" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `評価用紙_${fileSafe(patient)}_${today()}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("PDFを作成しました");
+}
+
+function getLatestRecordWithValue(patient, field) {
+  return loadRecords()
+    .filter(record => patientKey(record) === patient && clean(record.measurements?.[field]))
+    .sort(compareRecordsAscending)
+    .at(-1) || null;
+}
+
+function getRecordForStageValue(patient, stage, field) {
+  const merged = getMergedRecordsByStage(patient).get(stage);
+  return clean(merged?.measurements?.[field]) ? merged : null;
+}
+
+async function exportMmsePdf() {
+  if (!window.PDFLib) {
+    alert("PDF生成ライブラリを読み込めませんでした。");
+    return;
+  }
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const stage = $("mmsePdfStage").value;
+  const record = stage
+    ? getRecordForStageValue(patient, stage, "mmse")
+    : getLatestRecordWithValue(patient, "mmse");
+  const mmse = clean(record?.measurements?.mmse);
+  if (!mmse) {
+    alert("選択した対象者・時期にMMSEの保存データがありません。");
+    return;
+  }
+
+  const template = await fetch(MMSE_TEMPLATE_URL).then(res => res.arrayBuffer());
+  const pdfDoc = await PDFLib.PDFDocument.load(template);
+  const page = pdfDoc.getPage(0);
+  await drawText(pdfDoc, page, mmse, 535, 31, { fontSize:12, align:"center", maxWidth:32 });
+
+  const bytes = await pdfDoc.save();
+  const blob = new Blob([bytes], { type:"application/pdf" });
+  const a = document.createElement("a");
+  const suffix = stage ? stageLabel(stage) : "最新";
+  a.href = URL.createObjectURL(blob);
+  a.download = `MMSE共通シート_${fileSafe(patient)}_${suffix}_${today()}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("MMSE用紙PDFを作成しました");
+}
+
+async function drawText(pdfDoc, page, text, x, y, options = {}) {
+  text = clean(text);
+  if (!text) return;
+  const baseFont = options.fontSize || 10;
+  const maxWidth = options.maxWidth || 170;
+  let fontSize = baseFont;
+  const scale = 3;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const fontFamily = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.font = `700 ${fontSize * scale}px ${fontFamily}`;
+  while ((ctx.measureText(text).width / scale) > maxWidth && fontSize > 6) {
+    fontSize -= 0.5;
+    ctx.font = `700 ${fontSize * scale}px ${fontFamily}`;
+  }
+  const textWidth = Math.min(maxWidth, ctx.measureText(text).width / scale + 4);
+  const textHeight = fontSize * 1.55;
+  canvas.width = Math.ceil(textWidth * scale);
+  canvas.height = Math.ceil(textHeight * scale);
+  const drawCtx = canvas.getContext("2d");
+  drawCtx.scale(scale, scale);
+  drawCtx.clearRect(0, 0, textWidth, textHeight);
+  drawCtx.fillStyle = "#111111";
+  drawCtx.font = `700 ${fontSize}px ${fontFamily}`;
+  drawCtx.textBaseline = "middle";
+  drawCtx.textAlign = options.align === "center" ? "center" : "left";
+  const textX = options.align === "center" ? textWidth / 2 : 2;
+  drawCtx.fillText(text, textX, textHeight / 2);
+  const image = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
+  const drawX = options.align === "center" ? x - textWidth / 2 : x;
+  page.drawImage(image, { x:drawX, y:y - textHeight * 0.48, width:textWidth, height:textHeight });
+}
+
+function jpDate(value) {
+  if (!value) return "";
+  const parts = value.split("-");
+  if (parts.length !== 3) return value;
+  return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
+}
+
+function exportCsvForPatient() {
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort((a, b) => clean(a.recordDate).localeCompare(clean(b.recordDate)));
+  if (records.length === 0) {
+    alert("保存済み記録がありません。");
+    return;
+  }
+  const headers = ["評価日","評価時期","氏名","対象者ID","10mCWS","BBS","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
+  const rows = records.map((record) => {
+    const m = record.measurements || {};
+    return [
+      record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
+      m.comfortable10mSpeed, m.bbs, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
+    ];
+  });
+  const csv = "\uFEFF" + [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `評価記録_${fileSafe(patient)}_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function fileSafe(value) {
+  return clean(value).replace(/[\\/:*?"<>|]/g, "_") || "target";
+}
+
+function downloadGraphPng() {
+  const canvas = $("trendChart");
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = `評価推移_${today()}.png`;
+  a.click();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function applyIncomingDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft.patientName) $("patientName").value = draft.patientName;
+    if (draft.patientId) $("patientId").value = draft.patientId;
+    if (draft.stage) $("stage").value = draft.stage;
+    if (draft.recordDate) $("recordDate").value = draft.recordDate;
+    Object.entries(draft.measurements || {}).forEach(([key, value]) => {
+      if ($(key)) $(key).value = value;
+    });
+    localStorage.removeItem(DRAFT_KEY);
+    setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映しました。対象者と評価時期を確認して保存してください。`);
+  } catch {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+}
+
+document.querySelectorAll(".tab").forEach((button) => {
+  button.addEventListener("click", () => switchView(button.dataset.view));
+});
+$("saveRecord").addEventListener("click", saveCurrentRecord);
+$("newRecord").addEventListener("click", newRecord);
+$("goHistory").addEventListener("click", () => switchView("history"));
+$("goPdf").addEventListener("click", () => switchView("pdf"));
+$("entryPatientSelect").addEventListener("change", (event) => applyPatientProfile(event.target.value));
+$("patientFilter").addEventListener("change", renderHistory);
+$("metricSelect").addEventListener("change", renderHistory);
+$("pdfPatient").addEventListener("change", () => {});
+$("exportPdf").addEventListener("click", exportFilledPdf);
+$("exportMmsePdf").addEventListener("click", exportMmsePdf);
+$("copyCsv").addEventListener("click", exportCsvForPatient);
+$("downloadGraph").addEventListener("click", downloadGraphPng);
+[...PROFILE_FIELDS, ...MEASUREMENT_FIELDS].forEach((field) => {
+  const el = $(field);
+  if (el) el.addEventListener("input", updateStats);
+  if (el && el.tagName === "SELECT") el.addEventListener("change", updateStats);
+});
+
+$("recordDate").value = today();
+applyIncomingDraft();
+renderEntryPatientSelect();
+updateStats();
+renderHistory();
+renderPdfPatientSelect();
+</script>
+</body>
+</html>

@@ -22,6 +22,7 @@
         .total-score { font-size: 2rem; font-weight: bold; color: var(--primary); }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
         .btn-copy { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; }
+        .btn-record { width: 100%; padding: 12px; background: #0f766e; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 8px; }
         details { background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #444; margin-top: 5px; }
         summary { font-weight: bold; cursor: pointer; margin-bottom: 5px; }
     </style>
@@ -107,6 +108,7 @@
         <span id="status-badge" class="status-badge" style="background:#eee;">未入力</span>
     </div>
     <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <button class="btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
     <details>
         <summary>臨床的指標 (参考値)</summary>
         ・高齢者カットオフ: 12点以下で要注意 <br>
@@ -117,6 +119,8 @@
 </div>
 
 <script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
 function calc() {
     let total = 0;
     let count = 0;
@@ -151,6 +155,16 @@ function copyResult() {
     }
     const txt = `【FAB評価結果】\n合計スコア: ${score}/18点 (${status})\n内訳: ${details}`;
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+
+function sendToEvaluation() {
+    const score = document.getElementById('total-score').innerText;
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+        sourceLabel: "FAB",
+        recordDate: new Date().toISOString().slice(0, 10),
+        measurements: { fab: score }
+    }));
+    location.href = "./evaluation.html";
 }
 </script>
 </body>
