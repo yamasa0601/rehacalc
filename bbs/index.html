@@ -170,7 +170,7 @@
 <script>
   // PWA SW
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js");
+    navigator.serviceWorker.register("./service-worker.js").then((registration) => registration.update());
   }
 
   /* ── BBS Items with full criteria from original assessment ── */
