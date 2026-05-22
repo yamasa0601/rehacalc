@@ -13,6 +13,7 @@
       --text:#1c1c1e;
       --muted:#6b7280;
       --line:#e5e7eb;
+      --soft:#f0fdfa;
     }
     * { box-sizing:border-box; }
     body {
@@ -24,12 +25,12 @@
       color:var(--text);
     }
     header {
+      max-width:1080px;
+      margin:0 auto 10px;
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
       gap:12px;
-      max-width:900px;
-      margin:0 auto 10px;
     }
     h1 { margin:6px 0 0; font-size:18px; }
     .back {
@@ -43,20 +44,16 @@
       white-space:nowrap;
     }
     main {
-      max-width:900px;
+      max-width:1080px;
       margin:0 auto;
       display:grid;
-      grid-template-columns:1fr;
       gap:12px;
-    }
-    @media (min-width:860px) {
-      main { grid-template-columns:.8fr 1.2fr; align-items:start; }
     }
     .card {
       background:var(--card);
       border:1px solid var(--line);
       border-radius:14px;
-      padding:15px;
+      padding:14px;
       box-shadow:0 1px 4px rgba(0,0,0,.08);
     }
     h2 {
@@ -66,25 +63,11 @@
       margin:0 0 12px;
       color:var(--primary);
     }
-    label {
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin-bottom:5px;
-    }
-    input {
-      width:100%;
-      border:1px solid #d1d5db;
-      border-radius:10px;
-      padding:13px;
-      font-size:18px;
-      background:#fff;
-    }
     .score-grid {
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
-      padding:18px 0 12px;
+      margin-bottom:10px;
     }
     .score-box {
       border:1px solid var(--line);
@@ -93,25 +76,81 @@
       padding:12px;
       text-align:center;
     }
-    .score-box .label {
+    .score-box span {
       display:block;
       color:var(--muted);
       font-size:12px;
-      margin-bottom:4px;
+      margin-bottom:5px;
     }
     .score-box strong {
       color:var(--primary);
-      font-size:34px;
+      font-size:36px;
       line-height:1;
     }
     .note {
       color:var(--muted);
       font-size:12px;
-      line-height:1.6;
-      margin:10px 0;
+      line-height:1.65;
+      margin:8px 0;
+    }
+    .sheet-wrap {
+      overflow-x:auto;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+    }
+    table {
+      width:100%;
+      min-width:760px;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th, td {
+      border-bottom:1px solid var(--line);
+      border-right:1px solid var(--line);
+      padding:8px;
+      vertical-align:middle;
+    }
+    th:last-child, td:last-child { border-right:0; }
+    tr:last-child td { border-bottom:0; }
+    th {
+      background:#f3f4f6;
+      color:#374151;
+      font-size:12px;
+      text-align:center;
+    }
+    .no {
+      width:42px;
+      text-align:center;
+      color:#374151;
+      font-weight:800;
+    }
+    .question {
+      line-height:1.45;
+    }
+    .hint {
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-top:3px;
+    }
+    .score-select {
+      width:88px;
+      padding:9px 10px;
+      border:1px solid #d1d5db;
+      border-radius:9px;
+      background:#fff;
+      font-size:16px;
+      text-align:center;
+    }
+    .disabled-cell {
+      color:#9ca3af;
+      text-align:center;
+      background:#fafafa;
     }
     .actions {
-      display:grid;
+      display:flex;
+      flex-wrap:wrap;
       gap:8px;
       margin-top:12px;
     }
@@ -119,8 +158,8 @@
       appearance:none;
       border:0;
       border-radius:11px;
-      padding:13px;
-      font-size:15px;
+      padding:12px 14px;
+      font-size:14px;
       font-weight:800;
       cursor:pointer;
       color:#fff;
@@ -130,14 +169,6 @@
       color:#111;
       background:#f3f4f6;
       border:1px solid var(--line);
-    }
-    iframe {
-      display:block;
-      width:100%;
-      height:620px;
-      border:1px solid var(--line);
-      border-radius:10px;
-      background:#fff;
     }
   </style>
 </head>
@@ -149,113 +180,148 @@
 
   <main>
     <section class="card">
-      <h2>合計点入力</h2>
-      <label for="hdsrScore">HDS-R (0-30点)</label>
-      <input id="hdsrScore" type="number" inputmode="numeric" min="0" max="30" placeholder="例: 21" />
-      <label for="mmseScore">MMSE (0-30点)</label>
-      <input id="mmseScore" type="number" inputmode="numeric" min="0" max="30" placeholder="例: 24" />
+      <h2>採点</h2>
       <div class="score-grid">
         <div class="score-box">
-          <span class="label">HDS-R</span>
-          <strong id="hdsrPreview">0</strong>
-          <span>/ 30</span>
+          <span>HDS-R</span>
+          <strong id="hdsrTotal">0</strong>
+          / 30
         </div>
         <div class="score-box">
-          <span class="label">MMSE</span>
-          <strong id="mmsePreview">0</strong>
-          <span>/ 30</span>
+          <span>MMSE</span>
+          <strong id="mmseTotal">0</strong>
+          / 30
         </div>
       </div>
-      <p class="note">
-        評価記録へ送信されるデータはMMSE合計点のみです。PDFにはHDS-RとMMSEの入力済み合計点を転記します。
-      </p>
+      <p class="note">各項目の得点を選択してください。評価記録へ送信するデータはMMSE合計点のみです。PDFにはHDS-RとMMSEの合計点を転記します。</p>
+
+      <div class="sheet-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>質問内容</th>
+              <th>HDS-R</th>
+              <th>MMSE</th>
+            </tr>
+          </thead>
+          <tbody id="scoreRows"></tbody>
+        </table>
+      </div>
+
       <div class="actions">
         <button id="sendRecord" type="button">MMSEを評価記録へ送る</button>
         <button id="createPdf" type="button">HDS-R・MMSE用紙PDFを作成</button>
-        <button id="clearScore" type="button" class="secondary">クリア</button>
+        <button id="clearScores" type="button" class="secondary">クリア</button>
       </div>
-    </section>
-
-    <section class="card">
-      <h2>HDS-R/MMSE共通シート</h2>
-      <iframe src="./assets/hdsr-mmse-sheet.pdf" title="HDS-R/MMSE共通シート"></iframe>
     </section>
   </main>
 
 <script>
 const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
 const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
+const STATE_KEY = "rehacalc_hdsr_mmse_scores_v1";
+
+const ROWS = [
+  { no:1, text:"お歳はいくつですか？", hint:"2年までの誤差は正解", hdsr:1 },
+  { no:2, text:"今日は何年・何月・何日・何曜日ですか？", hint:"HDS-Rは年/月/日/曜日の4点、MMSEは年/季節/月/日/曜日の5点", hdsr:4, mmse:5 },
+  { no:3, text:"ここはどこですか？", hint:"HDS-Rは自発的回答2点、ヒント後正解1点。MMSEは都道府県/市/病院/階/地方の5点", hdsr:2, mmse:5 },
+  { no:4, text:"3つの言葉を覚えてください", hint:"即時記銘。各1点", hdsr:3, mmse:3 },
+  { no:5, text:"計算・注意", hint:"HDS-Rは100から7を引く課題、MMSEは連続計算または逆唱", hdsr:2, mmse:5 },
+  { no:6, text:"数字の逆唱", hint:"例: 6-8-2、3-5-2-9", hdsr:2 },
+  { no:7, text:"先ほど覚えてもらった言葉をもう一度言ってください", hint:"HDS-Rはヒントあり各2点、MMSEは各1点", hdsr:6, mmse:3 },
+  { no:8, text:"5つの物品を見せ、それを隠して何があったか答える", hint:"HDS-Rのみ。5個で5点", hdsr:5 },
+  { no:9, text:"知っている野菜の名前をできるだけ多く言ってください", hint:"HDS-Rのみ。10個で5点", hdsr:5 },
+  { no:10, text:"物品呼称", hint:"時計・鉛筆など。MMSEのみ", mmse:2 },
+  { no:11, text:"文の復唱", hint:"みんなで力を合わせて綱を引きます。MMSEのみ", mmse:1 },
+  { no:12, text:"3段階命令", hint:"紙を取る、半分に折る、机に置く。MMSEのみ", mmse:3 },
+  { no:13, text:"読字命令", hint:"文章を読んで、その指示に従う。MMSEのみ", mmse:1 },
+  { no:14, text:"書字命令", hint:"自発的で意味のある文を書く。MMSEのみ", mmse:1 },
+  { no:15, text:"図形模写", hint:"重なった五角形を模写する。MMSEのみ", mmse:1 }
+];
 
 const $ = (id) => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 
-function cleanScore(id) {
-  const value = String($(id).value || "").trim();
-  if (!value) return "";
-  const score = Number(value);
-  if (!Number.isFinite(score) || score < 0 || score > 30) return null;
-  return String(score);
+function scoreOptions(max, value) {
+  let html = `<option value="">-</option>`;
+  for (let i = 0; i <= max; i++) {
+    html += `<option value="${i}"${String(i) === String(value) ? " selected" : ""}>${i}</option>`;
+  }
+  return html;
 }
 
-function updatePreview() {
-  $("hdsrPreview").textContent = cleanScore("hdsrScore") ?? "-";
-  $("mmsePreview").textContent = cleanScore("mmseScore") ?? "-";
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
 
-function requireMmseScore() {
-  const score = cleanScore("mmseScore");
-  if (score === null || score === "") {
-    alert("MMSEは0〜30点で入力してください。");
-    return null;
-  }
-  return score;
+function saveState() {
+  const state = {};
+  document.querySelectorAll(".score-select").forEach((select) => {
+    state[select.dataset.key] = select.value;
+  });
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
 }
 
-function collectScoresForPdf() {
-  const hdsr = cleanScore("hdsrScore");
-  const mmse = cleanScore("mmseScore");
-  if (hdsr === null || mmse === null) {
-    alert("HDS-R/MMSEは0〜30点で入力してください。");
-    return null;
-  }
-  if (hdsr === "" && mmse === "") {
-    alert("HDS-RまたはMMSEを入力してください。");
-    return null;
-  }
-  return { hdsr, mmse };
+function renderRows() {
+  const state = loadState();
+  $("scoreRows").innerHTML = ROWS.map((row) => `
+    <tr>
+      <td class="no">${row.no}</td>
+      <td class="question">${row.text}<span class="hint">${row.hint}</span></td>
+      <td>${row.hdsr ? `<select class="score-select" data-scale="hdsr" data-key="hdsr_${row.no}">${scoreOptions(row.hdsr, state[`hdsr_${row.no}`])}</select>` : `<div class="disabled-cell">-</div>`}</td>
+      <td>${row.mmse ? `<select class="score-select" data-scale="mmse" data-key="mmse_${row.no}">${scoreOptions(row.mmse, state[`mmse_${row.no}`])}</select>` : `<div class="disabled-cell">-</div>`}</td>
+    </tr>
+  `).join("");
+  document.querySelectorAll(".score-select").forEach((select) => {
+    select.addEventListener("change", () => {
+      saveState();
+      updateTotals();
+    });
+  });
+  updateTotals();
+}
+
+function total(scale) {
+  return [...document.querySelectorAll(`.score-select[data-scale="${scale}"]`)]
+    .reduce((sum, select) => sum + (Number(select.value) || 0), 0);
+}
+
+function updateTotals() {
+  $("hdsrTotal").textContent = String(total("hdsr"));
+  $("mmseTotal").textContent = String(total("mmse"));
 }
 
 function sendToEvaluation() {
-  const score = requireMmseScore();
-  if (score === null) return;
+  const score = total("mmse");
   localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
     sourceLabel: "MMSE",
     recordDate: today(),
-    measurements: { mmse: score }
+    measurements: { mmse: String(score) }
   }));
   location.href = "./evaluation.html";
 }
 
 async function createPdf() {
-  const scores = collectScoresForPdf();
-  if (!scores) return;
   if (!window.PDFLib) {
     alert("PDF生成ライブラリを読み込めませんでした。");
     return;
   }
+  const hdsr = String(total("hdsr"));
+  const mmse = String(total("mmse"));
   const template = await fetch(MMSE_TEMPLATE_URL).then((res) => res.arrayBuffer());
   const pdfDoc = await PDFLib.PDFDocument.load(template);
   const page = pdfDoc.getPage(0);
   const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
   const size = 12;
-  if (scores.hdsr) {
-    const hdsrWidth = font.widthOfTextAtSize(scores.hdsr, size);
-    page.drawText(scores.hdsr, { x:474 - hdsrWidth / 2, y:28, size, font });
-  }
-  if (scores.mmse) {
-    const mmseWidth = font.widthOfTextAtSize(scores.mmse, size);
-    page.drawText(scores.mmse, { x:535 - mmseWidth / 2, y:28, size, font });
-  }
+  const hdsrWidth = font.widthOfTextAtSize(hdsr, size);
+  const mmseWidth = font.widthOfTextAtSize(mmse, size);
+  page.drawText(hdsr, { x:474 - hdsrWidth / 2, y:28, size, font });
+  page.drawText(mmse, { x:535 - mmseWidth / 2, y:28, size, font });
   const bytes = await pdfDoc.save();
   const blob = new Blob([bytes], { type:"application/pdf" });
   const a = document.createElement("a");
@@ -265,16 +331,18 @@ async function createPdf() {
   URL.revokeObjectURL(a.href);
 }
 
-$("hdsrScore").addEventListener("input", updatePreview);
-$("mmseScore").addEventListener("input", updatePreview);
+function clearScores() {
+  document.querySelectorAll(".score-select").forEach((select) => {
+    select.value = "";
+  });
+  saveState();
+  updateTotals();
+}
+
 $("sendRecord").addEventListener("click", sendToEvaluation);
 $("createPdf").addEventListener("click", createPdf);
-$("clearScore").addEventListener("click", () => {
-  $("hdsrScore").value = "";
-  $("mmseScore").value = "";
-  updatePreview();
-});
-updatePreview();
+$("clearScores").addEventListener("click", clearScores);
+renderRows();
 </script>
 </body>
 </html>

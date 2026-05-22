@@ -541,7 +541,28 @@
         </section>
 
         <section class="panel">
-          <h2>フィードバック用 折れ線グラフ</h2>
+          <h2>フィードバック用グラフ</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="chartType">グラフ形式</label>
+              <select id="chartType">
+                <option value="line">折れ線グラフ</option>
+                <option value="radar">レーダーチャート</option>
+              </select>
+            </div>
+            <div>
+              <label for="radarStage">レーダー表示時期</label>
+              <select id="radarStage">
+                <option value="">最新の評価時期</option>
+                <option value="admission">入棟</option>
+                <option value="fac3">FAC3</option>
+                <option value="month1">1M</option>
+                <option value="month2">2M</option>
+                <option value="month3">3M</option>
+                <option value="discharge">退院</option>
+              </select>
+            </div>
+          </div>
           <canvas id="trendChart"></canvas>
           <p id="chartCaption" class="note" style="margin:8px 0 0;">対象者と項目を選ぶと推移を表示します。</p>
           <div class="actions">
@@ -589,9 +610,14 @@
         </section>
 
         <section class="panel">
-          <h2>テンプレート確認</h2>
-          <iframe class="pdf-preview" src="./assets/evaluation-form.pdf" title="評価用紙テンプレート"></iframe>
-          <iframe class="pdf-preview" src="./assets/hdsr-mmse-sheet.pdf" title="HDS-R/MMSE共通シート" style="margin-top:10px;"></iframe>
+          <h2>出力内容</h2>
+          <p class="note">
+            評価用紙PDFは、保存済み記録から各時期の入力済みデータをまとめて転記します。
+          </p>
+          <p class="note">
+            HDS-R/MMSE共通シートはMMSE合計点のみを保存データから転記します。
+            HDS-R合計点も含めて共通シートを作る場合は、トップページの「HDS-R・MMSE 共通シート」を開いてください。
+          </p>
         </section>
       </div>
     </div>
@@ -652,6 +678,16 @@ const GRAPH_METRICS = [
   { id:"anklePlantarflexorLeft", label:"足底屈 左", unit:"N" }
 ];
 
+const RADAR_METRICS = [
+  { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
+  { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) },
+  { label:"膝伸展筋力", detail:"左右平均200N基準", value:r => averageNumbers(r.measurements?.kneeExtensorRight, r.measurements?.kneeExtensorLeft), normalize:v => clampPercent(v / 200 * 100) },
+  { label:"歩行自信", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) },
+  { label:"前頭葉機能", detail:"FAB 18点基準", value:r => num(r.measurements?.fab), normalize:v => clampPercent(v / 18 * 100) },
+  { label:"認知機能", detail:"MMSE 30点基準", value:r => num(r.measurements?.mmse), normalize:v => clampPercent(v / 30 * 100) },
+  { label:"疼痛の少なさ", detail:"NRS低値ほど良好", value:r => num(r.measurements?.painNrs), normalize:v => clampPercent((10 - v) / 10 * 100) }
+];
+
 const PDF_ROWS = [
   { y:570.9, value:r => r.measurements.weightChange },
   { y:540.9, value:r => r.measurements.painNrs },
@@ -679,6 +715,17 @@ const num = (value) => {
   const n = Number(clean(value).replaceAll(",", ""));
   return Number.isFinite(n) ? n : null;
 };
+
+function clampPercent(value) {
+  if (!Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(100, value));
+}
+
+function averageNumbers(a, b) {
+  const values = [num(a), num(b)].filter(value => value !== null);
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
 
 function pair(right, left) {
   const r = clean(right);
@@ -1051,6 +1098,11 @@ function renderChart() {
   const h = canvas.height / dpr;
   ctx.clearRect(0, 0, w, h);
 
+  if ($("chartType").value === "radar") {
+    renderRadarChart(ctx, w, h);
+    return;
+  }
+
   const metric = GRAPH_METRICS.find(m => m.id === $("metricSelect").value) || GRAPH_METRICS[0];
   const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
   const records = loadRecords()
@@ -1144,6 +1196,114 @@ function renderChart() {
 
   const label = GRAPH_METRICS.find(m => m.id === metric.id)?.label || metric.id;
   $("chartCaption").textContent = `${patient}：${label} の推移${metric.unit ? "（" + metric.unit + "）" : ""}`;
+}
+
+function getRadarRecord(patient) {
+  if (!patient) return null;
+  const stage = $("radarStage").value;
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stage) return stageMap.get(stage) || null;
+  return [...stageMap.values()]
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    })
+    .at(-1) || null;
+}
+
+function renderRadarChart(ctx, w, h) {
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const record = getRadarRecord(patient);
+  if (!record) {
+    drawEmptyChart(ctx, w, h, "レーダーチャート化できる記録がありません");
+    $("chartCaption").textContent = "対象者と表示時期を選ぶと総合バランスを表示します。";
+    return;
+  }
+
+  const points = RADAR_METRICS
+    .map((metric) => {
+      const raw = metric.value(record);
+      const normalized = raw === null ? null : metric.normalize(raw);
+      return raw === null || normalized === null ? null : { ...metric, raw, normalized };
+    })
+    .filter(Boolean);
+
+  if (points.length < 3) {
+    drawEmptyChart(ctx, w, h, "3項目以上の記録が必要です");
+    $("chartCaption").textContent = "レーダーチャートは入力済み項目を0〜100%に換算して表示します。";
+    return;
+  }
+
+  const cx = w / 2;
+  const cy = h / 2 + 8;
+  const radius = Math.min(w, h) * 0.31;
+  const angleAt = (index) => -Math.PI / 2 + (Math.PI * 2 * index) / points.length;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#6b7280";
+  ctx.lineWidth = 1;
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0.25, 0.5, 0.75, 1].forEach((level) => {
+    ctx.beginPath();
+    points.forEach((_, index) => {
+      const angle = angleAt(index);
+      const x = cx + Math.cos(angle) * radius * level;
+      const y = cy + Math.sin(angle) * radius * level;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  points.forEach((point, index) => {
+    const angle = angleAt(index);
+    const edgeX = cx + Math.cos(angle) * radius;
+    const edgeY = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(edgeX, edgeY);
+    ctx.stroke();
+
+    const labelX = cx + Math.cos(angle) * (radius + 34);
+    const labelY = cy + Math.sin(angle) * (radius + 24);
+    ctx.fillStyle = "#374151";
+    ctx.fillText(point.label, labelX, labelY - 6);
+    ctx.fillStyle = "#0f766e";
+    ctx.fillText(`${Math.round(point.normalized)}%`, labelX, labelY + 8);
+  });
+
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const angle = angleAt(index);
+    const x = cx + Math.cos(angle) * radius * (point.normalized / 100);
+    const y = cy + Math.sin(angle) * radius * (point.normalized / 100);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = "rgba(15,118,110,.22)";
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 3;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#0f766e";
+  points.forEach((point, index) => {
+    const angle = angleAt(index);
+    const x = cx + Math.cos(angle) * radius * (point.normalized / 100);
+    const y = cy + Math.sin(angle) * radius * (point.normalized / 100);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const stageText = record.stage ? stageLabel(record.stage) : "最新";
+  $("chartCaption").textContent = `${patient}：${stageText}の総合バランス（各項目を0〜100%換算）`;
 }
 
 function drawEmptyChart(ctx, w, h, message) {
@@ -1440,6 +1600,8 @@ $("goPdf").addEventListener("click", () => switchView("pdf"));
 $("entryPatientSelect").addEventListener("change", (event) => applyPatientProfile(event.target.value));
 $("patientFilter").addEventListener("change", renderHistory);
 $("metricSelect").addEventListener("change", renderHistory);
+$("chartType").addEventListener("change", renderChart);
+$("radarStage").addEventListener("change", renderChart);
 $("pdfPatient").addEventListener("change", () => {});
 $("exportPdf").addEventListener("click", exportFilledPdf);
 $("exportMmsePdf").addEventListener("click", exportMmsePdf);
