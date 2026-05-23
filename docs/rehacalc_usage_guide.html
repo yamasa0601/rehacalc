@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>リハ計算アプリ 評価記録・評価用紙PDF 作成手順</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.65;
+      background: #fff;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 20pt; line-height: 1.25; }
+    h2 {
+      margin-top: 12pt;
+      padding: 5pt 7pt;
+      border-left: 5pt solid #0f766e;
+      background: #f0fdfa;
+      font-size: 13pt;
+    }
+    h3 { margin-top: 8pt; font-size: 11.5pt; }
+    p { margin-top: 4pt; }
+    ul, ol { margin: 5pt 0 0 18pt; padding: 0; }
+    li { margin: 3pt 0; }
+    .cover {
+      border: 1pt solid #d1d5db;
+      border-radius: 6pt;
+      padding: 10pt;
+      background: #f9fafb;
+    }
+    .subtitle { margin-top: 5pt; color: #4b5563; font-size: 10.5pt; }
+    .meta {
+      margin-top: 8pt;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5pt;
+    }
+    .box {
+      border: 1pt solid #e5e7eb;
+      border-radius: 5pt;
+      padding: 7pt;
+      background: #fff;
+    }
+    .box strong { color: #0f766e; }
+    .step {
+      margin-top: 7pt;
+      border: 1pt solid #e5e7eb;
+      border-radius: 5pt;
+      padding: 7pt;
+      break-inside: avoid;
+    }
+    .step-title {
+      display: inline-block;
+      margin-bottom: 3pt;
+      padding: 2pt 6pt;
+      border-radius: 999pt;
+      background: #111827;
+      color: #fff;
+      font-weight: 700;
+      font-size: 9.5pt;
+    }
+    .checklist li { list-style: none; position: relative; margin-left: 2pt; }
+    .checklist li::before {
+      content: "□";
+      position: relative;
+      left: -4pt;
+      color: #0f766e;
+      font-weight: 700;
+    }
+    .note {
+      margin-top: 6pt;
+      padding: 6pt 7pt;
+      border: 1pt solid #bfdbfe;
+      border-radius: 5pt;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+    .warn {
+      margin-top: 6pt;
+      padding: 6pt 7pt;
+      border: 1pt solid #fecaca;
+      border-radius: 5pt;
+      background: #fff1f2;
+      color: #991b1b;
+    }
+    .small { color: #6b7280; font-size: 9.2pt; }
+    .page-break { break-before: page; }
+    .url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 9pt;
+      word-break: break-all;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6pt;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1pt solid #e5e7eb;
+      padding: 4pt 5pt;
+      vertical-align: top;
+    }
+    th { background: #f3f4f6; text-align: left; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>リハ計算アプリ<br>評価記録・評価用紙PDF 作成手順</h1>
+    <p class="subtitle">対象者情報の入力、各評価結果の送信、グラフ作成、評価用紙PDF出力までの初心者向け説明用紙です。</p>
+    <div class="meta">
+      <div class="box"><strong>使用ページ</strong><br><span class="url">https://yamasa0601.github.io/rehacalc/</span></div>
+      <div class="box"><strong>保存先</strong><br>同じ端末・同じブラウザ内に保存されます。</div>
+    </div>
+    <p class="warn">個人情報を入力する場合は、共有PCや共有ブラウザでの使用に注意してください。ブラウザデータを削除すると保存記録も消えることがあります。</p>
+  </section>
+
+  <h2>全体の流れ</h2>
+  <ol>
+    <li>評価記録ページで氏名またはID、基本情報、評価日、評価時期を入力します。</li>
+    <li>BBS、歩行速度、筋力、GES、FAB、HDS-R・MMSEなどの各評価を実施します。</li>
+    <li>各評価画面の「評価記録へ送る」を押し、評価記録ページで対象者と評価時期を確認して保存します。</li>
+    <li>履歴・グラフで過去結果を確認し、折れ線グラフまたはレーダーチャートで説明します。</li>
+    <li>評価用紙PDFページで、評価用紙PDFまたはMMSE共通シートPDFを作成します。</li>
+  </ol>
+
+  <h2>1. 対象者の基本情報を入力する</h2>
+  <div class="step">
+    <span class="step-title">評価記録ページを開く</span>
+    <ol>
+      <li>トップページから「評価記録・評価用紙出力」を開きます。</li>
+      <li>初回は「新規入力」のまま、氏名または対象者IDを入力します。</li>
+      <li>年齢、性別、身長、体重、術側、歩行補助具、術式など、必要な基本情報を入力します。</li>
+    </ol>
+    <p class="note">氏名が難しい場合はIDだけでも保存できます。PDFには入力した氏名またはIDが反映されます。</p>
+  </div>
+
+  <div class="step">
+    <span class="step-title">評価日と評価時期を決める</span>
+    <ul class="checklist">
+      <li>評価日は実施した日付にします。</li>
+      <li>評価時期は「入棟」「FAC3」「1M」「2M」「3M」「退院」から選びます。</li>
+      <li>退院時の評価なら「退院」を選びます。</li>
+      <li>同じ対象者で別の時期を入力すると、過去結果として並べて比較できます。</li>
+    </ul>
+  </div>
+
+  <h2>2. 各評価を実施して評価記録へ送る</h2>
+  <div class="step">
+    <span class="step-title">基本操作</span>
+    <ol>
+      <li>トップページから実施したい評価を開きます。</li>
+      <li>評価を入力し、合計点や結果を確認します。</li>
+      <li>「評価記録へ送る」を押します。</li>
+      <li>評価記録ページへ戻ったら、対象者、評価日、評価時期が正しいか確認します。</li>
+      <li>「記録を保存」を押します。</li>
+    </ol>
+  </div>
+
+  <table>
+    <thead><tr><th>評価</th><th>評価記録へ送られる内容</th><th>注意点</th></tr></thead>
+    <tbody>
+      <tr><td>歩行速度（10mCWS）</td><td>10mCWS m/s</td><td>歩行速度ページから送信します。</td></tr>
+      <tr><td>筋力（HHD）</td><td>入力した筋力項目のみ</td><td>筋力一覧から、入力済みの項目だけ送信できます。</td></tr>
+      <tr><td>BBS</td><td>BBS合計点</td><td>評価記録の過去BBSを前回値として選択できます。</td></tr>
+      <tr><td>GES</td><td>GES合計点</td><td>評価用紙上ではmFES欄に反映されます。</td></tr>
+      <tr><td>FAB</td><td>FAB合計点</td><td>各項目を入力して合計点を送信します。</td></tr>
+      <tr><td>HDS-R・MMSE</td><td>MMSE合計点</td><td>評価記録へ送るのはMMSEのみです。HDS-RはPDF出力用です。</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">すでに対象者が保存されている場合は、評価記録ページの「既存対象者から選択」で氏名やIDを選べます。</p>
+
+  <h2 class="page-break">3. 保存と上書きの考え方</h2>
+  <div class="step">
+    <span class="step-title">新しく保存する場合</span>
+    <p>別の評価画面から送った結果は、評価記録ページで「記録を保存」を押すまで履歴に残りません。送信後は必ず対象者と評価時期を確認して保存します。</p>
+  </div>
+  <div class="step">
+    <span class="step-title">編集して保存する場合</span>
+    <p>履歴の「編集」を押して開いた記録は、同じ記録を更新します。新しい記録として残したい場合は「新規入力」を押してから保存します。</p>
+  </div>
+  <div class="step">
+    <span class="step-title">同じ時期に複数評価を入れる場合</span>
+    <p>歩行速度、筋力、BBSなどを別々に保存しても、PDF出力時は同じ対象者・同じ評価時期の入力済みデータをまとめて反映します。</p>
+  </div>
+
+  <h2>4. グラフを作成して説明する</h2>
+  <div class="step">
+    <span class="step-title">折れ線グラフ</span>
+    <ol>
+      <li>評価記録ページで「履歴・グラフ」を開きます。</li>
+      <li>対象者を選びます。</li>
+      <li>グラフ形式を「折れ線グラフ」にします。</li>
+      <li>グラフ項目で、BBS、10mCWS、MMSE、筋力など見たい項目を選びます。</li>
+    </ol>
+    <p class="note">折れ線グラフは、選んだ項目に入力がある記録だけを表示します。空欄の記録は0として扱いません。</p>
+  </div>
+
+  <div class="step">
+    <span class="step-title">レーダーチャート</span>
+    <ol>
+      <li>グラフ形式を「レーダーチャート」にします。</li>
+      <li>比較したい時期にチェックを入れます。</li>
+      <li>複数の時期を選ぶと、同じレーダー上に色分けして重ね表示されます。</li>
+    </ol>
+    <p>見方: 外側に近いほど、基準に対して良い結果です。BBS、歩行速度、筋力、GES、FAB、MMSEなどを0〜100%に換算して表示します。</p>
+    <p class="note">未入力の項目は描画しません。3項目以上の入力がある時期で使用すると説明しやすくなります。</p>
+  </div>
+
+  <h2>5. 評価用紙をPDF化する</h2>
+  <div class="step">
+    <span class="step-title">評価用紙PDF</span>
+    <ol>
+      <li>評価記録ページで「評価用紙PDF」を開きます。</li>
+      <li>対象者を選びます。</li>
+      <li>「評価用紙PDFを作成」を押します。</li>
+      <li>氏名またはID、基本情報、評価日、入棟・退院などの各時期の結果が評価用紙へ反映されます。</li>
+    </ol>
+  </div>
+
+  <div class="step">
+    <span class="step-title">MMSE共通シートPDF</span>
+    <ol>
+      <li>HDS-R・MMSE共通シートで各項目を採点します。</li>
+      <li>MMSEを評価記録へ送る場合は「MMSEを評価記録へ送る」を押します。</li>
+      <li>評価記録ページの「評価用紙PDF」から「MMSE共通シートPDF」を作成します。</li>
+    </ol>
+    <p class="note">評価記録へ送信されるのはMMSE合計点のみです。HDS-Rは共通シートPDFで使用します。</p>
+  </div>
+
+  <h2>困ったとき</h2>
+  <table>
+    <thead><tr><th>困りごと</th><th>確認すること</th></tr></thead>
+    <tbody>
+      <tr><td>PCだけ古い画面が出る</td><td>ページを閉じ、トップページから開き直します。BBSは「開く」ボタンの新しいリンクから起動します。</td></tr>
+      <tr><td>保存した結果が見つからない</td><td>同じ端末・同じブラウザで開いているか確認します。別端末には自動同期されません。</td></tr>
+      <tr><td>PDFに反映されない</td><td>評価画面で送信した後、評価記録ページで「記録を保存」したか確認します。</td></tr>
+      <tr><td>グラフに点が出ない</td><td>対象者、グラフ項目、評価時期が合っているか確認します。未入力項目は表示されません。</td></tr>
+    </tbody>
+  </table>
+
+  <p class="small">作成日: 2026年5月24日 / リハ計算アプリ説明用紙</p>
+</body>
+</html>
