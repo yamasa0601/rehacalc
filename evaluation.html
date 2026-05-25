@@ -578,6 +578,15 @@
               </select>
             </div>
             <div>
+              <label for="radarKind">レーダー種別</label>
+              <select id="radarKind">
+                <option value="function">総合5項目</option>
+                <option value="strength">筋力のみ</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
               <label>レーダー比較時期</label>
               <div id="radarStageChoices" class="stage-checks">
                 <label><input type="checkbox" name="radarStages" value="admission" />入棟</label>
@@ -588,6 +597,18 @@
                 <label><input type="checkbox" name="radarStages" value="discharge" />退院</label>
               </div>
               <p class="note" style="margin:5px 0 0;">複数選択で重ね表示します。未選択時は最新の評価時期を表示します。</p>
+            </div>
+            <div id="strengthRadarControls" class="hidden">
+              <label>筋力項目</label>
+              <div class="stage-checks">
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipFlexor" checked />股屈筋</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="kneeExtensor" checked />膝伸展</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="ankleDorsiflexor" checked />足背屈</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipExtensor" checked />股伸展</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipAbductor" checked />股外転</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="anklePlantarflexor" checked />足底屈</label>
+              </div>
+              <p class="note" style="margin:5px 0 0;">選択した筋力データ内の最大値を100%として表示します。</p>
             </div>
           </div>
           <canvas id="trendChart"></canvas>
@@ -705,14 +726,21 @@ const GRAPH_METRICS = [
   { id:"anklePlantarflexorLeft", label:"足底屈 左", unit:"N" }
 ];
 
-const RADAR_METRICS = [
+const FUNCTION_RADAR_METRICS = [
   { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
   { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) },
-  { label:"膝伸展筋力", detail:"左右平均200N基準", value:r => averageNumbers(r.measurements?.kneeExtensorRight, r.measurements?.kneeExtensorLeft), normalize:v => clampPercent(v / 200 * 100) },
-  { label:"歩行自信", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) },
-  { label:"前頭葉機能", detail:"FAB 18点基準", value:r => num(r.measurements?.fab), normalize:v => clampPercent(v / 18 * 100) },
   { label:"認知機能", detail:"MMSE 30点基準", value:r => num(r.measurements?.mmse), normalize:v => clampPercent(v / 30 * 100) },
-  { label:"疼痛の少なさ", detail:"NRS低値ほど良好", value:r => num(r.measurements?.painNrs), normalize:v => clampPercent((10 - v) / 10 * 100) }
+  { label:"遂行機能", detail:"FAB 18点基準", value:r => num(r.measurements?.fab), normalize:v => clampPercent(v / 18 * 100) },
+  { label:"注意機能", detail:"TMT-A 60秒以下を100%、180秒以上を0%換算", value:r => num(r.measurements?.tmtA), normalize:v => clampPercent((180 - v) / 120 * 100) }
+];
+
+const STRENGTH_RADAR_METRICS = [
+  { id:"hipFlexor", label:"股屈筋", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipFlexorRight, r.measurements?.hipFlexorLeft) },
+  { id:"kneeExtensor", label:"膝伸展", detail:"左右平均N", value:r => averageNumbers(r.measurements?.kneeExtensorRight, r.measurements?.kneeExtensorLeft) },
+  { id:"ankleDorsiflexor", label:"足背屈", detail:"左右平均N", value:r => averageNumbers(r.measurements?.ankleDorsiflexorRight, r.measurements?.ankleDorsiflexorLeft) },
+  { id:"hipExtensor", label:"股伸展", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipExtensorRight, r.measurements?.hipExtensorLeft) },
+  { id:"hipAbductor", label:"股外転", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipAbductorRight, r.measurements?.hipAbductorLeft) },
+  { id:"anklePlantarflexor", label:"足底屈", detail:"左右平均N", value:r => averageNumbers(r.measurements?.anklePlantarflexorRight, r.measurements?.anklePlantarflexorLeft) }
 ];
 
 const RADAR_COLORS = [
@@ -1124,7 +1152,12 @@ function deleteRecord(id) {
   renderPdfPatientSelect();
 }
 
+function updateRadarControls() {
+  $("strengthRadarControls").classList.toggle("hidden", $("radarKind").value !== "strength");
+}
+
 function renderChart() {
+  updateRadarControls();
   const canvas = $("trendChart");
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
@@ -1241,6 +1274,25 @@ function selectedRadarStages() {
     .map(input => input.value);
 }
 
+function selectedStrengthRadarMetrics() {
+  const selected = [...document.querySelectorAll('input[name="strengthRadarMetrics"]:checked')]
+    .map(input => input.value);
+  return STRENGTH_RADAR_METRICS.filter(metric => selected.includes(metric.id));
+}
+
+function currentRadarMetrics() {
+  if ($("radarKind").value === "strength") return selectedStrengthRadarMetrics();
+  return FUNCTION_RADAR_METRICS;
+}
+
+function normalizeRadarValue(metric, raw, maxByMetric) {
+  if (raw === null) return null;
+  if (metric.normalize) return metric.normalize(raw);
+  const max = maxByMetric.get(metric.id);
+  if (!max || max <= 0) return null;
+  return clampPercent((raw / max) * 100);
+}
+
 function getRadarRecords(patient) {
   if (!patient) return [];
   const stages = selectedRadarStages();
@@ -1260,17 +1312,37 @@ function getRadarRecords(patient) {
   return latest ? [{ label:stageLabel(latest.stage), record:latest }] : [];
 }
 
-function radarValues(record) {
-  return RADAR_METRICS.map((metric) => {
+function radarValues(record, metrics, maxByMetric) {
+  return metrics.map((metric) => {
     const raw = metric.value(record);
-    const normalized = raw === null ? null : metric.normalize(raw);
+    const normalized = normalizeRadarValue(metric, raw, maxByMetric);
     return raw === null || normalized === null ? { metric, raw:null, normalized:null } : { metric, raw, normalized };
   });
+}
+
+function strengthMaxByMetric(records, metrics) {
+  const map = new Map();
+  let globalMax = 0;
+  metrics.forEach((metric) => {
+    records.forEach((item) => {
+      const value = metric.value(item.record);
+      if (value !== null) globalMax = Math.max(globalMax, value);
+    });
+  });
+  metrics.forEach(metric => map.set(metric.id, globalMax));
+  return map;
 }
 
 function renderRadarChart(ctx, w, h) {
   const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
   const selectedStages = selectedRadarStages();
+  const metrics = currentRadarMetrics();
+  const isStrengthRadar = $("radarKind").value === "strength";
+  if (isStrengthRadar && metrics.length < 3) {
+    drawEmptyChart(ctx, w, h, "筋力項目を3つ以上選択してください");
+    $("chartCaption").textContent = "筋力レーダーは選択した筋力項目だけで作成します。";
+    return;
+  }
   const records = getRadarRecords(patient);
   if (!records.length) {
     drawEmptyChart(ctx, w, h, "レーダーチャート化できる記録がありません");
@@ -1278,9 +1350,10 @@ function renderRadarChart(ctx, w, h) {
     return;
   }
 
+  const maxByMetric = isStrengthRadar ? strengthMaxByMetric(records, metrics) : new Map();
   const series = records
     .map((item, index) => {
-      const values = radarValues(item.record);
+      const values = radarValues(item.record, metrics, maxByMetric);
       const count = values.filter(value => value.normalized !== null).length;
       const color = RADAR_COLORS[index % RADAR_COLORS.length];
       return { ...item, values, count, color };
@@ -1289,13 +1362,13 @@ function renderRadarChart(ctx, w, h) {
 
   if (!series.length) {
     drawEmptyChart(ctx, w, h, "3項目以上の記録が必要です");
-    $("chartCaption").textContent = "レーダーチャートは入力済み項目を0〜100%に換算して表示します。";
+    $("chartCaption").textContent = isStrengthRadar ? "筋力レーダーは選択した筋力項目に3項目以上の入力が必要です。" : "総合5項目は入力済み項目を0〜100%に換算して表示します。";
     return;
   }
 
-  const axes = RADAR_METRICS
+  const axes = metrics
     .map((metric, index) => ({ metric, index }))
-    .filter(axis => series.some(item => item.values[axis.index].normalized !== null));
+    .filter(axis => !isStrengthRadar || series.some(item => item.values[axis.index].normalized !== null));
 
   if (axes.length < 3) {
     drawEmptyChart(ctx, w, h, "3項目以上の記録が必要です");
@@ -1381,7 +1454,9 @@ function renderRadarChart(ctx, w, h) {
   drawRadarLegend(ctx, w, h, series);
   const labels = series.map(item => item.label).join("・");
   const modeText = series.length > 1 ? "を重ね表示" : "を表示";
-  $("chartCaption").textContent = `${patient}：${labels}${modeText}（未入力項目は描画しません）`;
+  const chartLabel = isStrengthRadar ? "筋力のみ" : "総合5項目";
+  const scaleNote = isStrengthRadar ? "選択中の筋力最大値を100%換算" : "各項目を0〜100%換算";
+  $("chartCaption").textContent = `${patient}：${chartLabel} ${labels}${modeText}（${scaleNote}、未入力項目は描画しません）`;
 }
 
 function drawRadarLegend(ctx, w, h, series) {
@@ -1700,7 +1775,11 @@ $("entryPatientSelect").addEventListener("change", (event) => applyPatientProfil
 $("patientFilter").addEventListener("change", renderHistory);
 $("metricSelect").addEventListener("change", renderHistory);
 $("chartType").addEventListener("change", renderChart);
+$("radarKind").addEventListener("change", renderChart);
 document.querySelectorAll('input[name="radarStages"]').forEach((input) => {
+  input.addEventListener("change", renderChart);
+});
+document.querySelectorAll('input[name="strengthRadarMetrics"]').forEach((input) => {
   input.addEventListener("change", renderChart);
 });
 $("pdfPatient").addEventListener("change", () => {});
