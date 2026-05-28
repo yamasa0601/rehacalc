@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>FAC 評価用紙</title>
+  <style>
+    :root {
+      --primary:#0f766e;
+      --primary-dark:#0b4f4a;
+      --bg:#f6f7fb;
+      --card:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --warn:#fef3c7;
+      --warn-text:#92400e;
+      --ok:#dcfce7;
+      --ok-text:#166534;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      padding:12px 12px 170px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header {
+      max-width:860px;
+      margin:0 auto 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    h1 { margin:4px 0 4px; font-size:20px; line-height:1.35; }
+    .lead { margin:0; color:var(--muted); font-size:13px; line-height:1.6; }
+    .back {
+      flex:0 0 auto;
+      color:var(--primary);
+      text-decoration:none;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:8px 11px;
+      font-size:13px;
+      font-weight:800;
+    }
+    main { max-width:860px; margin:0 auto; }
+    .panel {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 1px 6px rgba(15,23,42,.06);
+      margin-bottom:12px;
+    }
+    h2 {
+      margin:0 0 12px;
+      padding-left:9px;
+      border-left:4px solid var(--primary);
+      font-size:16px;
+    }
+    .score-grid { display:grid; gap:10px; }
+    .score-card {
+      display:block;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+      cursor:pointer;
+      background:#fff;
+    }
+    .score-card input { position:absolute; opacity:0; pointer-events:none; }
+    .score-card:has(input:checked) {
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(15,118,110,.14);
+      background:#f0fdfa;
+    }
+    .score-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .score {
+      min-width:70px;
+      font-size:18px;
+      font-weight:900;
+      color:var(--primary-dark);
+    }
+    .category {
+      text-align:right;
+      font-size:13px;
+      font-weight:900;
+    }
+    .desc {
+      margin:0;
+      color:#374151;
+      font-size:13px;
+      line-height:1.6;
+    }
+    .note {
+      margin:0;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      background:#fafafa;
+      color:#374151;
+      font-size:13px;
+      line-height:1.7;
+    }
+    .result {
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      padding:14px 12px;
+      background:rgba(255,255,255,.98);
+      border-top:1px solid var(--line);
+      box-shadow:0 -6px 20px rgba(15,23,42,.08);
+      backdrop-filter:blur(10px);
+      z-index:10;
+    }
+    .result-inner { max-width:860px; margin:0 auto; }
+    .result-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .total { font-size:32px; font-weight:900; color:var(--primary); line-height:1; }
+    .badge {
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      background:#f3f4f6;
+      color:#374151;
+      text-align:center;
+    }
+    .badge.warn { background:var(--warn); color:var(--warn-text); }
+    .badge.ok { background:var(--ok); color:var(--ok-text); }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    button {
+      width:100%;
+      border:0;
+      border-radius:12px;
+      padding:13px 10px;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .copy { background:#111827; color:#fff; }
+    .send { background:var(--primary); color:#fff; }
+    @media (min-width:760px) {
+      body { padding-top:20px; }
+      .score-grid { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>FAC 評価用紙</h1>
+      <p class="lead">Functional Ambulation Categories。約15mの歩行や階段・不整地での介助量をもとに、歩行自立度を0〜5点で評価します。</p>
+    </div>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>スコア選択</h2>
+      <div id="scoreGrid" class="score-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>判定の目安</h2>
+      <p class="note">
+        FAC 3点までは介助者が必要な状態、FAC 4点以上は対象者が一人で歩ける状態の目安です。
+        臨床評価結果グラフでは5点を100%として換算します。
+      </p>
+    </section>
+  </main>
+
+  <div class="result">
+    <div class="result-inner">
+      <div class="result-row">
+        <div>
+          <span id="totalScore" class="total">-</span>
+          <span style="font-weight:900;"> / 5</span>
+        </div>
+        <span id="statusBadge" class="badge">未入力</span>
+      </div>
+      <div class="actions">
+        <button class="copy" type="button" onclick="copyResult()">結果をコピー</button>
+        <button class="send" type="button" onclick="sendToEvaluation()">評価記録へ送る</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
+const FAC_ITEMS = [
+  {
+    score: 0,
+    category: "非機能的歩行",
+    description: "歩行不能、または歩行に2人以上の介助が必要。"
+  },
+  {
+    score: 1,
+    category: "持続的な接触介助",
+    description: "体重支持やバランス保持のため、1人の介助者による持続的な接触介助が必要。"
+  },
+  {
+    score: 2,
+    category: "軽い接触介助",
+    description: "1人の介助者による持続的または断続的な接触介助が必要。"
+  },
+  {
+    score: 3,
+    category: "監視・口頭指示",
+    description: "身体的な接触介助は不要だが、安全確認のため監視や口頭指示が必要。"
+  },
+  {
+    score: 4,
+    category: "平地自立",
+    description: "平地は一人で歩行可能。不整地、階段、斜面などでは指示や介助が必要。"
+  },
+  {
+    score: 5,
+    category: "完全自立",
+    description: "平地、不整地、階段、斜面を含め、あらゆる場面で一人で歩行可能。"
+  }
+];
+
+function renderScores() {
+  const grid = document.getElementById("scoreGrid");
+  grid.innerHTML = FAC_ITEMS.map((item) => `
+    <label class="score-card">
+      <input type="radio" name="facScore" value="${item.score}" onchange="updateResult()" />
+      <div class="score-head">
+        <span class="score">Score ${item.score}</span>
+        <span class="category">${item.category}</span>
+      </div>
+      <p class="desc">${item.description}</p>
+    </label>
+  `).join("");
+}
+
+function selectedScore() {
+  const checked = document.querySelector('input[name="facScore"]:checked');
+  return checked ? Number(checked.value) : null;
+}
+
+function scoreStatus(score) {
+  if (score === null) return { text: "未入力", className: "" };
+  if (score <= 2) return { text: "接触介助が必要", className: "warn" };
+  if (score === 3) return { text: "監視・口頭指示が必要", className: "warn" };
+  if (score === 4) return { text: "平地歩行は自立", className: "ok" };
+  return { text: "屋外・不整地も自立", className: "ok" };
+}
+
+function updateResult() {
+  const score = selectedScore();
+  const badge = document.getElementById("statusBadge");
+  const status = scoreStatus(score);
+  document.getElementById("totalScore").textContent = score === null ? "-" : String(score);
+  badge.textContent = status.text;
+  badge.className = `badge ${status.className}`.trim();
+}
+
+function copyResult() {
+  const score = selectedScore();
+  if (score === null) {
+    alert("FACスコアを選択してください。");
+    return;
+  }
+  const item = FAC_ITEMS.find((entry) => entry.score === score);
+  const status = scoreStatus(score).text;
+  const text = `【FAC評価結果】\nスコア: ${score}/5点 (${status})\n判定: ${item.category}\n内容: ${item.description}`;
+  navigator.clipboard.writeText(text).then(() => alert("コピーしました。\n" + text));
+}
+
+function sendToEvaluation() {
+  const score = selectedScore();
+  if (score === null) {
+    alert("FACスコアを選択してください。");
+    return;
+  }
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel: "FAC",
+    recordDate: new Date().toISOString().slice(0, 10),
+    measurements: { fac: String(score) }
+  }));
+  location.href = "./evaluation.html";
+}
+
+renderScores();
+updateResult();
+</script>
+</body>
+</html>
