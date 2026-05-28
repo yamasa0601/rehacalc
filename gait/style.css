@@ -25,6 +25,19 @@ code { background: #f0f1f5; padding: 2px 6px; border-radius: 6px; font-size: 12p
 .metric .v { font-size: 20px; font-weight: 700; }
 .metric .u { font-size: 12px; color: #888; margin-left: 4px; font-weight: 400; }
 
+#interpretation { display: none; margin-top: 14px; }
+.interpretation-panel { border: 1px solid #d8efe8; border-radius: 12px; background: #f7fffc; padding: 12px; }
+.interpretation-panel h2 { font-size: 15px; margin: 0 0 10px; border-left: 4px solid #0f766e; padding-left: 8px; }
+.interpretation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.interpret-card { border: 1px solid #e8eaf2; border-radius: 10px; background: #fff; padding: 10px 12px; }
+.interpret-card .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.interpret-card .title { font-size: 13px; font-weight: 800; }
+.interpret-card .direction { flex: 0 0 auto; border-radius: 999px; padding: 3px 8px; background: #eef2ff; color: #3730a3; font-size: 11px; font-weight: 800; }
+.interpret-card .direction.low { background: #ecfdf5; color: #047857; }
+.interpret-card p { margin: 0; color: #444; font-size: 12px; line-height: 1.7; }
+.interpret-card .value-line { margin-top: 7px; color: #111; font-weight: 800; }
+.interpret-note { margin: 10px 0 0; color: #666; font-size: 12px; line-height: 1.7; }
+
 #details { margin-top: 8px; font-size: 12px; color: #666; white-space: pre-wrap; }
 
 .export-row { margin-top: 14px; }

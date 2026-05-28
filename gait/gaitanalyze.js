@@ -24,6 +24,7 @@ async function run() {
   $('sendEval').disabled = true;
   $('msg').style.display = 'none';
   $('metrics').style.display = 'none';
+  $('interpretation').style.display = 'none';
   $('details').textContent = '';
 
   try {
@@ -169,6 +170,10 @@ async function run() {
       hrAP, hrML, hrVT,
       rmsAP, rmsML, rmsAP_norm, rmsML_norm, trunkInstab,
       nStrides: strideTimes.length
+    });
+    showInterpretation({
+      hrAP, hrML, hrVT,
+      rmsAP, rmsML, rmsAP_norm, rmsML_norm, trunkInstab
     });
 
     /* --- 8) Plots --- */
@@ -522,6 +527,44 @@ function showMetrics(m) {
     `<div class="metric"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`
   ).join('');
   el.style.display = 'grid';
+}
+
+function showInterpretation(m) {
+  const hrMean = mean([m.hrAP, m.hrML, m.hrVT]);
+  const el = $('interpretation');
+  el.innerHTML = `
+    <div class="interpretation-panel">
+      <h2>数値の読み方</h2>
+      <div class="interpretation-grid">
+        <section class="interpret-card">
+          <div class="head">
+            <div class="title">HR (Harmonic Ratio)</div>
+            <div class="direction">高いほど円滑</div>
+          </div>
+          <p>歩行中の体幹加速度の周期性・滑らかさを見ます。値が高いほど、左右交互のリズムが整い、体幹の動きが円滑な傾向です。</p>
+          <p class="value-line">今回: AP ${m.hrAP.toFixed(3)} / ML ${m.hrML.toFixed(3)} / VT ${m.hrVT.toFixed(3)} / 平均 ${hrMean.toFixed(3)}</p>
+        </section>
+        <section class="interpret-card">
+          <div class="head">
+            <div class="title">RMS</div>
+            <div class="direction low">低いほど揺れが少ない</div>
+          </div>
+          <p>加速度の揺れの大きさです。小さいほど体幹の前後・左右の揺れが少ない傾向ですが、歩行速度が速いとRMSも大きくなりやすいため、前回比較では速度正規化値を優先します。</p>
+          <p class="value-line">今回: AP ${m.rmsAP.toFixed(4)}G / ML ${m.rmsML.toFixed(4)}G / AP速度補正 ${m.rmsAP_norm.toFixed(4)} / ML速度補正 ${m.rmsML_norm.toFixed(4)}</p>
+        </section>
+        <section class="interpret-card">
+          <div class="head">
+            <div class="title">体幹不安定性</div>
+            <div class="direction low">低いほど安定</div>
+          </div>
+          <p>速度で補正したAP・ML方向のRMSを合成した指標です。値が小さいほど、同じ歩行速度に対する体幹の揺れが少なく、安定している傾向として読みます。</p>
+          <p class="value-line">今回: ${m.trunkInstab.toFixed(4)} G·s/m</p>
+        </section>
+      </div>
+      <p class="interpret-note">参考: 絶対値だけで正常・異常を決めず、同じ端末位置、同じ歩行距離、同じ設定で前回値や左右・方向別の変化を見てください。</p>
+    </div>
+  `;
+  el.style.display = 'block';
 }
 
 /* ========== Plots ========== */
