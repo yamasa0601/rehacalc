@@ -652,7 +652,7 @@
             <div>
               <label>換算基準</label>
               <p class="note" style="margin:0;">
-                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点を100%に換算します。ストライド変動係数は0%を100%、10%以上を0%として低いほど外側に表示します。
+                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
               </p>
             </div>
           </div>
@@ -794,7 +794,7 @@ const CLINICAL_RADAR_METRICS = [
   { label:"歩行自立度", detail:"FAC 5点基準", value:r => num(r.measurements?.fac), normalize:v => clampPercent(v / 5 * 100) },
   { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
   { label:"歩行耐久性", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
-  { label:"歩行安定性", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((10 - v) / 10 * 100) },
+  { label:"歩行安定性", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((20 - v) / 20 * 100) },
   { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) }
 ];
 
