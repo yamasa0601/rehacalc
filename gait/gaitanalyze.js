@@ -6,6 +6,7 @@
 
 /* ---------- globals ---------- */
 let rawData = null;
+const EVAL_DRAFT_KEY = 'rehacalc_evaluation_draft_v1';
 
 /* ========== UI wiring ========== */
 const $  = id => document.getElementById(id);
@@ -17,6 +18,10 @@ $('run').addEventListener('click', run);
 /* ========== main pipeline ========== */
 async function run() {
   $('run').disabled = true;
+  rawData = null;
+  $('dlCsv').disabled = true;
+  $('dlPng').disabled = true;
+  $('sendEval').disabled = true;
   $('msg').style.display = 'none';
   $('metrics').style.display = 'none';
   $('details').textContent = '';
@@ -179,6 +184,7 @@ async function run() {
     showMsg('解析完了', 'ok');
     $('dlCsv').disabled = false;
     $('dlPng').disabled = false;
+    $('sendEval').disabled = false;
 
     /* store for CSV export */
     rawData = {
@@ -663,6 +669,18 @@ $('dlPng').addEventListener('click', async () => {
       await Plotly.downloadImage(el, { format: 'png', width: 1200, height: 500, filename: id });
     }
   }
+});
+
+$('sendEval').addEventListener('click', () => {
+  if (!rawData) return;
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel: '歩行加速度解析',
+    recordDate: new Date().toISOString().slice(0, 10),
+    measurements: {
+      strideCv: rawData.strideCV.toFixed(2)
+    }
+  }));
+  location.href = '../evaluation.html';
 });
 
 function download(content, filename, type) {

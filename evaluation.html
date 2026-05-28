@@ -307,7 +307,7 @@
   <header>
     <div>
       <h1>評価記録・評価用紙出力</h1>
-      <p>LSA、最大歩行速度、6分間歩行テストは入力・グラフ・自動転記の対象外です。</p>
+      <p>LSA、最大歩行速度は入力・グラフ・自動転記の対象外です。6分間歩行テストは臨床評価結果グラフで使用します。</p>
     </div>
     <a class="back" href="./index.html">一覧へ</a>
   </header>
@@ -482,6 +482,18 @@
               <input id="comfortable10mSpeed" type="number" inputmode="decimal" />
             </div>
             <div class="measure-row">
+              <div class="row-title">歩行自立度 FAC (0-5)</div>
+              <input id="fac" type="number" inputmode="numeric" min="0" max="5" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">6分間歩行テスト (m)</div>
+              <input id="sixMinuteWalkDistance" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">ストライド変動係数 (%)</div>
+              <input id="strideCv" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
               <div class="row-title">BBS (点)</div>
               <input id="bbs" type="number" inputmode="numeric" min="0" max="56" />
             </div>
@@ -618,6 +630,38 @@
             <button id="goPdf" class="action" type="button">PDF出力へ</button>
           </div>
         </section>
+
+        <section class="panel" style="grid-column:1/-1;">
+          <h2>臨床評価結果グラフ</h2>
+          <p class="note" style="margin:0 0 10px;">
+            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBS）を5角形で表示します。
+          </p>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label>臨床評価の比較時期</label>
+              <div id="clinicalStageChoices" class="stage-checks">
+                <label><input type="checkbox" name="clinicalRadarStages" value="admission" />入棟</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="fac3" />FAC3</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month1" />1M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month2" />2M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month3" />3M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="discharge" />退院</label>
+              </div>
+              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。5項目すべて入力された時期を描画します。</p>
+            </div>
+            <div>
+              <label>換算基準</label>
+              <p class="note" style="margin:0;">
+                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点を100%に換算します。ストライド変動係数は0%を100%、10%以上を0%として低いほど外側に表示します。
+              </p>
+            </div>
+          </div>
+          <canvas id="clinicalRadarChart"></canvas>
+          <p id="clinicalChartCaption" class="note" style="margin:8px 0 0;">対象者を選ぶと臨床評価結果を表示します。</p>
+          <div class="actions">
+            <button id="downloadClinicalGraph" class="action secondary" type="button">臨床グラフPNG保存</button>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -645,7 +689,7 @@
           </div>
           <p class="note">
             保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
-            LSA、最大歩行速度、6分間歩行テストの行は空欄のまま出力します。
+            LSA、最大歩行速度の行は空欄のまま出力します。6分間歩行テストは臨床評価結果グラフ用の記録として使用します。
           </p>
           <p class="note">
             HDS-R/MMSE共通シートは、MMSE合計点のみを右下のMMSE合計欄へ転記します。
@@ -698,13 +742,16 @@ const MEASUREMENT_FIELDS = [
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
-  "comfortable10mSpeed","bbs","mfes","fab","tmtA","mmse"
+  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","mfes","fab","tmtA","mmse"
 ];
 
 const BBS_MCID_POINTS = 12;
 
 const GRAPH_METRICS = [
   { id:"comfortable10mSpeed", label:"10mCWS", unit:"m/s" },
+  { id:"fac", label:"FAC", unit:"点" },
+  { id:"sixMinuteWalkDistance", label:"6分間歩行", unit:"m" },
+  { id:"strideCv", label:"ストライド変動係数", unit:"%" },
   { id:"bbs", label:"BBS", unit:"点" },
   { id:"fab", label:"FAB", unit:"点" },
   { id:"mmse", label:"MMSE", unit:"点" },
@@ -741,6 +788,14 @@ const STRENGTH_RADAR_METRICS = [
   { id:"hipExtensor", label:"股伸展", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipExtensorRight, r.measurements?.hipExtensorLeft) },
   { id:"hipAbductor", label:"股外転", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipAbductorRight, r.measurements?.hipAbductorLeft) },
   { id:"anklePlantarflexor", label:"足底屈", detail:"左右平均N", value:r => averageNumbers(r.measurements?.anklePlantarflexorRight, r.measurements?.anklePlantarflexorLeft) }
+];
+
+const CLINICAL_RADAR_METRICS = [
+  { label:"歩行自立度", detail:"FAC 5点基準", value:r => num(r.measurements?.fac), normalize:v => clampPercent(v / 5 * 100) },
+  { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
+  { label:"歩行耐久性", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
+  { label:"歩行安定性", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((10 - v) / 10 * 100) },
+  { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) }
 ];
 
 const RADAR_COLORS = [
@@ -1138,6 +1193,7 @@ function renderHistory() {
     button.addEventListener("click", () => deleteRecord(button.dataset.delete));
   });
   renderChart();
+  renderClinicalRadarChart();
 }
 
 function deleteRecord(id) {
@@ -1480,6 +1536,152 @@ function drawRadarLegend(ctx, w, h, series) {
   });
 }
 
+function selectedClinicalRadarStages() {
+  return [...document.querySelectorAll('input[name="clinicalRadarStages"]:checked')]
+    .map(input => input.value);
+}
+
+function getClinicalRadarRecords(patient) {
+  if (!patient) return [];
+  const stages = selectedClinicalRadarStages();
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stages.length) {
+    return stages
+      .map(stage => ({ label:stageLabel(stage), record:stageMap.get(stage) }))
+      .filter(item => item.record);
+  }
+  const latest = [...stageMap.values()]
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    })
+    .at(-1);
+  return latest ? [{ label:stageLabel(latest.stage), record:latest }] : [];
+}
+
+function clinicalRadarValues(record) {
+  return CLINICAL_RADAR_METRICS.map((metric) => {
+    const raw = metric.value(record);
+    const normalized = raw === null ? null : metric.normalize(raw);
+    return raw === null || normalized === null ? { metric, raw:null, normalized:null } : { metric, raw, normalized };
+  });
+}
+
+function renderClinicalRadarChart() {
+  const canvas = $("clinicalRadarChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+  canvas.height = Math.floor(320 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const selectedStages = selectedClinicalRadarStages();
+  const records = getClinicalRadarRecords(patient);
+  if (!records.length) {
+    drawEmptyChart(ctx, w, h, "臨床評価結果グラフ化できる記録がありません");
+    $("clinicalChartCaption").textContent = selectedStages.length ? "選択した時期に記録がありません。" : "対象者と表示時期を選ぶと臨床評価結果を表示します。";
+    return;
+  }
+
+  const series = records
+    .map((item, index) => {
+      const values = clinicalRadarValues(item.record);
+      const complete = values.every(value => value.normalized !== null);
+      const color = RADAR_COLORS[index % RADAR_COLORS.length];
+      return { ...item, values, complete, color };
+    })
+    .filter(item => item.complete);
+
+  if (!series.length) {
+    drawEmptyChart(ctx, w, h, "5項目すべての入力が必要です");
+    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSを入力すると5角形で表示します。";
+    return;
+  }
+
+  const axes = CLINICAL_RADAR_METRICS.map((metric, index) => ({ metric, index }));
+  const cx = w / 2;
+  const cy = h / 2 + 2;
+  const radius = Math.min(w, h) * 0.27;
+  const angleAt = (index) => -Math.PI / 2 + (Math.PI * 2 * index) / axes.length;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#6b7280";
+  ctx.lineWidth = 1;
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0.25, 0.5, 0.75, 1].forEach((level) => {
+    ctx.beginPath();
+    axes.forEach((_, index) => {
+      const angle = angleAt(index);
+      const x = cx + Math.cos(angle) * radius * level;
+      const y = cy + Math.sin(angle) * radius * level;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  axes.forEach((axis, index) => {
+    const angle = angleAt(index);
+    const edgeX = cx + Math.cos(angle) * radius;
+    const edgeY = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(edgeX, edgeY);
+    ctx.stroke();
+
+    const labelX = cx + Math.cos(angle) * (radius + 38);
+    const labelY = cy + Math.sin(angle) * (radius + 26);
+    ctx.fillStyle = "#374151";
+    ctx.fillText(axis.metric.label, labelX, labelY);
+  });
+
+  series.forEach((item) => {
+    const points = axes.map((axis, axisIndex) => {
+      const value = item.values[axis.index].normalized;
+      const angle = angleAt(axisIndex);
+      return {
+        x: cx + Math.cos(angle) * radius * (value / 100),
+        y: cy + Math.sin(angle) * radius * (value / 100)
+      };
+    });
+
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = item.color.fill;
+    ctx.strokeStyle = item.color.stroke;
+    ctx.lineWidth = 2.5;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = item.color.stroke;
+    points.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  drawRadarLegend(ctx, w, h, series);
+  const labels = series.map(item => item.label).join("・");
+  const modeText = series.length > 1 ? "を重ね表示" : "を表示";
+  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（5項目を0〜100%換算）`;
+}
+
 function drawEmptyChart(ctx, w, h, message) {
   ctx.fillStyle = "#f9fafb";
   ctx.fillRect(0, 0, w, h);
@@ -1705,12 +1907,13 @@ function exportCsvForPatient() {
     alert("保存済み記録がありません。");
     return;
   }
-  const headers = ["評価日","評価時期","氏名","対象者ID","10mCWS","BBS","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
   const rows = records.map((record) => {
     const m = record.measurements || {};
     return [
       record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
-      m.comfortable10mSpeed, m.bbs, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
+      m.fac, m.comfortable10mSpeed, m.sixMinuteWalkDistance, m.strideCv,
+      m.bbs, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
     ];
   });
   const csv = "\uFEFF" + [headers, ...rows]
@@ -1733,6 +1936,14 @@ function downloadGraphPng() {
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = `評価推移_${today()}.png`;
+  a.click();
+}
+
+function downloadClinicalGraphPng() {
+  const canvas = $("clinicalRadarChart");
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = `臨床評価結果_${today()}.png`;
   a.click();
 }
 
@@ -1782,11 +1993,15 @@ document.querySelectorAll('input[name="radarStages"]').forEach((input) => {
 document.querySelectorAll('input[name="strengthRadarMetrics"]').forEach((input) => {
   input.addEventListener("change", renderChart);
 });
+document.querySelectorAll('input[name="clinicalRadarStages"]').forEach((input) => {
+  input.addEventListener("change", renderClinicalRadarChart);
+});
 $("pdfPatient").addEventListener("change", () => {});
 $("exportPdf").addEventListener("click", exportFilledPdf);
 $("exportMmsePdf").addEventListener("click", exportMmsePdf);
 $("copyCsv").addEventListener("click", exportCsvForPatient);
 $("downloadGraph").addEventListener("click", downloadGraphPng);
+$("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);
 [...PROFILE_FIELDS, ...MEASUREMENT_FIELDS].forEach((field) => {
   const el = $(field);
   if (el) el.addEventListener("input", updateStats);
