@@ -142,6 +142,16 @@
     .guide-card h3 { margin:0 0 6px; font-size:13px; }
     .guide-card p, .guide-card li { color:#4b5563; font-size:12px; line-height:1.7; }
     .guide-card ul { margin:0; padding-left:18px; }
+    .manual-quote {
+      border:1px solid #d1fae5;
+      background:#f0fdfa;
+      border-radius:10px;
+      padding:10px 12px;
+      color:#134e4a;
+      font-size:12px;
+      line-height:1.8;
+      white-space:pre-wrap;
+    }
     .source { color:var(--muted); font-size:11px; margin-top:8px; }
   </style>
 </head>
@@ -149,7 +159,7 @@
   <header>
     <div>
       <h1>6分間歩行テスト 評価用紙</h1>
-      <p class="sub">30m直線路を往復し、6分間で歩けた距離を記録します。休憩は可能ですが、タイマーは止めません。</p>
+      <p class="sub">30m直線路を往復し、6分間で歩けた距離を記録します。対象は原則FAC > 2です。休憩は可能ですが、タイマーは止めません。</p>
     </div>
     <a class="back" href="./index.html">一覧へ</a>
   </header>
@@ -165,7 +175,7 @@
           <button id="finishBtn" class="secondary" type="button" disabled>終了</button>
           <button id="resetBtn" class="danger" type="button">リセット</button>
         </div>
-        <p class="note">30mコースを1往復または片道通過するたびに「30m通過」を押します。終了地点が30m未満の場合は、下の端数距離を追加してください。</p>
+        <p class="note">30m直線平面歩行路を片道通過するたびに「30m通過」を押します。終了地点が30m未満の場合は、下の端数距離を追加してください。</p>
         <div class="prompt" id="currentPrompt">開始前に説明を読み、安静時の状態を確認してください。</div>
         <p class="note"><label><input id="voicePrompt" type="checkbox" /> 声がけを読み上げる（対応ブラウザのみ）</label></p>
       </section>
@@ -215,33 +225,67 @@
       </section>
 
       <section class="panel wide">
+        <h2>計測前の教示</h2>
+        <div class="manual-quote">このテストの目的は、6分間できるだけ遠くまで歩くことです。この歩行路を行ったり来たりします。6分間歩くことは長い時間なので、体力を使うことになり、息切れや疲労がでると思われます。必要に応じて、スピードを落としたり、止まったり、休んだりしても構いません。休息中は壁に寄りかかっても構いませんが、歩けるようになったらすぐに歩行を再開してください。
+
+コーンの周りを往復します。コーン回り、迷うことなく引き返してください。私が今からお見せしますので、回るところを見ていてください。
+
+準備はよいですか？このテストの目的は「6分間にできるだけ遠くまで歩く」ことです。走ることやジョギングはしてはいけません。</div>
+        <p class="note">計測前はスタートライン付近の椅子で10分間休息し、脈拍・血圧・Borg scale、服装・靴を確認します。ウォームアップは行いません。</p>
+      </section>
+
+      <section class="panel wide">
         <h2>注意点・参考値</h2>
         <div class="guides">
           <div class="guide-card">
             <h3>実施条件</h3>
             <ul>
-              <li>30mの平坦で障害物のない通路を使用します。</li>
-              <li>普段使用する杖・歩行器・装具は同じ条件で記録します。</li>
-              <li>休憩は可能ですが、6分タイマーは止めません。</li>
-              <li>SpO2、脈拍、Borg、血圧は必要に応じて前後で記録します。</li>
+              <li>室内の30m直線平面歩行路を使用し、3mごとにマークします。</li>
+              <li>歩行路の両側にコーンを置き、スタートライン側に椅子を設置します。</li>
+              <li>快適な服、適切な靴で実施します。歩行補助具は使用可能です。</li>
+              <li>試験開始直前2時間は激しい運動を避けます。軽食は可能です。</li>
+              <li>使用物品: カウントダウンタイマー、ラップカウンター、コーン、椅子、血圧計、Borg scale、パルスオキシメーター。</li>
             </ul>
           </div>
           <div class="guide-card">
-            <h3>中止基準</h3>
+            <h3>計測中・休憩時</h3>
             <ul>
-              <li>胸痛、耐えがたい息切れ、ふらつき、冷汗、顔面蒼白がある場合は中止します。</li>
-              <li>下肢痛・けいれん、転倒リスクが高い歩容変化がある場合も中止します。</li>
-              <li>施設基準や医師指示がある場合はそちらを優先します。</li>
+              <li>評価者は原則スタートライン付近で待機し、ラップ数をカウントします。</li>
+              <li>被験者は試験中に誰とも会話しません。評価者も一緒に歩きません。</li>
+              <li>転倒リスクがある場合のみ追随を考慮し、歩行速度に影響しない位置を保ちます。</li>
+              <li>休憩時は「壁に寄りかかってもかまいません。その後、歩けるようになったらいつでも歩き続けてください」と伝えます。</li>
+              <li>座位での休憩は不可です。休憩中もタイマーは止めません。</li>
             </ul>
           </div>
           <div class="guide-card">
-            <h3>カットオフ・MCID</h3>
-            <p>高齢者: 健常成人の6MWDは概ね400〜700mが参考範囲。虚弱高齢者のMCIDは17.8m。</p>
-            <p>脳卒中: 地域歩行の参考目安は約205〜225m以上。歩行自立の目安として304m、MCIDは34.4m、慢性期では50mも参考値として扱います。</p>
-            <p class="source">参考: ATS/ERS field walking test standard、SRALab RehabMeasures、Kwok 2013 BMC Geriatrics。</p>
+            <h3>スコアリング</h3>
+            <ul>
+              <li>6分間に歩けた距離をmで記録します。</li>
+              <li>ラップ数と最終ラップの端数距離から合計距離を算出します。</li>
+              <li>FAC < 3の場合は「試験困難」と記録します。臨床的な変化を追う場合は0m記載を推奨します。</li>
+              <li>中止時は中止時間、中止理由、歩行可能距離を記録します。</li>
+            </ul>
           </div>
         </div>
-        <p class="warn-note">これらの値は疾患、年齢、身長、補助具、コース長、測定条件で変わります。単独の正常・異常判定ではなく、同一条件での前回差、症状、歩行補助具、バイタルと合わせて解釈してください。</p>
+        <div class="guides" style="margin-top:10px;">
+          <div class="guide-card">
+            <h3>参考値: 発症30日の脳卒中</h3>
+            <p>FAC3: 224.5m<br>FAC4: 352.6m<br>FAC5: 448.8m</p>
+          </div>
+          <div class="guide-card">
+            <h3>カットオフ値</h3>
+            <p>慢性期脳卒中: 205m 自宅内歩行 vs 屋外歩行、288m 屋外歩行 vs 制限なし屋外歩行、331.65m 転倒リスク、250m 転倒。</p>
+            <p>回復期脳卒中: 304m 歩行自立可否、FAC4以上。</p>
+          </div>
+          <div class="guide-card">
+            <h3>MIC / MCID</h3>
+            <p>急性期脳卒中: 78.7-100m（患者評価GRC）、95.2-99.4m（セラピスト評価GRC）。</p>
+            <p>慢性期脳卒中: 71m（mRS改善）、65m（SIS改善）。</p>
+            <p>高齢者補足: 虚弱高齢者のMCIDは17.8m。</p>
+          </div>
+        </div>
+        <p class="warn-note">これらの値は疾患、病期、FAC、身長、歩行補助具、コース長、測定条件で変わります。単独の正常・異常判定ではなく、同一条件での前回差、症状、歩行補助具、バイタルと合わせて解釈してください。</p>
+        <p class="source">参考: 添付マニュアル「評価マニュアル_6分間歩行_完成版」、ATS statement 2002、Kubo 2018/2020、Fulk 2017/2018、Regan 2020、Hayashi 2024、Kwok 2013。</p>
       </section>
     </div>
   </main>
@@ -251,13 +295,13 @@ const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
 const TEST_MS = 6 * 60 * 1000;
 
 const PROMPTS = [
-  { at:0, label:"開始時", text:"始めてください。できるだけ遠くまで歩きます。走らないでください。" },
-  { at:60000, label:"1分", text:"よくできています。残り5分です。" },
-  { at:120000, label:"2分", text:"その調子です。残り4分です。" },
-  { at:180000, label:"3分", text:"よくできています。半分が終わりました。" },
-  { at:240000, label:"4分", text:"その調子です。残り2分です。" },
-  { at:300000, label:"5分", text:"よくできています。残り1分です。" },
-  { at:345000, label:"残り15秒", text:"もうすぐ止まってくださいと伝えます。合図があったらその場で止まってください。" },
+  { at:0, label:"開始時", text:"始めてください。" },
+  { at:60000, label:"1分", text:"よく頑張っていますね、あと5分です。" },
+  { at:120000, label:"2分", text:"この調子で頑張ってください、あと4分です。" },
+  { at:180000, label:"3分", text:"よく頑張っていますね、あと半分です。" },
+  { at:240000, label:"4分", text:"この調子で頑張ってください、あと2分です。" },
+  { at:300000, label:"5分", text:"よく頑張っていますね、あと1分です。" },
+  { at:345000, label:"5分45秒", text:"もう少ししたら止まるように言います。「止まってください」と言ったらその場で止まってください。" },
   { at:360000, label:"6分", text:"止まってください。" }
 ];
 
