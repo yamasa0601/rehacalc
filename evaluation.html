@@ -307,7 +307,7 @@
   <header>
     <div>
       <h1>評価記録・評価用紙出力</h1>
-      <p>LSA、最大歩行速度は入力・グラフ・自動転記の対象外です。6分間歩行テストは臨床評価結果グラフで使用します。</p>
+      <p>LSA、最大歩行速度は入力・グラフ・自動転記の対象外です。6分間歩行テストは臨床評価結果グラフと評価用紙PDFで使用します。</p>
     </div>
     <a class="back" href="./index.html">一覧へ</a>
   </header>
@@ -689,7 +689,7 @@
           </div>
           <p class="note">
             保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
-            LSA、最大歩行速度の行は空欄のまま出力します。6分間歩行テストは臨床評価結果グラフ用の記録として使用します。
+            LSA、最大歩行速度の行は空欄のまま出力します。6分間歩行テストは評価用紙PDFへ追記し、臨床評価結果グラフにも使用します。
           </p>
           <p class="note">
             HDS-R/MMSE共通シートは、MMSE合計点のみを右下のMMSE合計欄へ転記します。
@@ -817,6 +817,7 @@ const PDF_ROWS = [
   { y:397.9, value:r => pair(r.measurements.hipAbductorRight, r.measurements.hipAbductorLeft) },
   { y:368.9, value:r => pair(r.measurements.anklePlantarflexorRight, r.measurements.anklePlantarflexorLeft) },
   { y:340.9, value:r => r.measurements.comfortable10mSpeed },
+  { y:312.9, value:r => r.measurements.sixMinuteWalkDistance },
   { y:261.9, value:r => r.measurements.bbs },
   { y:216.9, value:r => r.measurements.mfes },
   { y:193.9, value:r => r.measurements.fab },
@@ -1785,6 +1786,7 @@ async function exportFilledPdf() {
   await drawText(pdfDoc, page, jpDate(profile.injuryDate), 438, 702.9, { fontSize:10, maxWidth:120 });
   await drawText(pdfDoc, page, profile.dischargeDestination, 138, 639.9, { fontSize:12, align:"center" });
   await drawText(pdfDoc, page, profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : "", 468, 639.9, { fontSize:12, align:"center" });
+  await drawText(pdfDoc, page, "6分間歩行(m)", 132, 312.9, { fontSize:8.5, align:"center", maxWidth:90 });
 
   for (const stage of STAGES) {
     const record = stageMap.get(stage.id);

@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>6分間歩行テスト 評価用紙</title>
+  <style>
+    :root {
+      --bg:#f6f7fb;
+      --card:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#0f766e;
+      --primary-dark:#115e59;
+      --warn:#fef3c7;
+      --danger:#dc2626;
+      --soft:#f0fdfa;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.55;
+    }
+    header {
+      max-width:1080px;
+      margin:0 auto;
+      padding:18px 14px 8px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+    h1 { margin:0; font-size:20px; line-height:1.3; }
+    .sub { margin:5px 0 0; color:var(--muted); font-size:13px; }
+    .back {
+      color:#111;
+      text-decoration:none;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+      padding:8px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    main { max-width:1080px; margin:0 auto; padding:10px 14px 30px; }
+    .layout { display:grid; grid-template-columns:1fr; gap:12px; }
+    @media (min-width:900px) {
+      .layout { grid-template-columns:1fr 1fr; align-items:start; }
+      .wide { grid-column:1/-1; }
+    }
+    .panel {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      box-shadow:0 1px 5px rgba(15,23,42,.05);
+    }
+    h2 {
+      margin:0 0 10px;
+      font-size:15px;
+      border-left:4px solid var(--primary);
+      padding-left:8px;
+    }
+    .timer {
+      font-size:56px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:.02em;
+      margin:8px 0 10px;
+      font-variant-numeric:tabular-nums;
+    }
+    .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    button {
+      appearance:none;
+      border:0;
+      border-radius:10px;
+      padding:11px 13px;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .primary { background:var(--primary); color:#fff; }
+    .primary:hover { background:var(--primary-dark); }
+    .secondary { background:#f3f4f6; color:#111827; border:1px solid var(--line); }
+    .danger { background:#fee2e2; color:var(--danger); border:1px solid #fecaca; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .result-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+      margin-top:12px;
+    }
+    .result-box { border:1px solid var(--line); border-radius:10px; background:#fafafa; padding:10px; }
+    .result-box .k { color:var(--muted); font-size:12px; }
+    .result-box .v { font-size:24px; font-weight:900; margin-top:2px; }
+    label { display:block; color:var(--muted); font-size:12px; margin-bottom:4px; }
+    input[type="number"] {
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:10px 11px;
+      font-size:16px;
+      background:#fff;
+    }
+    .prompt {
+      margin-top:12px;
+      padding:12px;
+      border-radius:10px;
+      border:1px solid #99f6e4;
+      background:var(--soft);
+      color:#134e4a;
+      font-size:14px;
+      font-weight:800;
+    }
+    .note {
+      color:#4b5563;
+      font-size:12px;
+      line-height:1.75;
+      margin:8px 0 0;
+    }
+    .warn-note {
+      border:1px solid #fde68a;
+      background:var(--warn);
+      border-radius:10px;
+      padding:10px 12px;
+      color:#78350f;
+      font-size:12px;
+      line-height:1.75;
+    }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border-bottom:1px solid var(--line); padding:8px 6px; text-align:left; white-space:nowrap; }
+    th { color:#4b5563; background:#f9fafb; font-size:12px; }
+    tr:last-child td { border-bottom:0; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:#fff; }
+    .guides { display:grid; grid-template-columns:1fr; gap:10px; }
+    @media (min-width:760px) { .guides { grid-template-columns:repeat(3,1fr); } }
+    .guide-card { border:1px solid var(--line); border-radius:10px; background:#fff; padding:10px 12px; }
+    .guide-card h3 { margin:0 0 6px; font-size:13px; }
+    .guide-card p, .guide-card li { color:#4b5563; font-size:12px; line-height:1.7; }
+    .guide-card ul { margin:0; padding-left:18px; }
+    .source { color:var(--muted); font-size:11px; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>6分間歩行テスト 評価用紙</h1>
+      <p class="sub">30m直線路を往復し、6分間で歩けた距離を記録します。休憩は可能ですが、タイマーは止めません。</p>
+    </div>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <h2>ストップウォッチ</h2>
+        <div id="timer" class="timer">06:00</div>
+        <div class="row">
+          <button id="startBtn" class="primary" type="button">開始</button>
+          <button id="lapBtn" class="secondary" type="button" disabled>30m通過</button>
+          <button id="finishBtn" class="secondary" type="button" disabled>終了</button>
+          <button id="resetBtn" class="danger" type="button">リセット</button>
+        </div>
+        <p class="note">30mコースを1往復または片道通過するたびに「30m通過」を押します。終了地点が30m未満の場合は、下の端数距離を追加してください。</p>
+        <div class="prompt" id="currentPrompt">開始前に説明を読み、安静時の状態を確認してください。</div>
+        <p class="note"><label><input id="voicePrompt" type="checkbox" /> 声がけを読み上げる（対応ブラウザのみ）</label></p>
+      </section>
+
+      <section class="panel">
+        <h2>結果</h2>
+        <div class="result-grid">
+          <div class="result-box"><div class="k">30m通過回数</div><div id="lapCount" class="v">0</div></div>
+          <div class="result-box"><div class="k">合計距離</div><div class="v"><span id="totalDistance">0</span> m</div></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label for="partialDistance">端数距離 (m)</label>
+          <input id="partialDistance" type="number" min="0" max="29.9" step="0.1" value="0" />
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button id="copyBtn" class="secondary" type="button">結果をコピー</button>
+          <button id="sendEval" class="primary" type="button">評価記録へ送る</button>
+        </div>
+        <p class="note">評価記録へ送ると「6分間歩行テスト (m)」欄に反映されます。対象者と評価時期を確認して保存してください。</p>
+      </section>
+
+      <section class="panel">
+        <h2>ラップタイム</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>距離</th><th>通過時刻</th><th>ラップ</th></tr>
+            </thead>
+            <tbody id="lapBody">
+              <tr><td colspan="4">まだ記録がありません。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>声がけ</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>時点</th><th>声がけ</th></tr>
+            </thead>
+            <tbody id="promptBody"></tbody>
+          </table>
+        </div>
+        <p class="note">声がけは標準化します。追加の励ましや誘導は歩行距離に影響するため避けます。</p>
+      </section>
+
+      <section class="panel wide">
+        <h2>注意点・参考値</h2>
+        <div class="guides">
+          <div class="guide-card">
+            <h3>実施条件</h3>
+            <ul>
+              <li>30mの平坦で障害物のない通路を使用します。</li>
+              <li>普段使用する杖・歩行器・装具は同じ条件で記録します。</li>
+              <li>休憩は可能ですが、6分タイマーは止めません。</li>
+              <li>SpO2、脈拍、Borg、血圧は必要に応じて前後で記録します。</li>
+            </ul>
+          </div>
+          <div class="guide-card">
+            <h3>中止基準</h3>
+            <ul>
+              <li>胸痛、耐えがたい息切れ、ふらつき、冷汗、顔面蒼白がある場合は中止します。</li>
+              <li>下肢痛・けいれん、転倒リスクが高い歩容変化がある場合も中止します。</li>
+              <li>施設基準や医師指示がある場合はそちらを優先します。</li>
+            </ul>
+          </div>
+          <div class="guide-card">
+            <h3>カットオフ・MCID</h3>
+            <p>高齢者: 健常成人の6MWDは概ね400〜700mが参考範囲。虚弱高齢者のMCIDは17.8m。</p>
+            <p>脳卒中: 地域歩行の参考目安は約205〜225m以上。歩行自立の目安として304m、MCIDは34.4m、慢性期では50mも参考値として扱います。</p>
+            <p class="source">参考: ATS/ERS field walking test standard、SRALab RehabMeasures、Kwok 2013 BMC Geriatrics。</p>
+          </div>
+        </div>
+        <p class="warn-note">これらの値は疾患、年齢、身長、補助具、コース長、測定条件で変わります。単独の正常・異常判定ではなく、同一条件での前回差、症状、歩行補助具、バイタルと合わせて解釈してください。</p>
+      </section>
+    </div>
+  </main>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const TEST_MS = 6 * 60 * 1000;
+
+const PROMPTS = [
+  { at:0, label:"開始時", text:"始めてください。できるだけ遠くまで歩きます。走らないでください。" },
+  { at:60000, label:"1分", text:"よくできています。残り5分です。" },
+  { at:120000, label:"2分", text:"その調子です。残り4分です。" },
+  { at:180000, label:"3分", text:"よくできています。半分が終わりました。" },
+  { at:240000, label:"4分", text:"その調子です。残り2分です。" },
+  { at:300000, label:"5分", text:"よくできています。残り1分です。" },
+  { at:345000, label:"残り15秒", text:"もうすぐ止まってくださいと伝えます。合図があったらその場で止まってください。" },
+  { at:360000, label:"6分", text:"止まってください。" }
+];
+
+let startTime = null;
+let timerId = null;
+let laps = [];
+let lastPromptIndex = -1;
+
+const $ = (id) => document.getElementById(id);
+
+function formatTime(ms) {
+  const safeMs = Math.max(0, Math.min(TEST_MS, ms));
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function elapsedMs() {
+  if (!startTime) return 0;
+  return Math.min(Date.now() - startTime, TEST_MS);
+}
+
+function remainingMs() {
+  return TEST_MS - elapsedMs();
+}
+
+function totalDistance() {
+  const partial = Math.max(0, Math.min(29.9, Number($("partialDistance").value) || 0));
+  return laps.length * 30 + partial;
+}
+
+function currentPromptIndex(ms) {
+  let index = 0;
+  PROMPTS.forEach((prompt, promptIndex) => {
+    if (ms >= prompt.at) index = promptIndex;
+  });
+  return index;
+}
+
+function speak(text) {
+  if (!$("voicePrompt").checked || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  window.speechSynthesis.speak(utterance);
+}
+
+function tick() {
+  const elapsed = elapsedMs();
+  $("timer").textContent = formatTime(remainingMs());
+  const promptIndex = currentPromptIndex(elapsed);
+  if (promptIndex !== lastPromptIndex) {
+    lastPromptIndex = promptIndex;
+    $("currentPrompt").textContent = PROMPTS[promptIndex].text;
+    speak(PROMPTS[promptIndex].text);
+  }
+  if (elapsed >= TEST_MS) finishTest(true);
+}
+
+function startTest() {
+  if (timerId) return;
+  startTime = Date.now();
+  laps = [];
+  lastPromptIndex = -1;
+  $("partialDistance").value = "0";
+  $("startBtn").disabled = true;
+  $("lapBtn").disabled = false;
+  $("finishBtn").disabled = false;
+  timerId = setInterval(tick, 250);
+  tick();
+  renderLaps();
+  updateResult();
+}
+
+function finishTest(autoFinished) {
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+  $("startBtn").disabled = false;
+  $("lapBtn").disabled = true;
+  $("finishBtn").disabled = true;
+  $("timer").textContent = autoFinished ? "00:00" : $("timer").textContent;
+  if (autoFinished) {
+    $("currentPrompt").textContent = PROMPTS[PROMPTS.length - 1].text;
+  }
+  updateResult();
+}
+
+function resetTest() {
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+  startTime = null;
+  laps = [];
+  lastPromptIndex = -1;
+  $("timer").textContent = "06:00";
+  $("currentPrompt").textContent = "開始前に説明を読み、安静時の状態を確認してください。";
+  $("partialDistance").value = "0";
+  $("startBtn").disabled = false;
+  $("lapBtn").disabled = true;
+  $("finishBtn").disabled = true;
+  renderLaps();
+  updateResult();
+}
+
+function addLap() {
+  if (!startTime || !timerId) return;
+  const elapsed = elapsedMs();
+  const prevElapsed = laps.at(-1)?.elapsed || 0;
+  laps.push({
+    index: laps.length + 1,
+    distance: (laps.length + 1) * 30,
+    elapsed,
+    split: elapsed - prevElapsed
+  });
+  renderLaps();
+  updateResult();
+}
+
+function renderLaps() {
+  const body = $("lapBody");
+  if (laps.length === 0) {
+    body.innerHTML = '<tr><td colspan="4">まだ記録がありません。</td></tr>';
+    return;
+  }
+  body.innerHTML = laps.map((lap) => `
+    <tr>
+      <td>${lap.index}</td>
+      <td>${lap.distance} m</td>
+      <td>${formatTime(lap.elapsed)}</td>
+      <td>${formatTime(lap.split)}</td>
+    </tr>
+  `).join("");
+}
+
+function renderPrompts() {
+  $("promptBody").innerHTML = PROMPTS.map((prompt) => `
+    <tr>
+      <td>${prompt.label}</td>
+      <td>${prompt.text}</td>
+    </tr>
+  `).join("");
+}
+
+function updateResult() {
+  $("lapCount").textContent = String(laps.length);
+  $("totalDistance").textContent = totalDistance().toFixed(1).replace(/\.0$/, "");
+}
+
+function resultText() {
+  const distance = totalDistance().toFixed(1).replace(/\.0$/, "");
+  const lapText = laps.map((lap) => `${lap.distance}m ${formatTime(lap.elapsed)}（lap ${formatTime(lap.split)}）`).join(" / ");
+  return `【6分間歩行テスト】\n距離: ${distance} m\n30m通過回数: ${laps.length}\nラップ: ${lapText || "なし"}`;
+}
+
+function copyResult() {
+  navigator.clipboard.writeText(resultText()).then(() => alert("コピーしました。\n" + resultText()));
+}
+
+function sendToEvaluation() {
+  const distance = totalDistance();
+  if (distance <= 0) {
+    alert("歩行距離を記録してください。");
+    return;
+  }
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel: "6分間歩行テスト",
+    recordDate: new Date().toISOString().slice(0, 10),
+    measurements: {
+      sixMinuteWalkDistance: distance.toFixed(1).replace(/\.0$/, "")
+    }
+  }));
+  location.href = "./evaluation.html";
+}
+
+$("startBtn").addEventListener("click", startTest);
+$("lapBtn").addEventListener("click", addLap);
+$("finishBtn").addEventListener("click", () => finishTest(false));
+$("resetBtn").addEventListener("click", resetTest);
+$("partialDistance").addEventListener("input", updateResult);
+$("copyBtn").addEventListener("click", copyResult);
+$("sendEval").addEventListener("click", sendToEvaluation);
+
+renderPrompts();
+renderLaps();
+updateResult();
+</script>
+</body>
+</html>
