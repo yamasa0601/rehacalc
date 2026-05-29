@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>DGI 評価用紙</title>
+  <style>
+    :root {
+      --primary:#0f766e;
+      --primary-dark:#115e59;
+      --bg:#f6f7fb;
+      --card:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --soft:#f0fdfa;
+      --warn:#fff7ed;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      padding:14px 12px 190px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header {
+      max-width:980px;
+      margin:0 auto 12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+    h1 { margin:4px 0 4px; font-size:20px; line-height:1.35; }
+    .lead { margin:0; color:var(--muted); font-size:13px; line-height:1.6; }
+    .back {
+      flex:0 0 auto;
+      color:#111;
+      text-decoration:none;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+      padding:8px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    main { max-width:980px; margin:0 auto; }
+    .panel {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      margin-bottom:12px;
+      box-shadow:0 1px 5px rgba(15,23,42,.05);
+    }
+    h2 {
+      margin:0 0 10px;
+      font-size:15px;
+      border-left:4px solid var(--primary);
+      padding-left:8px;
+    }
+    .item {
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:12px;
+      margin-bottom:10px;
+    }
+    .item-title {
+      font-weight:900;
+      font-size:15px;
+      margin-bottom:5px;
+    }
+    .task, .instruction {
+      margin:4px 0;
+      color:#374151;
+      font-size:12px;
+      line-height:1.65;
+    }
+    .instruction {
+      background:#f9fafb;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .scores {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:7px;
+      margin-top:9px;
+    }
+    .score-option {
+      display:block;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fafafa;
+      padding:9px 10px;
+      cursor:pointer;
+    }
+    .score-option input {
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+    .score-option:has(input:checked) {
+      border-color:var(--primary);
+      background:var(--soft);
+      box-shadow:0 0 0 3px rgba(15,118,110,.12);
+    }
+    .score-line {
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+    }
+    .score-number {
+      flex:0 0 auto;
+      width:30px;
+      height:30px;
+      border-radius:999px;
+      background:#111827;
+      color:#fff;
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      font-size:14px;
+    }
+    .score-text {
+      color:#374151;
+      font-size:12px;
+      line-height:1.65;
+    }
+    .footer {
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      padding:14px 12px;
+      background:rgba(255,255,255,.98);
+      border-top:1px solid var(--line);
+      box-shadow:0 -6px 20px rgba(15,23,42,.08);
+      backdrop-filter:blur(10px);
+      z-index:10;
+    }
+    .footer-inner { max-width:980px; margin:0 auto; }
+    .result-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .total { font-size:34px; line-height:1; font-weight:900; color:var(--primary); }
+    .badge {
+      border-radius:999px;
+      background:#f3f4f6;
+      padding:7px 11px;
+      font-size:13px;
+      font-weight:900;
+      color:#374151;
+      text-align:center;
+    }
+    .badge.warn { background:var(--warn); color:#9a3412; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    button {
+      width:100%;
+      border:0;
+      border-radius:12px;
+      padding:13px 10px;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .copy { background:#111827; color:#fff; }
+    .send { background:var(--primary); color:#fff; }
+    .note {
+      color:#4b5563;
+      font-size:12px;
+      line-height:1.7;
+      margin:8px 0 0;
+    }
+    @media (min-width:760px) {
+      body { padding-top:20px; }
+      .scores { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>DGI 評価用紙</h1>
+      <p class="lead">Dynamic Gait Index。頭部回旋、速度変更、方向転換、障害物、階段など、応用的な歩行課題を8項目で評価します。</p>
+    </div>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>評価項目</h2>
+      <div id="items"></div>
+      <p class="note">各項目は0〜3点です。全8項目を入力すると合計24点になります。</p>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div class="footer-inner">
+      <div class="result-row">
+        <div>
+          <span id="totalScore" class="total">0</span>
+          <span style="font-weight:900;"> / 24</span>
+        </div>
+        <span id="statusBadge" class="badge">未入力</span>
+      </div>
+      <div class="actions">
+        <button class="copy" type="button" onclick="copyResult()">結果をコピー</button>
+        <button class="send" type="button" onclick="sendToEvaluation()">評価記録へ送る</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
+const DGI_ITEMS = [
+  {
+    name:"1. 平面の歩行",
+    task:"6mの歩行路を歩行",
+    instruction:"普段の速さでここから次の目印まで歩いてください（6m）。",
+    scores:[
+      "正常: 6m歩行、補助具なし、良好な速さ、バランスが崩れない、正常歩行パターン。",
+      "軽度障害: 6m歩行、補助具あり、遅い速さ、軽度の歩行逸脱。",
+      "中等度障害: 6m歩行、非常に遅い速さ、異常歩行パターン、バランス異常。",
+      "重度障害: 介助なしに6m歩けない、重度の歩行逸脱もしくはバランス異常。"
+    ]
+  },
+  {
+    name:"2. 歩行速度を変える",
+    task:"1.5m通常歩行、1.5m速歩、1.5mゆっくり歩く",
+    instruction:"普段の速さで歩き始めてください。私が「速く歩いて」といったらできるだけ速く歩いてください。私が「ゆっくり」といったらできるだけゆっくり歩いてください。",
+    scores:[
+      "正常: バランスの崩れや歩行逸脱なく滑らかに速度変更でき、通常・速歩・ゆっくりで明らかな速度差がある。",
+      "軽度障害: 速度変更は可能だが軽度の歩行逸脱がある、または逸脱はないが速度変更が不十分。もしくは歩行補助具を使用する。",
+      "中等度障害: 速度をわずかしか変えられない、速度変更で著明な逸脱やバランス低下があるが、立ち直り歩行継続可能。",
+      "重度障害: 歩行速度を変えられない、またはバランスを崩し壁や支持物が必要。"
+    ]
+  },
+  {
+    name:"3. 水平方向の頭部回旋を伴う歩行",
+    task:"6m歩行中に右、左、正面へ頭部方向を変える",
+    instruction:"普段の速さで歩き始めてください。「右を見て」「左を見て」「まっすぐ前を見て」の指示に合わせて頭を回してください。",
+    scores:[
+      "正常: 歩容を変えることなく滑らかに頭を回すことができる。",
+      "軽度障害: わずかな速度変化はあるが滑らかに頭を回せる。歩容の滑らかさに最小の変化、または歩行補助具を使用。",
+      "中等度障害: 頭は回せるが速度変化、減速、よろめきがある。立ち直りでき歩行継続可能。",
+      "重度障害: 歩行に大きな変化があり、37.5cm幅の歩行路外へよろめく、バランスを崩す、止まる、壁に手を伸ばす。"
+    ]
+  },
+  {
+    name:"4. 鉛直方向の頭部回旋を伴う歩行",
+    task:"6m歩行中に上、下、正面へ頭部方向を変える",
+    instruction:"普段の速さで歩き始めてください。「見上げて」「下を見て」「まっすぐ前を見て」の指示に合わせて頭を動かしてください。",
+    scores:[
+      "正常: 歩容を変えることなく滑らかに頭を回すことができる。",
+      "軽度障害: わずかな速度変化はあるが滑らかに頭を回せる。歩容の滑らかさに最小の変化、または歩行補助具を使用。",
+      "中等度障害: 頭は回せるが速度変化、減速、よろめきがある。立ち直りでき歩行継続可能。",
+      "重度障害: 歩行に大きな変化があり、37.5cm幅の歩行路外へよろめく、バランスを崩す、止まる、壁に手を伸ばす。"
+    ]
+  },
+  {
+    name:"5. 歩行と方向転換",
+    task:"6m歩行路を通常歩行し、3m地点で回って停止する",
+    instruction:"普段の速さで歩き始めてください。私が「回って止まって」といったら、できるだけすばやく逆の方向に向き止まってください。",
+    scores:[
+      "正常: 3秒以内に安全に方向転換し、バランスを崩すことなくすばやく停止する。",
+      "軽度障害: 3秒以上かかるが、安全に方向転換し、バランスを崩すことなく停止する。",
+      "中等度障害: ゆっくりしか方向転換できない。言葉の手がかりや多数の細かなステップが必要。",
+      "重度障害: 安全に方向転換できず、方向転換から静止まで介助を必要とする。"
+    ]
+  },
+  {
+    name:"6. 障害物を越える",
+    task:"6m歩行路の2mおよび4m地点の靴箱をまたぐ",
+    instruction:"普段の速さで歩き始めてください。靴箱の所まで行ったら横を回るのではなく、それをまたいで歩き続けてください。",
+    scores:[
+      "正常: 歩行速度を変えることなく靴箱をまたぐことができ、バランスを崩さない。",
+      "軽度障害: 安全にまたげるが、速度を減速させ歩幅を合わせる必要がある。",
+      "中等度障害: 歩行を止めた後に靴箱をまたいで越えられる。状況により言葉の手がかりが必要。",
+      "重度障害: 介助なしには実行できない。"
+    ]
+  },
+  {
+    name:"7. コーンを避ける",
+    task:"6m歩行路の2つのコーンをスラローム歩行で避ける",
+    instruction:"普段の速さで歩いてください。最初のコーンに達したら右を回り、2番目のコーンに達したらその左側を歩いてください。",
+    scores:[
+      "正常: 歩行速度を変えることなく安全にコーンを避けて歩ける。バランスを崩さない。",
+      "軽度障害: 両方のコーンを安全に避けられるが、速度を減速させ歩幅を合わせる必要がある。",
+      "中等度障害: 2つのコーンを避けられるが、歩行速度が非常に遅い、または言葉の手がかりが必要。",
+      "重度障害: 2つのコーンを避けられず、1つまたは2つのコーンに触れる、または歩行に介助が必要。"
+    ]
+  },
+  {
+    name:"8. 階段",
+    task:"階段昇降を行う。必要であれば手すりを用いる",
+    instruction:"家で行っているように、そこの階段を昇ってください。上まで昇ったら向きを変えて降りてください。",
+    scores:[
+      "正常: 1足1段で、手すりを使わない。",
+      "軽度障害: 1足1段で、手すりを使う。",
+      "中等度障害: 1足2段で、手すりを使う。",
+      "重度障害: 安全に行うことはできない。"
+    ]
+  }
+];
+
+function renderItems() {
+  document.getElementById("items").innerHTML = DGI_ITEMS.map((item, index) => `
+    <section class="item">
+      <div class="item-title">${item.name}</div>
+      <p class="task"><b>課題:</b> ${item.task}</p>
+      <p class="instruction"><b>指示:</b> ${item.instruction}</p>
+      <div class="scores">
+        ${[3, 2, 1, 0].map((score, scoreIndex) => `
+          <label class="score-option">
+            <input type="radio" name="q${index}" value="${score}" onchange="calculate()" />
+            <span class="score-line">
+              <span class="score-number">${score}</span>
+              <span class="score-text">${item.scores[scoreIndex]}</span>
+            </span>
+          </label>
+        `).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+function calculate() {
+  let total = 0;
+  let answered = 0;
+  for (let i = 0; i < DGI_ITEMS.length; i++) {
+    const selected = document.querySelector(`input[name="q${i}"]:checked`);
+    if (selected) {
+      total += Number(selected.value);
+      answered++;
+    }
+  }
+  document.getElementById("totalScore").textContent = String(total);
+  const badge = document.getElementById("statusBadge");
+  if (answered < DGI_ITEMS.length) {
+    badge.textContent = `${answered}/8項目入力`;
+    badge.className = "badge";
+  } else if (total <= 19) {
+    badge.textContent = "転倒リスク参考";
+    badge.className = "badge warn";
+  } else {
+    badge.textContent = "入力完了";
+    badge.className = "badge";
+  }
+  return { total, answered };
+}
+
+function resultText() {
+  const { total } = calculate();
+  const details = DGI_ITEMS.map((_, index) => {
+    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+    return `${index + 1}:${selected ? selected.value : "-"}`;
+  }).join(" ");
+  return `【DGI評価結果】\n合計: ${total}/24点\n内訳: ${details}`;
+}
+
+function requireComplete() {
+  const result = calculate();
+  if (result.answered < DGI_ITEMS.length) {
+    alert("8項目すべて入力してください。");
+    return null;
+  }
+  return result;
+}
+
+function copyResult() {
+  if (!requireComplete()) return;
+  navigator.clipboard.writeText(resultText()).then(() => alert("コピーしました。\n" + resultText()));
+}
+
+function sendToEvaluation() {
+  const result = requireComplete();
+  if (!result) return;
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel: "DGI",
+    recordDate: new Date().toISOString().slice(0, 10),
+    measurements: { dgi: String(result.total) }
+  }));
+  location.href = "./evaluation.html";
+}
+
+renderItems();
+calculate();
+</script>
+</body>
+</html>

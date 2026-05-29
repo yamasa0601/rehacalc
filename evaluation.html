@@ -498,6 +498,14 @@
               <input id="bbs" type="number" inputmode="numeric" min="0" max="56" />
             </div>
             <div class="measure-row">
+              <div class="row-title">Mini-BESTest (点)</div>
+              <input id="miniBestest" type="number" inputmode="numeric" min="0" max="28" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">DGI (点)</div>
+              <input id="dgi" type="number" inputmode="numeric" min="0" max="24" />
+            </div>
+            <div class="measure-row">
               <div class="row-title">GES (点)</div>
               <input id="mfes" type="number" inputmode="decimal" />
             </div>
@@ -531,7 +539,7 @@
             <div class="summary-box"><div class="k">最新時期</div><div id="latestStage" class="v">-</div></div>
           </div>
           <p class="note">
-            既存の「歩行速度」「筋力」「FAC」「BBS」「GES」「FAB」画面から送られた結果は、この入力欄に自動反映されます。
+            既存の「歩行速度」「筋力」「FAC」「BBS」「DGI」「GES」「FAB」画面から送られた結果は、この入力欄に自動反映されます。
             ここで対象者・評価時期を選んで保存すると、履歴とグラフ、評価用紙PDF出力に使えます。
           </p>
           <p class="note">
@@ -568,6 +576,7 @@
                   <th>BBS</th>
                   <th>BBS前回差</th>
                   <th>BBS MCID</th>
+                  <th>DGI</th>
                   <th>FAB</th>
                   <th>MMSE</th>
                   <th id="selectedMetricHeader">選択項目</th>
@@ -634,7 +643,7 @@
         <section class="panel" style="grid-column:1/-1;">
           <h2>臨床評価結果グラフ</h2>
           <p class="note" style="margin:0 0 10px;">
-            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBS）を5角形で表示します。
+            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBSまたはMini-BESTest）、応用歩行（DGI）を6角形で表示します。
           </p>
           <div class="form-grid cols-2" style="margin-bottom:10px;">
             <div>
@@ -647,12 +656,12 @@
                 <label><input type="checkbox" name="clinicalRadarStages" value="month3" />3M</label>
                 <label><input type="checkbox" name="clinicalRadarStages" value="discharge" />退院</label>
               </div>
-              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。5項目すべて入力された時期を描画します。</p>
+              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。6項目すべて入力された時期を描画します。</p>
             </div>
             <div>
               <label>換算基準</label>
               <p class="note" style="margin:0;">
-                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
+                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点またはMini-BESTest 28点、DGI 24点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
               </p>
             </div>
           </div>
@@ -742,7 +751,7 @@ const MEASUREMENT_FIELDS = [
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
-  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","mfes","fab","tmtA","mmse"
+  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","miniBestest","dgi","mfes","fab","tmtA","mmse"
 ];
 
 const BBS_MCID_POINTS = 12;
@@ -753,6 +762,8 @@ const GRAPH_METRICS = [
   { id:"sixMinuteWalkDistance", label:"6分間歩行", unit:"m" },
   { id:"strideCv", label:"ストライド変動係数", unit:"%" },
   { id:"bbs", label:"BBS", unit:"点" },
+  { id:"miniBestest", label:"Mini-BESTest", unit:"点" },
+  { id:"dgi", label:"DGI", unit:"点" },
   { id:"fab", label:"FAB", unit:"点" },
   { id:"mmse", label:"MMSE", unit:"点" },
   { id:"tmtA", label:"partA / TMT-A", unit:"秒" },
@@ -795,7 +806,13 @@ const CLINICAL_RADAR_METRICS = [
   { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
   { label:"歩行耐久性", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
   { label:"歩行安定性", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((20 - v) / 20 * 100) },
-  { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) }
+  {
+    label:"バランス",
+    detail:"BBS 56点 / Mini-BESTest 28点基準",
+    value:r => num(r.measurements?.bbs) !== null ? num(r.measurements?.bbs) : num(r.measurements?.miniBestest),
+    normalize:(v, r) => num(r.measurements?.bbs) !== null ? clampPercent(v / 56 * 100) : clampPercent(v / 28 * 100)
+  },
+  { label:"応用歩行", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) }
 ];
 
 const RADAR_COLORS = [
@@ -1169,6 +1186,7 @@ function renderHistory() {
       <td>${escapeHtml(m.bbs || "-")}</td>
       <td>${escapeHtml(formatBbsDelta(bbsChange))}</td>
       <td>${escapeHtml(bbsChange?.judge || "-")}</td>
+      <td>${escapeHtml(m.dgi || "-")}</td>
       <td>${escapeHtml(m.fab || "-")}</td>
       <td>${escapeHtml(m.mmse || "-")}</td>
       <td>${escapeHtml(m[metric.id] || "-")}</td>
@@ -1564,7 +1582,7 @@ function getClinicalRadarRecords(patient) {
 function clinicalRadarValues(record) {
   return CLINICAL_RADAR_METRICS.map((metric) => {
     const raw = metric.value(record);
-    const normalized = raw === null ? null : metric.normalize(raw);
+    const normalized = raw === null ? null : metric.normalize(raw, record);
     return raw === null || normalized === null ? { metric, raw:null, normalized:null } : { metric, raw, normalized };
   });
 }
@@ -1601,8 +1619,8 @@ function renderClinicalRadarChart() {
     .filter(item => item.complete);
 
   if (!series.length) {
-    drawEmptyChart(ctx, w, h, "5項目すべての入力が必要です");
-    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSを入力すると5角形で表示します。";
+    drawEmptyChart(ctx, w, h, "6項目すべての入力が必要です");
+    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSまたはMini-BESTest、DGIを入力すると6角形で表示します。";
     return;
   }
 
@@ -1680,7 +1698,7 @@ function renderClinicalRadarChart() {
   drawRadarLegend(ctx, w, h, series);
   const labels = series.map(item => item.label).join("・");
   const modeText = series.length > 1 ? "を重ね表示" : "を表示";
-  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（5項目を0〜100%換算）`;
+  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（6項目を0〜100%換算）`;
 }
 
 function drawEmptyChart(ctx, w, h, message) {
@@ -1909,13 +1927,13 @@ function exportCsvForPatient() {
     alert("保存済み記録がありません。");
     return;
   }
-  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
   const rows = records.map((record) => {
     const m = record.measurements || {};
     return [
       record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
       m.fac, m.comfortable10mSpeed, m.sixMinuteWalkDistance, m.strideCv,
-      m.bbs, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
+      m.bbs, m.miniBestest, m.dgi, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
     ];
   });
   const csv = "\uFEFF" + [headers, ...rows]
