@@ -56,12 +56,15 @@
   <div class="actions">
     <a class="button" href="./index.html">アプリ一覧</a>
     <button id="reset" type="button">リセット</button>
+    <button id="keyform" type="button">KeyFormで確認</button>
     <button id="send" type="button">脳卒中評価記録へ送る</button>
   </div>
 </div>
 
 <script>
 const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
+const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
+let assessmentId = `mini_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const SECTIONS = [
   {
     id:"sec1", title:"セクション1：予測的姿勢調整", max:6,
@@ -134,25 +137,72 @@ function calculate() {
   document.getElementById("total").textContent = `${total} / 28`;
 }
 
+function buildMiniDetail() {
+  let index = 0;
+  const items = [];
+  SECTIONS.forEach(section => {
+    section.items.forEach(item => {
+      index += 1;
+      const checked = document.querySelector(`input[name="item${index}"]:checked`);
+      items.push({
+        id:index,
+        name:item[0],
+        section:section.title.replace(/^セクション\d+：/, ""),
+        score:checked ? Number(checked.value) : null,
+        max:2
+      });
+    });
+  });
+  return {
+    assessmentId,
+    assessmentKey:"miniBestest",
+    scaleKey:"mini_stroke",
+    population:"stroke",
+    total:items.reduce((sum, item) => sum + (item.score ?? 0), 0),
+    max:28,
+    items,
+    updatedAt:new Date().toISOString()
+  };
+}
+
+function requireCompleteDetail() {
+  const detail = buildMiniDetail();
+  if (detail.items.some(item => item.score === null)) {
+    alert("14項目すべてを入力してください。");
+    return null;
+  }
+  return detail;
+}
+
 document.getElementById("reset").addEventListener("click", () => {
   if (!confirm("Mini-BESTestの入力をリセットしますか？")) return;
   document.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
+  assessmentId = `mini_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   calculate();
 });
 
 document.getElementById("send").addEventListener("click", () => {
-  const checked = document.querySelectorAll('input[type="radio"]:checked');
-  if (checked.length !== 14) {
-    alert("14項目すべてを入力してください。");
-    return;
-  }
-  const total = [...checked].reduce((sum, input) => sum + Number(input.value), 0);
+  const detail = requireCompleteDetail();
+  if (!detail) return;
   localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
     sourceLabel:"Mini-BESTest",
     recordDate:new Date().toISOString().slice(0, 10),
-    measurements:{ miniBestest:String(total) }
+    measurements:{ miniBestest:String(detail.total) },
+    assessmentDetails:{ miniBestest:detail }
   }));
   location.href = "./stroke-record.html";
+});
+
+document.getElementById("keyform").addEventListener("click", () => {
+  const detail = requireCompleteDetail();
+  if (!detail) return;
+  localStorage.setItem(KEYFORM_TRANSFER_KEY, JSON.stringify({
+    source:"assessment",
+    sourceLabel:"Mini-BESTest",
+    recordDate:new Date().toISOString().slice(0, 10),
+    detail
+  }));
+  location.href = "./keyform.html";
 });
 
 render();

@@ -771,6 +771,7 @@
 <script>
 const STORAGE_KEY = "rehacalc_stroke_records_v1";
 const DRAFT_KEY = "rehacalc_stroke_draft_v1";
+const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
 const LEGACY_STORAGE_KEY = "rehacalc_evaluation_records_v1";
 const TEMPLATE_URL = "./assets/evaluation-form.pdf";
 const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
@@ -893,6 +894,7 @@ const PDF_ROWS = [
 ];
 
 let editingId = null;
+let pendingAssessmentDetails = {};
 
 const $ = (id) => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -904,6 +906,7 @@ const num = (value) => {
   const n = Number(text);
   return Number.isFinite(n) ? n : null;
 };
+const cloneAssessmentDetails = (value) => JSON.parse(JSON.stringify(value || {}));
 
 function clampPercent(value) {
   if (!Number.isFinite(value)) return null;
@@ -1010,6 +1013,7 @@ function formToRecord() {
     dischargeDestination: $("dischargeDestination").value,
     daysSinceOnset: clean($("daysSinceOnset").value),
     measurements: {},
+    assessmentDetails: cloneAssessmentDetails(pendingAssessmentDetails),
     updatedAt: new Date().toISOString()
   };
   MEASUREMENT_FIELDS.forEach((field) => {
@@ -1020,6 +1024,7 @@ function formToRecord() {
 
 function fillForm(record) {
   editingId = record?.id || null;
+  pendingAssessmentDetails = cloneAssessmentDetails(record?.assessmentDetails);
   PROFILE_FIELDS.forEach((field) => {
     if (!$(field)) return;
     $(field).value = record?.[field] ?? (field === "recordDate" ? today() : "");
@@ -1053,6 +1058,7 @@ function newRecord() {
     daysSinceOnset: $("daysSinceOnset").value
   };
   editingId = null;
+  pendingAssessmentDetails = {};
   PROFILE_FIELDS.forEach((field) => {
     if ($(field)) $(field).value = keep[field] ?? "";
   });
@@ -1282,6 +1288,14 @@ function renderHistory() {
     const tr = document.createElement("tr");
     const m = record.measurements || {};
     const bbsChange = bbsChangeMap.get(record.id);
+    const keyformButtons = [
+      record.assessmentDetails?.bbs?.items?.length
+        ? `<button class="mini-btn" type="button" data-keyform-record="${record.id}" data-keyform-assessment="bbs">BBS KeyForm</button>`
+        : "",
+      record.assessmentDetails?.miniBestest?.items?.length
+        ? `<button class="mini-btn" type="button" data-keyform-record="${record.id}" data-keyform-assessment="miniBestest">Mini KeyForm</button>`
+        : ""
+    ].join("");
     tr.innerHTML = `
       <td>${escapeHtml(record.recordDate || "-")}</td>
       <td>${escapeHtml(stageLabel(record.stage))}</td>
@@ -1295,6 +1309,7 @@ function renderHistory() {
       <td>${escapeHtml(m.mmse || "-")}</td>
       <td>${escapeHtml(m[metric.id] || "-")}</td>
       <td>
+        ${keyformButtons}
         <button class="mini-btn" type="button" data-edit="${record.id}">編集</button>
         <button class="mini-btn danger" type="button" data-delete="${record.id}">削除</button>
       </td>
@@ -1315,8 +1330,31 @@ function renderHistory() {
   document.querySelectorAll("[data-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteRecord(button.dataset.delete));
   });
+  document.querySelectorAll("[data-keyform-assessment]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const record = loadRecords().find(r => r.id === button.dataset.keyformRecord);
+      if (record) openKeyformForRecord(record, button.dataset.keyformAssessment);
+    });
+  });
   renderChart();
   renderClinicalRadarChart();
+}
+
+function openKeyformForRecord(record, assessmentKey) {
+  const detail = record.assessmentDetails?.[assessmentKey];
+  if (!detail?.items?.length) return;
+  localStorage.setItem(KEYFORM_TRANSFER_KEY, JSON.stringify({
+    source:"record",
+    storageKey:STORAGE_KEY,
+    recordId:record.id,
+    assessmentKey,
+    patientName:record.patientName,
+    patientId:record.patientId,
+    recordDate:record.recordDate,
+    stage:record.stage,
+    detail
+  }));
+  location.href = "./keyform.html";
 }
 
 function deleteRecord(id) {
@@ -2093,6 +2131,10 @@ function applyIncomingDraft() {
     Object.entries(draft.measurements || {}).forEach(([key, value]) => {
       if ($(key)) $(key).value = value;
     });
+    pendingAssessmentDetails = {
+      ...pendingAssessmentDetails,
+      ...cloneAssessmentDetails(draft.assessmentDetails)
+    };
     localStorage.removeItem(DRAFT_KEY);
     setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映しました。対象者と評価時期を確認して保存してください。`);
   } catch {

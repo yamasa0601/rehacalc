@@ -109,6 +109,7 @@
         <button class="action secondary" id="reset">全リセット</button>
         <button class="action" id="copy">結果をコピー</button>
         <button class="action" id="sendEval" style="background:#0f766e;">評価記録へ送る</button>
+        <button class="action secondary" id="openKeyform">KeyFormで確認</button>
         <button class="action secondary" id="csvExport">CSV出力</button>
       </div>
 
@@ -387,6 +388,7 @@
   const STROKE_DRAFT_KEY = "rehacalc_stroke_draft_v1";
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+  const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
   const STAGE_LABELS = {
     admission: "入棟",
     fac3: "FAC3",
@@ -398,6 +400,7 @@
   let allCriteriaOpen = false;
 
   const clean = (value) => String(value ?? "").trim();
+  const makeAssessmentId = () => `bbs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const parseNumber = (value) => {
     const text = clean(value).replaceAll(",", "");
     if (text === "") return null;
@@ -599,6 +602,24 @@
     return { total, staticScore, dynamicScore };
   }
 
+  function buildBbsDetail(totals) {
+    return {
+      assessmentId: state.assessmentId,
+      assessmentKey: "bbs",
+      scaleKey: state.datasetKey === "stroke" ? "bbs_stroke" : "bbs_hip",
+      population: state.datasetKey,
+      total: totals.total,
+      max: 56,
+      items: ITEMS_DATA.map((item, index) => ({
+        id: index + 1,
+        name: item.name.replace(/^\d+\.\s*/, ""),
+        score: state.scores[index],
+        max: 4
+      })),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
   function judgeDelta(delta, range) {
     if (!Number.isFinite(delta)) return "-";
     const absd = Math.abs(delta);
@@ -736,11 +757,13 @@
     datasetKey: "stroke",
     showZero: true,
     scores: Array(ITEMS.length).fill(0),
+    assessmentId: makeAssessmentId(),
     prevTotal: "",
     prevRecordId: "",
     prevRecordQuery: "",
     tests: {}
   };
+  if (!state.assessmentId) state.assessmentId = makeAssessmentId();
 
   function normalizeScores() {
     state.scores = state.scores.map(s => {
@@ -788,6 +811,7 @@
   // Events
   $("dataset").addEventListener("change", (e) => {
     state.datasetKey = e.target.value;
+    state.assessmentId = makeAssessmentId();
     render();
   });
   $("showZero").addEventListener("change", (e) => {
@@ -825,6 +849,7 @@
     state.prevRecordId = "";
     state.prevRecordQuery = "";
     state.tests = {};
+    state.assessmentId = makeAssessmentId();
     render();
   });
   $("copy").addEventListener("click", async () => {
@@ -853,9 +878,20 @@
     localStorage.setItem(isStroke ? STROKE_DRAFT_KEY : HIP_DRAFT_KEY, JSON.stringify({
       sourceLabel: "BBS",
       recordDate: new Date().toISOString().slice(0, 10),
-      measurements: { bbs: String(totals.total) }
+      measurements: { bbs: String(totals.total) },
+      assessmentDetails: { bbs: buildBbsDetail(totals) }
     }));
     location.href = isStroke ? "../stroke-record.html" : "../evaluation.html";
+  });
+  $("openKeyform").addEventListener("click", () => {
+    const totals = sumScores(state.scores);
+    localStorage.setItem(KEYFORM_TRANSFER_KEY, JSON.stringify({
+      source: "assessment",
+      sourceLabel: "BBS",
+      recordDate: new Date().toISOString().slice(0, 10),
+      detail: buildBbsDetail(totals)
+    }));
+    location.href = "../keyform.html";
   });
   $("expandAll").addEventListener("click", () => {
     allCriteriaOpen = !allCriteriaOpen;

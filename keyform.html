@@ -64,11 +64,18 @@
         .cutoff-ok { color:var(--green); font-weight:700; }
         .cutoff-ng { color:var(--red); font-weight:700; }
 
-        .btn-row { display:flex; gap:8px; margin-top:10px; }
+        .btn-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
         .btn-action { flex:1; padding:11px; border:none; border-radius:12px; font-weight:bold; font-size:0.85rem; cursor:pointer; }
         .btn-copy { background:var(--primary); color:white; }
         .btn-csv { background:var(--green); color:white; }
         .btn-reset { background:#fee2e2; color:var(--red); }
+        .btn-load { background:#1c1c1e; color:white; }
+        .btn-update { background:#0f766e; color:white; }
+        .btn-action:disabled { opacity:.45; cursor:not-allowed; }
+        .connection-grid { display:grid; grid-template-columns:1fr 2fr; gap:8px; }
+        .connection-status { margin-top:8px; padding:10px; border:1px solid #d8dee3; border-radius:8px; background:#f8fafb; font-size:.78rem; line-height:1.55; }
+        .connection-status.connected { border-color:#86c8be; background:#edf8f6; color:#155e55; font-weight:700; }
+        @media(max-width:620px){ .connection-grid{grid-template-columns:1fr;} }
 
         .legend { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
         .legend-item { display:flex; align-items:center; gap:4px; font-size:0.7rem; color:var(--muted); }
@@ -89,6 +96,29 @@
         <option value="mini_stroke">Mini-BESTest Keyform for Stroke（脳卒中）</option>
         <option value="mini_hip">Mini-BESTest Keyform for Hip/Vertebral Fx（大腿骨/椎体骨折）</option>
     </select>
+</div>
+
+<div class="card">
+    <h2>評価記録との接続</h2>
+    <div class="note">保存済みのBBS・Mini-BESTestを選ぶと、合計点と全下位項目をそのままKeyFormへ読み込みます。</div>
+    <div class="connection-grid">
+        <div>
+            <label class="sel-label" for="recordType">記録種別</label>
+            <select id="recordType">
+                <option value="stroke">脳卒中・臨床記録</option>
+                <option value="hip">大腿骨近位部骨折・研究記録</option>
+            </select>
+        </div>
+        <div>
+            <label class="sel-label" for="recordSelect">対象者・評価日・評価尺度</label>
+            <select id="recordSelect"></select>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button class="btn-action btn-load" id="loadRecord" type="button">選択した評価を読み込む</button>
+        <button class="btn-action btn-update" id="updateRecord" type="button" disabled>接続中の評価記録を更新</button>
+    </div>
+    <div id="connectionStatus" class="connection-status">評価記録とは未接続です。</div>
 </div>
 
 <div class="card">
@@ -187,18 +217,18 @@ const SCALES = {
         totalMax: 56,
         items: [
             {id:14, name:"14. 片足立ち保持"},
-            {id:13, name:"13. 段差踏み換え"},
-            {id:11, name:"11. 片足を前に出して立位保持"},
-            {id:8,  name:"8. 床から物を拾う"},
-            {id:12, name:"12. 360°回転"},
-            {id:5,  name:"5. 閉眼立位保持"},
-            {id:9,  name:"9. 閉脚立位保持"},
-            {id:10, name:"10. 上肢前方到達"},
-            {id:7,  name:"7. 左右の肩越しに後ろを振り向く"},
+            {id:12, name:"12. 段差踏み換え"},
+            {id:13, name:"13. 片足を前に出して立位保持"},
+            {id:9,  name:"9. 床から物を拾う"},
+            {id:11, name:"11. 360°回転"},
+            {id:6,  name:"6. 閉眼立位保持"},
+            {id:7,  name:"7. 閉脚立位保持"},
+            {id:8,  name:"8. 上肢前方到達"},
+            {id:10, name:"10. 左右の肩越しに後ろを振り向く"},
             {id:1,  name:"1. 椅子からの立ち上がり"},
-            {id:4,  name:"4. 立位保持"},
-            {id:6,  name:"6. 移乗"},
-            {id:2,  name:"2. 着座"},
+            {id:2,  name:"2. 立位保持"},
+            {id:5,  name:"5. 移乗"},
+            {id:4,  name:"4. 着座"},
             {id:3,  name:"3. 座位保持"}
         ],
         strata: [
@@ -302,12 +332,25 @@ const SCALES = {
 /* ================================================================
    STATE
    ================================================================ */
+const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
+const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
+const STAGE_LABELS = {
+    admission:"入棟", fac3:"FAC3", month1:"1M", month2:"2M", month3:"3M", discharge:"退院"
+};
 let currentScale = 'bbs_stroke';
 let scores = {}; // {itemId: score}
+let connection = null;
+let sourceStatus = "";
+let recordOptions = [];
 
-function init() {
+function init(disconnect = true) {
     currentScale = document.getElementById('scaleSelect').value;
     scores = {};
+    if (disconnect) {
+        connection = null;
+        sourceStatus = "";
+    }
     render();
 }
 
@@ -318,6 +361,7 @@ function render() {
     const scale = SCALES[currentScale];
     renderKeyform(scale);
     calcAndDisplay(scale);
+    renderConnectionStatus();
 }
 
 function renderKeyform(scale) {
@@ -553,6 +597,204 @@ function calcAndDisplay(scale) {
 }
 
 /* ================================================================
+   EVALUATION RECORD CONNECTION
+   ================================================================ */
+function readRecords(storageKey) {
+    try {
+        const records = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        return Array.isArray(records) ? records : [];
+    } catch {
+        return [];
+    }
+}
+
+function recordLabel(record, assessmentKey) {
+    const name = String(record.patientName || "氏名未入力").trim();
+    const id = String(record.patientId || "").trim();
+    const patient = id ? `${name} (${id})` : name;
+    const date = record.recordDate || "-";
+    const stage = STAGE_LABELS[record.stage] || record.stage || "-";
+    const scale = assessmentKey === "bbs" ? "BBS" : "Mini-BESTest";
+    return `${patient} / ${date} ${stage} / ${scale}`;
+}
+
+function renderRecordOptions() {
+    const type = document.getElementById("recordType").value;
+    const storageKey = type === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY;
+    const select = document.getElementById("recordSelect");
+    recordOptions = [];
+    readRecords(storageKey)
+        .sort((a, b) => String(b.recordDate || "").localeCompare(String(a.recordDate || "")))
+        .forEach(record => {
+            ["bbs", "miniBestest"].forEach(assessmentKey => {
+                const detail = record.assessmentDetails?.[assessmentKey];
+                if (!Array.isArray(detail?.items) || detail.items.length === 0) return;
+                recordOptions.push({ storageKey, record, assessmentKey, detail });
+            });
+        });
+
+    select.innerHTML = "";
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = recordOptions.length
+        ? "保存済み評価を選択"
+        : "下位項目を含む保存済み評価がありません";
+    select.appendChild(blank);
+    recordOptions.forEach((option, index) => {
+        const element = document.createElement("option");
+        element.value = String(index);
+        element.textContent = recordLabel(option.record, option.assessmentKey);
+        select.appendChild(element);
+    });
+    select.disabled = recordOptions.length === 0;
+    document.getElementById("loadRecord").disabled = recordOptions.length === 0;
+}
+
+function loadAssessment(detail, nextConnection = null, status = "") {
+    const scaleKey = detail?.scaleKey;
+    if (!SCALES[scaleKey] || !Array.isArray(detail?.items)) {
+        alert("KeyFormへ読み込める下位項目データがありません。");
+        return;
+    }
+    currentScale = scaleKey;
+    document.getElementById("scaleSelect").value = currentScale;
+    scores = {};
+    const validIds = new Set(SCALES[currentScale].items.map(item => Number(item.id)));
+    detail.items.forEach(item => {
+        const id = Number(item.id);
+        const score = Number(item.score);
+        if (validIds.has(id) && Number.isFinite(score)) scores[id] = score;
+    });
+    connection = nextConnection;
+    sourceStatus = status;
+    render();
+}
+
+function loadSelectedRecord() {
+    const value = document.getElementById("recordSelect").value;
+    if (value === "") {
+        alert("読み込む保存済み評価を選択してください。");
+        return;
+    }
+    const index = Number(value);
+    const option = recordOptions[index];
+    if (!option) return;
+    loadAssessment(option.detail, {
+        storageKey:option.storageKey,
+        recordId:option.record.id,
+        assessmentKey:option.assessmentKey,
+        patientName:option.record.patientName,
+        patientId:option.record.patientId,
+        recordDate:option.record.recordDate,
+        stage:option.record.stage
+    });
+}
+
+function renderConnectionStatus() {
+    const status = document.getElementById("connectionStatus");
+    const update = document.getElementById("updateRecord");
+    if (connection) {
+        const patient = connection.patientId
+            ? `${connection.patientName || "氏名未入力"} (${connection.patientId})`
+            : connection.patientName || "氏名未入力";
+        const scale = connection.assessmentKey === "bbs" ? "BBS" : "Mini-BESTest";
+        status.textContent = `接続中：${patient} / ${connection.recordDate || "-"} ${STAGE_LABELS[connection.stage] || connection.stage || "-"} / ${scale}。KeyFormで変更した全下位項目と合計点を同じ評価記録へ更新できます。`;
+        status.classList.add("connected");
+        update.disabled = false;
+        return;
+    }
+    status.textContent = sourceStatus || "評価記録とは未接続です。評価直後の結果は確認できますが、記録へ反映するには評価記録画面で保存してください。";
+    status.classList.remove("connected");
+    update.disabled = true;
+}
+
+function buildDetailFromScores(existing) {
+    const scale = SCALES[currentScale];
+    const unanswered = scale.items.filter(item => scores[item.id] === undefined);
+    if (unanswered.length > 0) {
+        alert(`全下位項目を入力してから更新してください。未入力：${unanswered.length}項目`);
+        return null;
+    }
+    const assessmentKey = currentScale.startsWith("bbs_") ? "bbs" : "miniBestest";
+    const items = scale.items
+        .map(item => {
+            const previous = existing?.items?.find(entry => Number(entry.id) === Number(item.id));
+            return {
+                id:Number(item.id),
+                name:item.name.replace(/^\d+\.\s*/, ""),
+                ...(previous?.section ? { section:previous.section } : {}),
+                score:Number(scores[item.id]),
+                max:scale.maxScore
+            };
+        })
+        .sort((a, b) => a.id - b.id);
+    return {
+        ...existing,
+        assessmentId:existing?.assessmentId || `${assessmentKey}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        assessmentKey,
+        scaleKey:currentScale,
+        population:currentScale.endsWith("_stroke") ? "stroke" : "hip",
+        total:items.reduce((sum, item) => sum + item.score, 0),
+        max:scale.totalMax,
+        items,
+        updatedAt:new Date().toISOString()
+    };
+}
+
+function updateConnectedRecord() {
+    if (!connection) return;
+    const records = readRecords(connection.storageKey);
+    const index = records.findIndex(record => record.id === connection.recordId);
+    if (index < 0) {
+        alert("接続中の評価記録が見つかりません。");
+        connection = null;
+        renderConnectionStatus();
+        return;
+    }
+    const record = records[index];
+    const existing = record.assessmentDetails?.[connection.assessmentKey];
+    const detail = buildDetailFromScores(existing);
+    if (!detail) return;
+    record.assessmentDetails = { ...(record.assessmentDetails || {}), [connection.assessmentKey]:detail };
+    record.measurements = { ...(record.measurements || {}), [connection.assessmentKey]:String(detail.total) };
+    record.updatedAt = new Date().toISOString();
+    records[index] = record;
+    localStorage.setItem(connection.storageKey, JSON.stringify(records));
+    sourceStatus = "接続中の評価記録を更新しました。";
+    renderRecordOptions();
+    renderConnectionStatus();
+    alert("合計点と全下位項目を、接続中の評価記録へ更新しました。");
+}
+
+function applyIncomingTransfer() {
+    const raw = localStorage.getItem(KEYFORM_TRANSFER_KEY);
+    if (!raw) return;
+    localStorage.removeItem(KEYFORM_TRANSFER_KEY);
+    try {
+        const transfer = JSON.parse(raw);
+        const detail = transfer.detail;
+        if (transfer.source === "record") {
+            const type = transfer.storageKey === HIP_RECORDS_KEY ? "hip" : "stroke";
+            document.getElementById("recordType").value = type;
+            renderRecordOptions();
+            loadAssessment(detail, {
+                storageKey:transfer.storageKey,
+                recordId:transfer.recordId,
+                assessmentKey:transfer.assessmentKey,
+                patientName:transfer.patientName,
+                patientId:transfer.patientId,
+                recordDate:transfer.recordDate,
+                stage:transfer.stage
+            });
+            return;
+        }
+        loadAssessment(detail, null, `${transfer.sourceLabel || "評価画面"}から、合計点と全下位項目を読み込みました。評価記録へ保存後は、対象者ID・評価日で再接続できます。`);
+    } catch {
+        alert("KeyFormへの連携データを読み込めませんでした。");
+    }
+}
+
+/* ================================================================
    COPY / CSV / RESET
    ================================================================ */
 function copyResult() {
@@ -619,8 +861,14 @@ function resetAll() {
     render();
 }
 
+document.getElementById("recordType").addEventListener("change", renderRecordOptions);
+document.getElementById("loadRecord").addEventListener("click", loadSelectedRecord);
+document.getElementById("updateRecord").addEventListener("click", updateConnectedRecord);
+
 // Init
-init();
+init(false);
+renderRecordOptions();
+applyIncomingTransfer();
 </script>
 </body>
 </html>
