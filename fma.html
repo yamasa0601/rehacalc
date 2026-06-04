@@ -39,10 +39,11 @@
         .score-label { font-size: 0.55rem; color: var(--muted); font-weight: bold; }
         .sev-bar { padding: 5px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.82rem; margin-bottom: 6px; }
         .hidden { display: none; }
-        .btn-row { display: flex; gap: 8px; }
-        .btn-action { flex: 1; padding: 11px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .btn-action { flex: 1; min-width: 120px; padding: 11px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .btn-copy { background: var(--primary); color: white; }
         .btn-csv { background: #34c759; color: white; }
+        .btn-record { background: #0f766e; color: white; }
     </style>
 </head>
 <body>
@@ -93,10 +94,13 @@
     <div class="btn-row">
         <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
         <button class="btn-action btn-csv" onclick="exportCSV()">CSV出力</button>
+        <button class="btn-action btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
     </div>
 </div>
 
 <script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
 /* ================================================================
    DATA DEFINITIONS
    ================================================================ */
@@ -535,6 +539,30 @@ function copyResult() {
             `判定: ${document.getElementById('le-sev-bar').innerText}`;
     }
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました"));
+}
+
+function motorScore(id) {
+    return document.getElementById(id).innerText.split('/')[0];
+}
+
+function sendToEvaluation() {
+    const measurements = {};
+    if (document.querySelector('#content-ue input[type="radio"]:checked')) {
+        measurements.fmaUpper = motorScore('ue-motor');
+    }
+    if (document.querySelector('#content-le input[type="radio"]:checked')) {
+        measurements.fmaLower = motorScore('le-motor');
+    }
+    if (Object.keys(measurements).length === 0) {
+        alert("上肢または下肢を入力してください。");
+        return;
+    }
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+        sourceLabel: "FMA",
+        recordDate: new Date().toISOString().slice(0, 10),
+        measurements
+    }));
+    location.href = "./evaluation.html";
 }
 
 function exportCSV() {

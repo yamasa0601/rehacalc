@@ -41,10 +41,11 @@
         .total-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px 0; border-top: 1px solid #eee; padding-top: 8px; }
         .total-val { font-size: 1.6rem; font-weight: bold; color: var(--primary); }
         .cutoff-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 8px; font-weight: 600; display: inline-block; margin-left: 8px; }
-        .btn-row { display: flex; gap: 8px; }
-        .btn-action { flex: 1; padding: 11px; border: none; border-radius: 10px; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .btn-action { flex: 1; min-width: 120px; padding: 11px; border: none; border-radius: 10px; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
         .btn-copy { background: var(--primary); color: white; }
         .btn-csv { background: var(--green); color: white; }
+        .btn-record { background: #0f766e; color: white; }
         details { background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #444; margin-top: 6px; }
         .expand-all { font-size: 0.72rem; color: var(--primary); cursor: pointer; display: inline-block; user-select: none; margin-bottom: 8px; }
     </style>
@@ -370,6 +371,7 @@
     <div class="btn-row">
         <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
         <button class="btn-action btn-csv" onclick="exportCSV()">CSV出力</button>
+        <button class="btn-action btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
     </div>
     <details>
         <summary>臨床的指標（参考値）</summary>
@@ -380,6 +382,8 @@
 </div>
 
 <script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+
 function getVal(name) {
     const el = document.querySelector(`input[name="${name}"]:checked`);
     return el ? parseInt(el.value) : null;
@@ -497,6 +501,20 @@ function copyResult() {
     const cutoff = parseInt(total) >= 13 ? "歩行自立の可能性大(FAC≧3)" : "歩行自立には不十分";
     const txt = `【TIS 評価結果】\n合計スコア: ${total}/23点\n静的座位バランス: ${s}/7\n動的座位バランス: ${d}/10\n協調動作: ${c}/6\n判定目安: ${cutoff}\nMIC: 2.5点`;
     navigator.clipboard.writeText(txt).then(() => alert("コピーしました"));
+}
+
+function sendToEvaluation() {
+    if (!document.querySelector('input[type="radio"]:checked')) {
+        alert("TISを入力してください。");
+        return;
+    }
+    const total = document.getElementById('total-score').innerText;
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+        sourceLabel: "TIS",
+        recordDate: new Date().toISOString().slice(0, 10),
+        measurements: { tis: total }
+    }));
+    location.href = "./evaluation.html";
 }
 
 function exportCSV() {

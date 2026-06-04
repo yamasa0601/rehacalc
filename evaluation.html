@@ -506,6 +506,18 @@
               <input id="dgi" type="number" inputmode="numeric" min="0" max="24" />
             </div>
             <div class="measure-row">
+              <div class="row-title">FMA 上肢運動 (点)</div>
+              <input id="fmaUpper" type="number" inputmode="numeric" min="0" max="66" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">FMA 下肢運動 (点)</div>
+              <input id="fmaLower" type="number" inputmode="numeric" min="0" max="34" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">TIS (点)</div>
+              <input id="tis" type="number" inputmode="numeric" min="0" max="23" />
+            </div>
+            <div class="measure-row">
               <div class="row-title">GES (点)</div>
               <input id="mfes" type="number" inputmode="decimal" />
             </div>
@@ -539,7 +551,7 @@
             <div class="summary-box"><div class="k">最新時期</div><div id="latestStage" class="v">-</div></div>
           </div>
           <p class="note">
-            既存の「歩行速度」「筋力」「FAC」「BBS」「DGI」「GES」「FAB」画面から送られた結果は、この入力欄に自動反映されます。
+            既存の「歩行速度」「筋力」「FAC」「BBS」「DGI」「FMA」「TIS」「GES」「FAB」画面から送られた結果は、この入力欄に自動反映されます。
             ここで対象者・評価時期を選んで保存すると、履歴とグラフ、評価用紙PDF出力に使えます。
           </p>
           <p class="note">
@@ -706,6 +718,7 @@
           <div class="actions">
             <button id="exportPdf" class="action" type="button">PDFを作成</button>
             <button id="exportMmsePdf" class="action" type="button">MMSE用紙PDFを作成</button>
+            <button id="goStrokePdf" class="action secondary" type="button">脳卒中評価用紙へ</button>
             <button id="copyCsv" class="action secondary" type="button">記録CSV保存</button>
           </div>
         </section>
@@ -718,6 +731,9 @@
           <p class="note">
             HDS-R/MMSE共通シートはMMSE合計点のみを保存データから転記します。
             HDS-R合計点も含めて共通シートを作る場合は、トップページの「HDS-R・MMSE 共通シート」を開いてください。
+          </p>
+          <p class="note">
+            脳卒中評価用紙は、FMA上肢運動、FMA下肢運動、TISを評価時期ごとにまとめます。
           </p>
         </section>
       </div>
@@ -751,7 +767,7 @@ const MEASUREMENT_FIELDS = [
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
-  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","miniBestest","dgi","mfes","fab","tmtA","mmse"
+  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","mfes","fab","tmtA","mmse"
 ];
 
 const BBS_MCID_POINTS = 12;
@@ -764,6 +780,9 @@ const GRAPH_METRICS = [
   { id:"bbs", label:"BBS", unit:"点" },
   { id:"miniBestest", label:"Mini-BESTest", unit:"点" },
   { id:"dgi", label:"DGI", unit:"点" },
+  { id:"fmaUpper", label:"FMA 上肢運動", unit:"点" },
+  { id:"fmaLower", label:"FMA 下肢運動", unit:"点" },
+  { id:"tis", label:"TIS", unit:"点" },
   { id:"fab", label:"FAB", unit:"点" },
   { id:"mmse", label:"MMSE", unit:"点" },
   { id:"tmtA", label:"partA / TMT-A", unit:"秒" },
@@ -1927,13 +1946,14 @@ function exportCsvForPatient() {
     alert("保存済み記録がありません。");
     return;
   }
-  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
   const rows = records.map((record) => {
     const m = record.measurements || {};
     return [
       record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
       m.fac, m.comfortable10mSpeed, m.sixMinuteWalkDistance, m.strideCv,
-      m.bbs, m.miniBestest, m.dgi, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
+      m.bbs, m.miniBestest, m.dgi, m.fmaUpper, m.fmaLower, m.tis,
+      m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
     ];
   });
   const csv = "\uFEFF" + [headers, ...rows]
@@ -2019,6 +2039,7 @@ document.querySelectorAll('input[name="clinicalRadarStages"]').forEach((input) =
 $("pdfPatient").addEventListener("change", () => {});
 $("exportPdf").addEventListener("click", exportFilledPdf);
 $("exportMmsePdf").addEventListener("click", exportMmsePdf);
+$("goStrokePdf").addEventListener("click", () => location.href = "./stroke-evaluation.html");
 $("copyCsv").addEventListener("click", exportCsvForPatient);
 $("downloadGraph").addEventListener("click", downloadGraphPng);
 $("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);

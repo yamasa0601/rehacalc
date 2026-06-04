@@ -1,9 +1,10 @@
-const CACHE_NAME = "rehacalc-v63";
+const CACHE_NAME = "rehacalc-v64";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./evaluation.html",
+  "./stroke-evaluation.html",
   "./manifest.json",
   "./service-worker.js",
   "./icon-192.png",
@@ -21,6 +22,8 @@ const ASSETS = [
   "./ges.html",
   "./mmse.html",
   "./fab.html",
+  "./fma.html",
+  "./tis.html",
   "./gait/index.html",
   "./gait/gaitanalyze.js",
   "./gait/style.css",

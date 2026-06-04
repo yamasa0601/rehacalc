@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>脳卒中 評価用紙</title>
+  <style>
+    :root {
+      --bg:#f4f7f8;
+      --paper:#fff;
+      --text:#172026;
+      --muted:#5f6c73;
+      --line:#ccd6da;
+      --soft:#eaf4f2;
+      --accent:#176b63;
+      --accent-dark:#10534d;
+      --empty:#f8fafb;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      color:var(--text);
+      background:var(--bg);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+    }
+    button, select { font:inherit; }
+    header {
+      border-bottom:1px solid var(--line);
+      background:var(--paper);
+    }
+    .header-inner, main {
+      width:min(1120px, calc(100% - 32px));
+      margin:0 auto;
+    }
+    .header-inner {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:20px 0;
+    }
+    h1 { margin:0; font-size:22px; letter-spacing:0; }
+    .sub { margin:5px 0 0; color:var(--muted); font-size:13px; line-height:1.6; }
+    .nav { display:flex; flex-wrap:wrap; gap:8px; }
+    .nav a {
+      display:inline-flex;
+      align-items:center;
+      min-height:40px;
+      padding:8px 12px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      color:var(--text);
+      background:#fff;
+      font-weight:700;
+      font-size:13px;
+      text-decoration:none;
+    }
+    main { padding:20px 0 40px; }
+    .toolbar {
+      display:grid;
+      grid-template-columns:minmax(260px, 1fr) auto;
+      gap:14px;
+      align-items:end;
+      margin-bottom:16px;
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--paper);
+    }
+    label { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; font-weight:800; }
+    select {
+      width:100%;
+      min-height:44px;
+      padding:9px 12px;
+      border:1px solid #aebcc2;
+      border-radius:6px;
+      color:var(--text);
+      background:#fff;
+    }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .action {
+      min-height:44px;
+      padding:10px 16px;
+      border:1px solid var(--accent);
+      border-radius:6px;
+      color:#fff;
+      background:var(--accent);
+      font-weight:800;
+      cursor:pointer;
+    }
+    .action:hover { background:var(--accent-dark); }
+    .action:disabled { cursor:not-allowed; opacity:.5; }
+    .paper {
+      padding:26px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--paper);
+      box-shadow:0 3px 14px rgba(31,55,63,.08);
+    }
+    .paper-title {
+      margin:0 0 20px;
+      padding-bottom:12px;
+      border-bottom:3px solid var(--accent);
+      font-size:25px;
+      text-align:center;
+    }
+    .profile {
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      margin-bottom:18px;
+      border-top:1px solid var(--line);
+      border-left:1px solid var(--line);
+    }
+    .profile-item {
+      min-height:72px;
+      padding:10px 12px;
+      border-right:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+    }
+    .profile-item.wide { grid-column:span 2; }
+    .profile-label { color:var(--muted); font-size:11px; font-weight:800; }
+    .profile-value { margin-top:7px; font-size:15px; font-weight:800; word-break:break-word; }
+    .table-wrap { overflow-x:auto; }
+    table {
+      width:100%;
+      min-width:860px;
+      border-collapse:collapse;
+      table-layout:fixed;
+    }
+    th, td {
+      height:66px;
+      padding:8px;
+      border:1px solid #aebcc2;
+      text-align:center;
+      vertical-align:middle;
+    }
+    thead th { height:54px; color:#174b46; background:var(--soft); font-size:13px; }
+    th:first-child, td:first-child { width:190px; text-align:left; font-weight:800; }
+    td.empty { color:#a0a9ad; background:var(--empty); }
+    .score { font-size:20px; font-weight:900; }
+    .max { margin-left:2px; color:var(--muted); font-size:11px; font-weight:600; }
+    .sheet-note {
+      margin:18px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+    }
+    .empty-state {
+      display:none;
+      padding:34px 16px;
+      border:1px dashed #aebcc2;
+      border-radius:8px;
+      color:var(--muted);
+      background:#fff;
+      text-align:center;
+      line-height:1.8;
+    }
+    .toast {
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      display:none;
+      padding:11px 14px;
+      border-radius:6px;
+      color:#fff;
+      background:#172026;
+      font-size:13px;
+      font-weight:800;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+    }
+    @media (max-width:760px) {
+      .header-inner { align-items:flex-start; flex-direction:column; }
+      .toolbar { grid-template-columns:1fr; }
+      .actions, .action { width:100%; }
+      .profile { grid-template-columns:repeat(2, 1fr); }
+      .paper { padding:16px; }
+      .paper-title { font-size:20px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div>
+        <h1>脳卒中 評価用紙</h1>
+        <p class="sub">保存済みのFMA上肢・FMA下肢・TISを、評価時期ごとに一枚へまとめます。</p>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">アプリ一覧</a>
+        <a href="./evaluation.html">評価記録</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="toolbar">
+      <div>
+        <label for="patientSelect">対象者</label>
+        <select id="patientSelect" aria-label="対象者を選択"></select>
+      </div>
+      <div class="actions">
+        <button id="downloadPdf" class="action" type="button">脳卒中評価用紙PDFを作成</button>
+      </div>
+    </section>
+
+    <section id="sheet" class="paper">
+      <h2 class="paper-title">脳卒中 評価用紙</h2>
+      <div class="profile">
+        <div class="profile-item wide">
+          <div class="profile-label">氏名</div>
+          <div id="patientName" class="profile-value">-</div>
+        </div>
+        <div class="profile-item wide">
+          <div class="profile-label">対象者ID</div>
+          <div id="patientId" class="profile-value">-</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">年齢</div>
+          <div id="age" class="profile-value">-</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">性別</div>
+          <div id="sex" class="profile-value">-</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">発症日</div>
+          <div id="onsetDate" class="profile-value">-</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">麻痺側</div>
+          <div id="affectedSide" class="profile-value">-</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-label="脳卒中評価結果">
+          <thead>
+            <tr id="stageHeader">
+              <th>評価項目</th>
+            </tr>
+          </thead>
+          <tbody id="sheetBody"></tbody>
+        </table>
+      </div>
+      <p class="sheet-note">
+        「-」は未入力です。各評価画面から「評価記録へ送る」を押し、対象者と評価時期を確認して評価記録を保存すると反映されます。
+      </p>
+    </section>
+
+    <section id="emptyState" class="empty-state">
+      保存済みの対象者記録がありません。<br>
+      評価記録画面で氏名または対象者IDを入力し、記録を保存してください。
+    </section>
+  </main>
+
+  <div id="toast" class="toast">PDFを作成しました</div>
+  <script src="./assets/pdf-lib.min.js"></script>
+  <script>
+    const STORAGE_KEY = "rehacalc_evaluation_records_v1";
+    const STAGES = [
+      { id:"admission", label:"入棟" },
+      { id:"fac3", label:"FAC3" },
+      { id:"month1", label:"1M" },
+      { id:"month2", label:"2M" },
+      { id:"month3", label:"3M" },
+      { id:"discharge", label:"退院" }
+    ];
+    const ROWS = [
+      { id:"fmaUpper", label:"FMA 上肢運動", max:66 },
+      { id:"fmaLower", label:"FMA 下肢運動", max:34 },
+      { id:"tis", label:"TIS", max:23 }
+    ];
+    const $ = (id) => document.getElementById(id);
+    const clean = (value) => String(value ?? "").trim();
+    const show = (value) => clean(value) || "-";
+
+    function loadRecords() {
+      try {
+        const records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return Array.isArray(records) ? records : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function patientKey(record) {
+      return clean(record.patientId) || clean(record.patientName);
+    }
+
+    function patientLabel(record) {
+      const name = clean(record.patientName) || "氏名未入力";
+      const id = clean(record.patientId);
+      return id ? `${name} (${id})` : name;
+    }
+
+    function sortRecords(records) {
+      return [...records].sort((a, b) => {
+        const dateCompare = clean(a.recordDate).localeCompare(clean(b.recordDate));
+        if (dateCompare !== 0) return dateCompare;
+        return clean(a.updatedAt).localeCompare(clean(b.updatedAt));
+      });
+    }
+
+    function mergeNonEmpty(base, record) {
+      const merged = { ...base, measurements:{ ...(base.measurements || {}) } };
+      ["patientName","patientId","age","sex","injuryDate","surgicalSide"].forEach((field) => {
+        if (clean(record[field])) merged[field] = record[field];
+      });
+      if (clean(record.recordDate)) merged.recordDate = record.recordDate;
+      Object.entries(record.measurements || {}).forEach(([field, value]) => {
+        if (clean(value)) merged.measurements[field] = value;
+      });
+      return merged;
+    }
+
+    function getPatientRecords(key) {
+      return sortRecords(loadRecords().filter((record) => patientKey(record) === key));
+    }
+
+    function getStageRecords(key) {
+      const byStage = new Map(STAGES.map((stage) => [stage.id, { measurements:{} }]));
+      getPatientRecords(key).forEach((record) => {
+        if (!byStage.has(record.stage)) return;
+        byStage.set(record.stage, mergeNonEmpty(byStage.get(record.stage), record));
+      });
+      return byStage;
+    }
+
+    function latestProfile(records) {
+      return records.reduce((profile, record) => mergeNonEmpty(profile, record), { measurements:{} });
+    }
+
+    function renderPatientSelect() {
+      const records = loadRecords();
+      const patients = new Map();
+      sortRecords(records).forEach((record) => {
+        const key = patientKey(record);
+        if (key) patients.set(key, patientLabel(record));
+      });
+
+      const select = $("patientSelect");
+      const previous = select.value;
+      select.innerHTML = "";
+      patients.forEach((label, key) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+      if (patients.has(previous)) select.value = previous;
+
+      const hasPatients = patients.size > 0;
+      $("sheet").style.display = hasPatients ? "block" : "none";
+      $("emptyState").style.display = hasPatients ? "none" : "block";
+      $("downloadPdf").disabled = !hasPatients;
+      if (hasPatients) renderSheet();
+    }
+
+    function setText(id, value) {
+      $(id).textContent = show(value);
+    }
+
+    function cellValue(record, row) {
+      return clean(record?.measurements?.[row.id]);
+    }
+
+    function renderSheet() {
+      const key = $("patientSelect").value;
+      if (!key) return;
+      const records = getPatientRecords(key);
+      const profile = latestProfile(records);
+      const byStage = getStageRecords(key);
+
+      setText("patientName", profile.patientName);
+      setText("patientId", profile.patientId);
+      setText("age", profile.age ? `${profile.age} 歳` : "");
+      setText("sex", profile.sex);
+      setText("onsetDate", profile.injuryDate);
+      setText("affectedSide", profile.surgicalSide);
+
+      $("stageHeader").innerHTML = "<th>評価項目</th>" + STAGES.map((stage) => `<th>${stage.label}</th>`).join("");
+      const dateRow = `
+        <tr>
+          <td>評価日</td>
+          ${STAGES.map((stage) => {
+            const value = clean(byStage.get(stage.id)?.recordDate);
+            return `<td class="${value ? "" : "empty"}">${value || "-"}</td>`;
+          }).join("")}
+        </tr>`;
+      const scoreRows = ROWS.map((row) => `
+        <tr>
+          <td>${row.label} <span class="max">/ ${row.max}点</span></td>
+          ${STAGES.map((stage) => {
+            const value = cellValue(byStage.get(stage.id), row);
+            return `<td class="${value ? "" : "empty"}">${value ? `<span class="score">${value}</span><span class="max">点</span>` : "-"}</td>`;
+          }).join("")}
+        </tr>`).join("");
+      $("sheetBody").innerHTML = dateRow + scoreRows;
+    }
+
+    function canvasText(ctx, text, x, y, options = {}) {
+      const {
+        size = 24,
+        weight = 500,
+        align = "left",
+        color = "#172026",
+        maxWidth
+      } = options;
+      ctx.save();
+      ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = color;
+      if (maxWidth) ctx.fillText(String(text), x, y, maxWidth);
+      else ctx.fillText(String(text), x, y);
+      ctx.restore();
+    }
+
+    function drawCell(ctx, x, y, width, height, fill = "#ffffff") {
+      ctx.fillStyle = fill;
+      ctx.fillRect(x, y, width, height);
+      ctx.strokeStyle = "#87989f";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, width, height);
+    }
+
+    function drawPdfCanvas(key) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1240;
+      canvas.height = 1754;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const records = getPatientRecords(key);
+      const profile = latestProfile(records);
+      const byStage = getStageRecords(key);
+      const left = 70;
+      const right = 1170;
+      const width = right - left;
+
+      canvasText(ctx, "脳卒中 評価用紙", canvas.width / 2, 92, { size:42, weight:800, align:"center" });
+      ctx.fillStyle = "#176b63";
+      ctx.fillRect(left, 132, width, 6);
+
+      const infoTop = 180;
+      const infoRows = [
+        [
+          { label:"氏名", value:show(profile.patientName), span:2 },
+          { label:"対象者ID", value:show(profile.patientId), span:2 }
+        ],
+        [
+          { label:"年齢", value:profile.age ? `${profile.age} 歳` : "-", span:1 },
+          { label:"性別", value:show(profile.sex), span:1 },
+          { label:"発症日", value:show(profile.injuryDate), span:1 },
+          { label:"麻痺側", value:show(profile.surgicalSide), span:1 }
+        ]
+      ];
+      const unit = width / 4;
+      let infoY = infoTop;
+      infoRows.forEach((row) => {
+        let x = left;
+        row.forEach((item) => {
+          const w = unit * item.span;
+          drawCell(ctx, x, infoY, w, 92);
+          canvasText(ctx, item.label, x + 14, infoY + 25, { size:17, weight:700, color:"#5f6c73" });
+          canvasText(ctx, item.value, x + 14, infoY + 63, { size:23, weight:700, maxWidth:w - 28 });
+          x += w;
+        });
+        infoY += 92;
+      });
+
+      const tableY = 410;
+      const labelWidth = 250;
+      const stageWidth = (width - labelWidth) / STAGES.length;
+      const headerHeight = 76;
+      const rowHeight = 132;
+
+      drawCell(ctx, left, tableY, labelWidth, headerHeight, "#eaf4f2");
+      canvasText(ctx, "評価項目", left + 16, tableY + headerHeight / 2, { size:21, weight:800, color:"#174b46" });
+      STAGES.forEach((stage, index) => {
+        const x = left + labelWidth + stageWidth * index;
+        drawCell(ctx, x, tableY, stageWidth, headerHeight, "#eaf4f2");
+        canvasText(ctx, stage.label, x + stageWidth / 2, tableY + headerHeight / 2, { size:20, weight:800, align:"center", color:"#174b46" });
+      });
+
+      const pdfRows = [
+        { label:"評価日", max:null, value:(record) => clean(record?.recordDate) },
+        ...ROWS.map((row) => ({ label:row.label, max:row.max, value:(record) => cellValue(record, row) }))
+      ];
+      pdfRows.forEach((row, rowIndex) => {
+        const y = tableY + headerHeight + rowHeight * rowIndex;
+        drawCell(ctx, left, y, labelWidth, rowHeight);
+        canvasText(ctx, row.label, left + 16, y + rowHeight / 2 - (row.max ? 14 : 0), { size:23, weight:800, maxWidth:labelWidth - 32 });
+        if (row.max) {
+          canvasText(ctx, `/ ${row.max}点`, left + 16, y + rowHeight / 2 + 26, { size:17, weight:600, color:"#5f6c73" });
+        }
+        STAGES.forEach((stage, stageIndex) => {
+          const x = left + labelWidth + stageWidth * stageIndex;
+          const value = row.value(byStage.get(stage.id));
+          drawCell(ctx, x, y, stageWidth, rowHeight, value ? "#ffffff" : "#f8fafb");
+          canvasText(ctx, value || "-", x + stageWidth / 2, y + rowHeight / 2, {
+            size:row.max ? 30 : 17,
+            weight:value ? 800 : 500,
+            align:"center",
+            color:value ? "#172026" : "#a0a9ad",
+            maxWidth:stageWidth - 16
+          });
+        });
+      });
+
+      const noteY = 1110;
+      canvasText(ctx, "備考", left, noteY, { size:22, weight:800 });
+      drawCell(ctx, left, noteY + 28, width, 300);
+      canvasText(ctx, "FMA上肢・FMA下肢・TISの保存済み記録を評価時期ごとに表示しています。", left, 1475, { size:18, color:"#5f6c73" });
+      canvasText(ctx, `作成日: ${new Date().toISOString().slice(0, 10)}`, right, 1625, { size:18, align:"right", color:"#5f6c73" });
+      return canvas;
+    }
+
+    function safeFilename(value) {
+      return clean(value).replace(/[\\/:*?"<>|]/g, "_") || "対象者";
+    }
+
+    async function downloadPdf() {
+      const key = $("patientSelect").value;
+      if (!key) return;
+      if (!window.PDFLib) {
+        alert("PDF生成ライブラリを読み込めませんでした。");
+        return;
+      }
+      const button = $("downloadPdf");
+      button.disabled = true;
+      button.textContent = "PDFを作成中...";
+      try {
+        const canvas = drawPdfCanvas(key);
+        const pdfDoc = await PDFLib.PDFDocument.create();
+        const page = pdfDoc.addPage([595.28, 841.89]);
+        const png = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
+        page.drawImage(png, { x:0, y:0, width:595.28, height:841.89 });
+        const bytes = await pdfDoc.save();
+        const blob = new Blob([bytes], { type:"application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const profile = latestProfile(getPatientRecords(key));
+        link.href = url;
+        link.download = `脳卒中評価用紙_${safeFilename(profile.patientName || profile.patientId)}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast("PDFを作成しました");
+      } finally {
+        button.disabled = false;
+        button.textContent = "脳卒中評価用紙PDFを作成";
+      }
+    }
+
+    function toast(text) {
+      const element = $("toast");
+      element.textContent = text;
+      element.style.display = "block";
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => element.style.display = "none", 1600);
+    }
+
+    $("patientSelect").addEventListener("change", renderSheet);
+    $("downloadPdf").addEventListener("click", downloadPdf);
+    window.addEventListener("storage", renderPatientSelect);
+    renderPatientSelect();
+  </script>
+</body>
+</html>
