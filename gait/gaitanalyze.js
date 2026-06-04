@@ -6,7 +6,7 @@
 
 /* ---------- globals ---------- */
 let rawData = null;
-const EVAL_DRAFT_KEY = 'rehacalc_evaluation_draft_v1';
+const EVAL_DRAFT_KEY = 'rehacalc_record_transfer_v1';
 
 /* ========== UI wiring ========== */
 const $  = id => document.getElementById(id);
@@ -723,7 +723,7 @@ $('sendEval').addEventListener('click', () => {
       strideCv: rawData.strideCV.toFixed(2)
     }
   }));
-  location.href = '../evaluation.html';
+  location.href = '../record-destination.html';
 });
 
 function download(content, filename, type) {

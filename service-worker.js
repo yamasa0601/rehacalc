@@ -1,10 +1,12 @@
-const CACHE_NAME = "rehacalc-v65";
+const CACHE_NAME = "rehacalc-v66";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./evaluation.html",
+  "./stroke-record.html",
   "./stroke-evaluation.html",
+  "./record-destination.html",
   "./manifest.json",
   "./service-worker.js",
   "./icon-192.png",

@@ -383,8 +383,10 @@
 
   const $ = (id) => document.getElementById(id);
   const LS_KEY = "bbs_pwa_state_v2";
-  const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
-  const EVAL_RECORDS_KEY = "rehacalc_evaluation_records_v1";
+  const HIP_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+  const STROKE_DRAFT_KEY = "rehacalc_stroke_draft_v1";
+  const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
+  const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
   const STAGE_LABELS = {
     admission: "入棟",
     fac3: "FAC3",
@@ -419,7 +421,8 @@
 
   function loadEvaluationRecords() {
     try {
-      const records = JSON.parse(localStorage.getItem(EVAL_RECORDS_KEY) || "[]");
+      const key = state.datasetKey === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY;
+      const records = JSON.parse(localStorage.getItem(key) || "[]");
       return Array.isArray(records) ? records : [];
     } catch {
       return [];
@@ -760,6 +763,7 @@
     $("staticScore").textContent = totals.staticScore;
     $("dynamicScore").textContent = totals.dynamicScore;
     $("totalScore").textContent = totals.total;
+    $("sendEval").textContent = state.datasetKey === "stroke" ? "脳卒中評価記録へ送る" : "大腿骨研究記録へ送る";
 
     const prev = Number(String(state.prevTotal || "").trim().replaceAll(",", ""));
     const d = DATASETS[state.datasetKey];
@@ -845,12 +849,13 @@
   });
   $("sendEval").addEventListener("click", () => {
     const totals = sumScores(state.scores);
-    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    const isStroke = state.datasetKey === "stroke";
+    localStorage.setItem(isStroke ? STROKE_DRAFT_KEY : HIP_DRAFT_KEY, JSON.stringify({
       sourceLabel: "BBS",
       recordDate: new Date().toISOString().slice(0, 10),
       measurements: { bbs: String(totals.total) }
     }));
-    location.href = "../evaluation.html";
+    location.href = isStroke ? "../stroke-record.html" : "../evaluation.html";
   });
   $("expandAll").addEventListener("click", () => {
     allCriteriaOpen = !allCriteriaOpen;

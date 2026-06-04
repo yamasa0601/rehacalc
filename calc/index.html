@@ -220,7 +220,7 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+  const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
   let gT = null, gS = 0, gE = 0;
 
   function activateCalcTab(tab) {
@@ -320,7 +320,7 @@
       recordDate: new Date().toISOString().slice(0, 10),
       measurements: { comfortable10mSpeed: speed }
     }));
-    location.href = "../evaluation.html";
+    location.href = "../record-destination.html";
   };
   $("h-send").onclick = () => {
     const right = $("h-rn").value;
@@ -338,7 +338,7 @@
       recordDate: new Date().toISOString().slice(0, 10),
       measurements
     }));
-    location.href = "../evaluation.html";
+    location.href = "../record-destination.html";
   };
 
   function openStrengthModal() {
@@ -395,7 +395,7 @@
       recordDate: new Date().toISOString().slice(0, 10),
       measurements
     }));
-    location.href = "../evaluation.html";
+    location.href = "../record-destination.html";
   };
 </script>
 </body>

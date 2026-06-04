@@ -371,7 +371,7 @@
     <div class="btn-row">
         <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
         <button class="btn-action btn-csv" onclick="exportCSV()">CSV出力</button>
-        <button class="btn-action btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
+        <button class="btn-action btn-record" onclick="sendToEvaluation()">脳卒中評価記録へ送る</button>
     </div>
     <details>
         <summary>臨床的指標（参考値）</summary>
@@ -382,7 +382,7 @@
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
 
 function getVal(name) {
     const el = document.querySelector(`input[name="${name}"]:checked`);
@@ -514,7 +514,7 @@ function sendToEvaluation() {
         recordDate: new Date().toISOString().slice(0, 10),
         measurements: { tis: total }
     }));
-    location.href = "./evaluation.html";
+    location.href = "./stroke-record.html";
 }
 
 function exportCSV() {

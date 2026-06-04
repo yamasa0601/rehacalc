@@ -291,7 +291,7 @@
   </main>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
 const TEST_MS = 6 * 60 * 1000;
 
 const PROMPTS = [
@@ -473,7 +473,7 @@ function sendToEvaluation() {
       sixMinuteWalkDistance: distance.toFixed(1).replace(/\.0$/, "")
     }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./record-destination.html";
 }
 
 $("startBtn").addEventListener("click", startTest);

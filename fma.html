@@ -94,12 +94,12 @@
     <div class="btn-row">
         <button class="btn-action btn-copy" onclick="copyResult()">結果をコピー</button>
         <button class="btn-action btn-csv" onclick="exportCSV()">CSV出力</button>
-        <button class="btn-action btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
+        <button class="btn-action btn-record" onclick="sendToEvaluation()">脳卒中評価記録へ送る</button>
     </div>
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
 
 /* ================================================================
    DATA DEFINITIONS
@@ -562,7 +562,7 @@ function sendToEvaluation() {
         recordDate: new Date().toISOString().slice(0, 10),
         measurements
     }));
-    location.href = "./evaluation.html";
+    location.href = "./stroke-record.html";
 }
 
 function exportCSV() {

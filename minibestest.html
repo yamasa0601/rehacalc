@@ -56,12 +56,12 @@
   <div class="actions">
     <a class="button" href="./index.html">アプリ一覧</a>
     <button id="reset" type="button">リセット</button>
-    <button id="send" type="button">評価記録へ送る</button>
+    <button id="send" type="button">脳卒中評価記録へ送る</button>
   </div>
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
 const SECTIONS = [
   {
     id:"sec1", title:"セクション1：予測的姿勢調整", max:6,
@@ -152,7 +152,7 @@ document.getElementById("send").addEventListener("click", () => {
     recordDate:new Date().toISOString().slice(0, 10),
     measurements:{ miniBestest:String(total) }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./stroke-record.html";
 });
 
 render();

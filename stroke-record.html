@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>大腿骨近位部骨折 研究評価記録</title>
+  <title>脳卒中 臨床評価記録</title>
   <script src="./assets/pdf-lib.min.js"></script>
   <style>
     :root {
@@ -301,14 +301,15 @@
       box-shadow:0 6px 18px rgba(15,23,42,.2);
     }
     .hidden { display:none !important; }
-    .stroke-only { display:none !important; }
+    .stroke-only { display:block !important; }
+    #exportPdf { display:none; }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>大腿骨近位部骨折 研究評価記録</h1>
-      <p>大腿骨近位部骨折の研究データ専用です。脳卒中の臨床評価記録とは保存先・履歴・グラフを分離しています。</p>
+      <h1>脳卒中 臨床評価記録</h1>
+      <p>脳卒中の臨床評価専用です。大腿骨近位部骨折の研究データとは保存先・履歴・グラフを分離しています。</p>
     </div>
     <a class="back" href="./index.html">一覧へ</a>
   </header>
@@ -319,7 +320,7 @@
     <div class="tabs" role="tablist">
       <button class="tab active" type="button" data-view="entry">評価記録</button>
       <button class="tab" type="button" data-view="history">履歴・グラフ</button>
-      <button class="tab" type="button" data-view="pdf">評価用紙PDF</button>
+      <button class="tab" type="button" data-view="pdf">脳卒中評価用紙</button>
     </div>
 
     <div id="view-entry" class="view active">
@@ -385,7 +386,7 @@
               <input id="weight" type="number" inputmode="decimal" />
             </div>
             <div>
-              <label for="surgicalSide">術側</label>
+              <label for="surgicalSide">麻痺側</label>
               <select id="surgicalSide">
                 <option value="">未選択</option>
                 <option value="右">右</option>
@@ -404,11 +405,11 @@
               </select>
             </div>
             <div>
-              <label for="procedure">術式</label>
+              <label for="procedure">診断名・病型</label>
               <input id="procedure" autocomplete="off" />
             </div>
             <div>
-              <label for="injuryDate">受傷日</label>
+              <label for="injuryDate">発症日</label>
               <input id="injuryDate" type="date" />
             </div>
             <div>
@@ -568,12 +569,23 @@
             <div class="summary-box"><div class="k">最新時期</div><div id="latestStage" class="v">-</div></div>
           </div>
           <p class="note">
-            共通評価画面で送信先に「大腿骨近位部骨折・研究用」を選んだ結果が、この入力欄に自動反映されます。
+            脳卒中専用評価と、共通評価画面で送信先に「脳卒中・臨床用」を選んだ結果が、この入力欄に自動反映されます。
             ここで対象者・評価時期を選んで保存すると、履歴とグラフ、評価用紙PDF出力に使えます。
           </p>
           <p class="note">
             保存先はこの端末のブラウザ内です。個人情報を扱う場合は、端末の共有やブラウザデータ削除に注意してください。
           </p>
+          <h3>旧共通記録から脳卒中へ移動</h3>
+          <div class="form-grid cols-2">
+            <div>
+              <label for="legacyPatientSelect">移動する対象者</label>
+              <select id="legacyPatientSelect"></select>
+            </div>
+            <div style="display:flex;align-items:end;">
+              <button id="migrateLegacyPatient" class="action secondary" type="button">選択対象者を脳卒中記録へ移動</button>
+            </div>
+          </div>
+          <p class="note">以前の共通評価記録に保存した脳卒中対象者がいる場合だけ使用してください。選択対象者の全記録を研究用保存領域から脳卒中用へ移動します。</p>
         </section>
       </div>
     </div>
@@ -706,7 +718,7 @@
     <div id="view-pdf" class="view">
       <div class="layout">
         <section class="panel">
-          <h2>評価用紙PDF</h2>
+          <h2>脳卒中評価用紙PDF</h2>
           <div class="form-grid cols-2" style="margin-bottom:10px;">
             <div>
               <label for="pdfPatient">対象者</label>
@@ -725,17 +737,14 @@
               </select>
             </div>
           </div>
-          <p class="note">
-            保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
-            LSA、最大歩行速度の行は空欄のまま出力します。6分間歩行テストは評価用紙PDFへ追記し、臨床評価結果グラフにも使用します。
-          </p>
+          <p class="note">保存済みの脳卒中臨床記録から、各評価時期の最新値を脳卒中評価用紙へまとめます。</p>
           <p class="note">
             HDS-R/MMSE共通シートは、MMSE合計点のみを右下のMMSE合計欄へ転記します。
           </p>
           <div class="actions">
-            <button id="exportPdf" class="action" type="button">PDFを作成</button>
+            <button id="exportPdf" class="action" type="button">旧評価用紙PDFを作成</button>
             <button id="exportMmsePdf" class="action" type="button">MMSE用紙PDFを作成</button>
-            <button id="goStrokePdf" class="action secondary" type="button">脳卒中記録（別画面）へ</button>
+            <button id="goStrokePdf" class="action" type="button">脳卒中評価用紙へ</button>
             <button id="copyCsv" class="action secondary" type="button">記録CSV保存</button>
           </div>
         </section>
@@ -743,14 +752,14 @@
         <section class="panel">
           <h2>出力内容</h2>
           <p class="note">
-            評価用紙PDFは、保存済み記録から各時期の入力済みデータをまとめて転記します。
+            脳卒中評価用紙は、運動機能、HHD、歩行、バランス、認知機能を時期別にまとめてPDF出力します。
           </p>
           <p class="note">
             HDS-R/MMSE共通シートはMMSE合計点のみを保存データから転記します。
             HDS-R合計点も含めて共通シートを作る場合は、トップページの「HDS-R・MMSE 共通シート」を開いてください。
           </p>
           <p class="note">
-            脳卒中評価用紙は、FMA上肢運動、FMA下肢運動、TISを評価時期ごとにまとめます。
+            レーダーチャートは評価できた項目を選択し、複数時期を重ねて比較できます。
           </p>
         </section>
       </div>
@@ -760,8 +769,9 @@
   <div id="toast" class="toast">保存しました</div>
 
 <script>
-const STORAGE_KEY = "rehacalc_evaluation_records_v1";
-const DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const STORAGE_KEY = "rehacalc_stroke_records_v1";
+const DRAFT_KEY = "rehacalc_stroke_draft_v1";
+const LEGACY_STORAGE_KEY = "rehacalc_evaluation_records_v1";
 const TEMPLATE_URL = "./assets/evaluation-form.pdf";
 const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
 
@@ -795,6 +805,15 @@ const GRAPH_METRICS = [
   { id:"sixMinuteWalkDistance", label:"6分間歩行", unit:"m" },
   { id:"strideCv", label:"ストライド変動係数", unit:"%" },
   { id:"bbs", label:"BBS", unit:"点" },
+  { id:"miniBestest", label:"Mini-BESTest", unit:"点" },
+  { id:"dgi", label:"DGI", unit:"点" },
+  { id:"fmaUpper", label:"FMA 上肢運動", unit:"点" },
+  { id:"fmaLower", label:"FMA 下肢運動", unit:"点" },
+  { id:"tis", label:"TIS", unit:"点" },
+  { id:"stef", label:"STEF", unit:"点" },
+  { id:"malAou", label:"MAL AOU 平均", unit:"点" },
+  { id:"malQom", label:"MAL QOM 平均", unit:"点" },
+  { id:"sara", label:"SARA", unit:"点" },
   { id:"fab", label:"FAB", unit:"点" },
   { id:"mmse", label:"MMSE", unit:"点" },
   { id:"tmtA", label:"partA / TMT-A", unit:"秒" },
@@ -1120,6 +1139,60 @@ function renderEntryPatientSelect() {
     select.appendChild(opt);
   });
   select.value = selected;
+}
+
+function loadLegacyRecords() {
+  try {
+    const records = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || "[]");
+    return Array.isArray(records) ? records : [];
+  } catch {
+    return [];
+  }
+}
+
+function renderLegacyPatientSelect() {
+  const select = $("legacyPatientSelect");
+  const patients = getPatients(loadLegacyRecords());
+  select.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = patients.length ? "旧共通記録の対象者を選択" : "移動できる旧記録なし";
+  select.appendChild(blank);
+  patients.forEach((patient) => {
+    const option = document.createElement("option");
+    option.value = patient.key;
+    option.textContent = patient.label;
+    select.appendChild(option);
+  });
+  select.disabled = patients.length === 0;
+  $("migrateLegacyPatient").disabled = patients.length === 0;
+}
+
+function migrateLegacyPatient() {
+  const key = $("legacyPatientSelect").value;
+  if (!key) {
+    alert("移動する対象者を選択してください。");
+    return;
+  }
+  const legacy = loadLegacyRecords();
+  const moving = legacy.filter(record => patientKey(record) === key);
+  if (!moving.length) return;
+  if (!confirm(`${patientLabel(moving.at(-1))} の記録 ${moving.length}件を、大腿骨研究用から脳卒中臨床用へ移動しますか？`)) return;
+  const current = loadRecords();
+  const ids = new Set(current.map(record => record.id));
+  moving.forEach((record) => {
+    const id = ids.has(record.id) ? `stroke_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` : record.id;
+    current.push({ ...record, id });
+    ids.add(id);
+  });
+  saveRecords(current);
+  localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(legacy.filter(record => patientKey(record) !== key)));
+  renderLegacyPatientSelect();
+  renderEntryPatientSelect();
+  updateStats();
+  renderHistory();
+  renderPdfPatientSelect();
+  toast(`${moving.length}件を脳卒中記録へ移動しました`);
 }
 
 function applyPatientProfile(patient) {
@@ -2051,7 +2124,8 @@ document.querySelectorAll('input[name="clinicalRadarStages"]').forEach((input) =
 $("pdfPatient").addEventListener("change", () => {});
 $("exportPdf").addEventListener("click", exportFilledPdf);
 $("exportMmsePdf").addEventListener("click", exportMmsePdf);
-$("goStrokePdf").addEventListener("click", () => location.href = "./stroke-record.html");
+$("goStrokePdf").addEventListener("click", () => location.href = "./stroke-evaluation.html");
+$("migrateLegacyPatient").addEventListener("click", migrateLegacyPatient);
 $("copyCsv").addEventListener("click", exportCsvForPatient);
 $("downloadGraph").addEventListener("click", downloadGraphPng);
 $("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);
@@ -2064,6 +2138,7 @@ $("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);
 $("recordDate").value = today();
 applyIncomingDraft();
 renderEntryPatientSelect();
+renderLegacyPatientSelect();
 updateStats();
 renderHistory();
 renderPdfPatientSelect();

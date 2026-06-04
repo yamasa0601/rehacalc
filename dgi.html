@@ -219,7 +219,7 @@
   </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
 
 const DGI_ITEMS = [
   {
@@ -389,7 +389,7 @@ function sendToEvaluation() {
     recordDate: new Date().toISOString().slice(0, 10),
     measurements: { dgi: String(result.total) }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./record-destination.html";
 }
 
 renderItems();

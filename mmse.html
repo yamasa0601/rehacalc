@@ -218,7 +218,7 @@
   </main>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
 const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
 const STATE_KEY = "rehacalc_hdsr_mmse_scores_v1";
 
@@ -303,7 +303,7 @@ function sendToEvaluation() {
     recordDate: today(),
     measurements: { mmse: String(score) }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./record-destination.html";
 }
 
 async function createPdf() {

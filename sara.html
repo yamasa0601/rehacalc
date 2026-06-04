@@ -62,12 +62,12 @@
   <div class="actions">
     <a class="button" href="./index.html">アプリ一覧</a>
     <button id="reset" type="button">リセット</button>
-    <button id="send" type="button">評価記録へ送る</button>
+    <button id="send" type="button">脳卒中評価記録へ送る</button>
   </div>
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
 const ITEMS = [
   {
     id:"gait", title:"1. 歩行", max:8, method:"歩行、方向転換、つぎ足歩行を総合して評価します。",
@@ -163,7 +163,7 @@ document.getElementById("send").addEventListener("click", () => {
     recordDate:new Date().toISOString().slice(0, 10),
     measurements:{ sara:document.getElementById("totalScore").textContent }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./stroke-record.html";
 });
 
 render();

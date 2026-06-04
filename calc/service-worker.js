@@ -1,4 +1,4 @@
-const CACHE_NAME = "rehacalc-v2";
+const CACHE_NAME = "rehacalc-v3";
 const ASSETS = ["./","./index.html","./manifest.json","./service-worker.js","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install", (event) => {

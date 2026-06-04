@@ -95,12 +95,12 @@
   <div class="actions">
     <a class="button" href="./index.html">アプリ一覧</a>
     <button id="reset" type="button">リセット</button>
-    <button id="send" type="button">評価記録へ送る</button>
+    <button id="send" type="button">脳卒中評価記録へ送る</button>
   </div>
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_stroke_draft_v1";
 const ITEMS = [
   "本・雑誌・新聞を読む",
   "タオルを使って顔や身体を拭く",
@@ -177,7 +177,7 @@ document.getElementById("send").addEventListener("click", () => {
       malQom:document.getElementById("qomAverage").textContent
     }
   }));
-  location.href = "./evaluation.html";
+  location.href = "./stroke-record.html";
 });
 
 renderItems();

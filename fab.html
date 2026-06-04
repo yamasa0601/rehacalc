@@ -119,7 +119,7 @@
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
 
 function calc() {
     let total = 0;
@@ -164,7 +164,7 @@ function sendToEvaluation() {
         recordDate: new Date().toISOString().slice(0, 10),
         measurements: { fab: score }
     }));
-    location.href = "./evaluation.html";
+    location.href = "./record-destination.html";
 }
 </script>
 </body>
