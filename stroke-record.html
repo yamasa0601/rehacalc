@@ -271,6 +271,29 @@
       width:auto;
       margin:0;
     }
+    .clinical-status {
+      display:grid;
+      gap:7px;
+      margin:10px 0;
+    }
+    .clinical-status-row {
+      padding:9px 10px;
+      border-left:4px solid #d97706;
+      background:#fffbeb;
+      color:#78350f;
+      font-size:12px;
+      line-height:1.55;
+    }
+    .clinical-status-row.complete {
+      border-left-color:#0f766e;
+      background:#f0fdfa;
+      color:#134e4a;
+    }
+    .clinical-status-row.empty {
+      border-left-color:#9ca3af;
+      background:#f9fafb;
+      color:#4b5563;
+    }
     .empty {
       border:1px dashed #cbd5e1;
       border-radius:9px;
@@ -707,6 +730,7 @@
               </p>
             </div>
           </div>
+          <div id="clinicalAssessmentStatus" class="clinical-status"></div>
           <canvas id="clinicalRadarChart"></canvas>
           <p id="clinicalChartCaption" class="note" style="margin:8px 0 0;">対象者を選ぶと臨床評価結果を表示します。</p>
           <div class="actions">
@@ -854,18 +878,19 @@ const STRENGTH_RADAR_METRICS = [
 ];
 
 const CLINICAL_RADAR_METRICS = [
-  { label:"歩行自立度", detail:"FAC 5点基準", value:r => num(r.measurements?.fac), normalize:v => clampPercent(v / 5 * 100) },
-  { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
-  { label:"歩行耐久性", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
-  { label:"歩行安定性", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((20 - v) / 20 * 100) },
+  { label:"歩行自立度", missingLabel:"FAC", detail:"FAC 5点基準", value:r => num(r.measurements?.fac), normalize:v => clampPercent(v / 5 * 100) },
+  { label:"歩行速度", missingLabel:"10m歩行テスト", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
+  { label:"歩行耐久性", missingLabel:"6分間歩行テスト", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
+  { label:"歩行安定性", missingLabel:"ストライド変動係数", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((20 - v) / 20 * 100) },
   {
     label:"バランス",
+    missingLabel:"BBSまたはMini-BESTest",
     detail:"BBS 56点 / Mini-BESTest 28点基準",
     value:r => num(r.measurements?.bbs) !== null ? num(r.measurements?.bbs) : num(r.measurements?.miniBestest),
     normalize:(v, r) => num(r.measurements?.bbs) !== null ? clampPercent(v / 56 * 100) : clampPercent(v / 28 * 100)
   },
-  { label:"応用歩行", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) },
-  { label:"歩行の自信 GES", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) }
+  { label:"応用歩行", missingLabel:"DGI", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) },
+  { label:"歩行の自信 GES", missingLabel:"GES", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) }
 ];
 
 const RADAR_COLORS = [
@@ -1731,6 +1756,40 @@ function clinicalRadarValues(record) {
   });
 }
 
+function getClinicalRadarStatusRecords(patient) {
+  if (!patient) return [];
+  const stages = selectedClinicalRadarStages();
+  if (!stages.length) return getClinicalRadarRecords(patient);
+  const stageMap = getMergedRecordsByStage(patient);
+  return stages.map(stage => ({ label:stageLabel(stage), record:stageMap.get(stage) || null }));
+}
+
+function renderClinicalAssessmentStatus(patient) {
+  const root = $("clinicalAssessmentStatus");
+  if (!root) return;
+  const items = getClinicalRadarStatusRecords(patient);
+  if (!items.length) {
+    root.innerHTML = '<div class="clinical-status-row empty">対象者または評価時期を選択すると、未評価項目を確認できます。</div>';
+    return;
+  }
+  root.innerHTML = items.map(item => {
+    if (!item.record) {
+      return `<div class="clinical-status-row empty"><strong>${escapeHtml(item.label)}</strong>：評価記録がありません。</div>`;
+    }
+    const values = clinicalRadarValues(item.record);
+    const missing = values
+      .filter(value => value.normalized === null)
+      .map(value => value.metric.missingLabel || value.metric.label);
+    const completed = values.length - missing.length;
+    const date = clean(item.record.recordDate);
+    const heading = `${item.label}${date ? `（${date}）` : ""}`;
+    if (!missing.length) {
+      return `<div class="clinical-status-row complete"><strong>${escapeHtml(heading)}</strong>：全7項目を入力済みです。</div>`;
+    }
+    return `<div class="clinical-status-row"><strong>${escapeHtml(heading)}</strong>：入力済み ${completed}/7　未評価：${escapeHtml(missing.join("、"))}</div>`;
+  }).join("");
+}
+
 function renderClinicalRadarChart() {
   const canvas = $("clinicalRadarChart");
   if (!canvas) return;
@@ -1747,6 +1806,7 @@ function renderClinicalRadarChart() {
   const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
   const selectedStages = selectedClinicalRadarStages();
   const records = getClinicalRadarRecords(patient);
+  renderClinicalAssessmentStatus(patient);
   if (!records.length) {
     drawEmptyChart(ctx, w, h, "臨床評価結果グラフ化できる記録がありません");
     $("clinicalChartCaption").textContent = selectedStages.length ? "選択した時期に記録がありません。" : "対象者と表示時期を選ぶと臨床評価結果を表示します。";
@@ -1763,8 +1823,8 @@ function renderClinicalRadarChart() {
     .filter(item => item.complete);
 
   if (!series.length) {
-    drawEmptyChart(ctx, w, h, "7項目すべての入力が必要です");
-    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSまたはMini-BESTest、DGI、GESを入力すると7角形で表示します。";
+    drawEmptyChart(ctx, w, h, "未評価項目を上で確認してください");
+    $("clinicalChartCaption").textContent = "上の評価状況に、レーダーチャート作成に必要な未評価項目を表示しています。";
     return;
   }
 
