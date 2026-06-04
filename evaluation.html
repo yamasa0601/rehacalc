@@ -78,6 +78,7 @@
       grid-template-columns:1fr;
       gap:12px;
     }
+    .layout > * { min-width:0; }
     @media (min-width:980px) {
       .layout { grid-template-columns:1.1fr .9fr; align-items:start; }
     }
@@ -672,7 +673,7 @@
         <section class="panel" style="grid-column:1/-1;">
           <h2>臨床評価結果グラフ</h2>
           <p class="note" style="margin:0 0 10px;">
-            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBSまたはMini-BESTest）、応用歩行（DGI）を6角形で表示します。
+            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBSまたはMini-BESTest）、応用歩行（DGI）、歩行の自信（GES）を7角形で表示します。
           </p>
           <div class="form-grid cols-2" style="margin-bottom:10px;">
             <div>
@@ -685,12 +686,12 @@
                 <label><input type="checkbox" name="clinicalRadarStages" value="month3" />3M</label>
                 <label><input type="checkbox" name="clinicalRadarStages" value="discharge" />退院</label>
               </div>
-              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。6項目すべて入力された時期を描画します。</p>
+              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。7項目すべて入力された時期を描画します。</p>
             </div>
             <div>
               <label>換算基準</label>
               <p class="note" style="margin:0;">
-                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点またはMini-BESTest 28点、DGI 24点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
+                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点またはMini-BESTest 28点、DGI 24点、GES 100点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
               </p>
             </div>
           </div>
@@ -844,7 +845,8 @@ const CLINICAL_RADAR_METRICS = [
     value:r => num(r.measurements?.bbs) !== null ? num(r.measurements?.bbs) : num(r.measurements?.miniBestest),
     normalize:(v, r) => num(r.measurements?.bbs) !== null ? clampPercent(v / 56 * 100) : clampPercent(v / 28 * 100)
   },
-  { label:"応用歩行", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) }
+  { label:"応用歩行", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) },
+  { label:"歩行の自信 GES", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) }
 ];
 
 const RADAR_COLORS = [
@@ -1688,8 +1690,8 @@ function renderClinicalRadarChart() {
     .filter(item => item.complete);
 
   if (!series.length) {
-    drawEmptyChart(ctx, w, h, "6項目すべての入力が必要です");
-    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSまたはMini-BESTest、DGIを入力すると6角形で表示します。";
+    drawEmptyChart(ctx, w, h, "7項目すべての入力が必要です");
+    $("clinicalChartCaption").textContent = "FAC、10mCWS、6分間歩行、ストライド変動係数、BBSまたはMini-BESTest、DGI、GESを入力すると7角形で表示します。";
     return;
   }
 
@@ -1767,7 +1769,7 @@ function renderClinicalRadarChart() {
   drawRadarLegend(ctx, w, h, series);
   const labels = series.map(item => item.label).join("・");
   const modeText = series.length > 1 ? "を重ね表示" : "を表示";
-  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（6項目を0〜100%換算）`;
+  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（7項目を0〜100%換算）`;
 }
 
 function drawEmptyChart(ctx, w, h, message) {

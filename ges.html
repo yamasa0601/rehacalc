@@ -73,7 +73,7 @@
 </div>
 
 <script>
-const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const TRANSFER_KEY = "rehacalc_record_transfer_v1";
 
 const items = [
     "1. 床のような固い平面を安全に歩ける自信はどのくらいありますか？",
@@ -135,12 +135,12 @@ function copyResult() {
 
 function sendToEvaluation() {
     const total = document.getElementById('total-score').innerText;
-    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    localStorage.setItem(TRANSFER_KEY, JSON.stringify({
         sourceLabel: "GES",
         recordDate: new Date().toISOString().slice(0, 10),
         measurements: { mfes: total }
     }));
-    location.href = "./evaluation.html";
+    location.href = "./record-destination.html";
 }
 
 renderItems();
