@@ -145,6 +145,54 @@
       font-size:12px;
       line-height:1.7;
     }
+    .category-row td {
+      height:38px;
+      color:#174b46;
+      background:var(--soft);
+      font-size:13px;
+      font-weight:900;
+      text-align:left;
+    }
+    .conditions {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:16px;
+    }
+    .condition {
+      padding:10px 12px;
+      border-left:4px solid #d97706;
+      background:#fff8e7;
+      color:#71470a;
+      font-size:12px;
+      line-height:1.65;
+    }
+    .radar-panel {
+      margin-top:16px;
+      padding:20px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--paper);
+    }
+    .radar-panel h2 { margin:0 0 5px; font-size:19px; }
+    .radar-controls { display:grid; grid-template-columns:1fr 2fr; gap:14px; margin:14px 0; }
+    .control-box { padding:12px; border:1px solid var(--line); border-radius:6px; }
+    .checks { display:flex; flex-wrap:wrap; gap:6px; }
+    .checks label {
+      display:flex;
+      align-items:center;
+      gap:4px;
+      margin:0;
+      padding:7px 9px;
+      border:1px solid var(--line);
+      border-radius:5px;
+      color:var(--text);
+      background:#fff;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .checks input { width:17px; height:17px; margin:0; accent-color:var(--accent); }
+    #strokeRadar { display:block; width:100%; height:390px; border:1px solid var(--line); border-radius:6px; background:#fff; }
     .empty-state {
       display:none;
       padding:34px 16px;
@@ -175,6 +223,7 @@
       .profile { grid-template-columns:repeat(2, 1fr); }
       .paper { padding:16px; }
       .paper-title { font-size:20px; }
+      .conditions, .radar-controls { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -183,7 +232,7 @@
     <div class="header-inner">
       <div>
         <h1>脳卒中 評価用紙</h1>
-        <p class="sub">保存済みのFMA上肢・FMA下肢・TISを、評価時期ごとに一枚へまとめます。</p>
+        <p class="sub">運動、歩行、バランス、認知機能を評価時期ごとにまとめ、実施項目を選んで可視化します。</p>
       </div>
       <nav class="nav">
         <a href="./index.html">アプリ一覧</a>
@@ -245,6 +294,27 @@
       <p class="sheet-note">
         「-」は未入力です。各評価画面から「評価記録へ送る」を押し、対象者と評価時期を確認して評価記録を保存すると反映されます。
       </p>
+      <div class="conditions">
+        <div class="condition"><b>HHD：</b>脳卒中の麻痺側は、共同運動の影響を避けるため、分離運動が可能な対象者のみ実施してください。</div>
+        <div class="condition"><b>SARA：</b>運動失調を認める場合のみ実施してください。立位・歩行項目は転倒予防に十分配慮してください。</div>
+      </div>
+    </section>
+
+    <section id="radarPanel" class="radar-panel">
+      <h2>脳卒中評価 選択式レーダーチャート</h2>
+      <p class="sub">評価できた項目を3項目以上選択してください。複数時期を選ぶと重ねて比較できます。</p>
+      <div class="radar-controls">
+        <div class="control-box">
+          <label>比較時期</label>
+          <div id="radarStages" class="checks"></div>
+        </div>
+        <div class="control-box">
+          <label>表示する評価項目</label>
+          <div id="radarMetrics" class="checks"></div>
+        </div>
+      </div>
+      <canvas id="strokeRadar"></canvas>
+      <p id="radarCaption" class="sheet-note">対象者と評価項目を選ぶと表示します。</p>
     </section>
 
     <section id="emptyState" class="empty-state">
@@ -265,14 +335,98 @@
       { id:"month3", label:"3M" },
       { id:"discharge", label:"退院" }
     ];
-    const ROWS = [
-      { id:"fmaUpper", label:"FMA 上肢運動", max:66 },
-      { id:"fmaLower", label:"FMA 下肢運動", max:34 },
-      { id:"tis", label:"TIS", max:23 }
+    const ROW_GROUPS = [
+      {
+        label:"運動機能・上肢使用",
+        rows:[
+          { id:"fmaUpper", label:"FMA 上肢運動", max:66, unit:"点" },
+          { id:"fmaLower", label:"FMA 下肢運動", max:34, unit:"点" },
+          { id:"tis", label:"TIS", max:23, unit:"点" },
+          { id:"stef", label:"STEF", max:100, unit:"点" },
+          { id:"malAou", label:"MAL AOU 平均", max:5, unit:"点" },
+          { id:"malQom", label:"MAL QOM 平均", max:5, unit:"点" },
+          { id:"sara", label:"SARA（運動失調時）", max:40, unit:"点" }
+        ]
+      },
+      {
+        label:"HHD 筋力",
+        rows:[
+          { label:"股屈筋 右 / 左", unit:"N", value:r => pair(r?.measurements?.hipFlexorRight, r?.measurements?.hipFlexorLeft) },
+          { label:"膝伸展 右 / 左", unit:"N", value:r => pair(r?.measurements?.kneeExtensorRight, r?.measurements?.kneeExtensorLeft) },
+          { label:"足背屈 右 / 左", unit:"N", value:r => pair(r?.measurements?.ankleDorsiflexorRight, r?.measurements?.ankleDorsiflexorLeft) },
+          { label:"股伸展 右 / 左", unit:"N", value:r => pair(r?.measurements?.hipExtensorRight, r?.measurements?.hipExtensorLeft) },
+          { label:"股外転 右 / 左", unit:"N", value:r => pair(r?.measurements?.hipAbductorRight, r?.measurements?.hipAbductorLeft) },
+          { label:"足底屈 右 / 左", unit:"N", value:r => pair(r?.measurements?.anklePlantarflexorRight, r?.measurements?.anklePlantarflexorLeft) }
+        ]
+      },
+      {
+        label:"バランス・歩行",
+        rows:[
+          { id:"bbs", label:"BBS", max:56, unit:"点" },
+          { id:"miniBestest", label:"Mini-BESTest", max:28, unit:"点" },
+          { id:"fac", label:"歩行自立度 FAC", max:5, unit:"点" },
+          { id:"comfortable10mSpeed", label:"10m歩行速度", unit:"m/s" },
+          { id:"sixMinuteWalkDistance", label:"6分間歩行テスト", unit:"m" },
+          { id:"strideCv", label:"ストライド変動係数", unit:"%" },
+          { id:"dgi", label:"DGI", max:24, unit:"点" }
+        ]
+      },
+      {
+        label:"認知・遂行・注意",
+        rows:[
+          { id:"mmse", label:"MMSE", max:30, unit:"点" },
+          { id:"fab", label:"FAB", max:18, unit:"点" },
+          { id:"tmtA", label:"TMT-A", unit:"秒" }
+        ]
+      }
+    ];
+    const ROWS = ROW_GROUPS.flatMap(group => group.rows);
+    const PDF_GROUPS = [
+      { title:"運動機能・上肢使用・HHD", rows:[...ROW_GROUPS[0].rows, ...ROW_GROUPS[1].rows] },
+      { title:"バランス・歩行・認知機能", rows:[...ROW_GROUPS[2].rows, ...ROW_GROUPS[3].rows] }
+    ];
+    const RADAR_METRICS = [
+      { id:"fmaUpper", label:"FMA上肢", max:66 },
+      { id:"fmaLower", label:"FMA下肢", max:34 },
+      { id:"tis", label:"TIS", max:23 },
+      { id:"stef", label:"STEF", max:100 },
+      { id:"malAou", label:"MAL AOU", max:5 },
+      { id:"malQom", label:"MAL QOM", max:5 },
+      { id:"sara", label:"SARA", max:40, reverse:true },
+      { id:"bbs", label:"BBS", max:56 },
+      { id:"miniBestest", label:"Mini-BESTest", max:28 },
+      { id:"fac", label:"FAC", max:5 },
+      { id:"comfortable10mSpeed", label:"10m歩行", max:1 },
+      { id:"sixMinuteWalkDistance", label:"6分間歩行", max:400 },
+      { id:"strideCv", label:"ストライドCV", max:20, reverse:true },
+      { id:"dgi", label:"DGI", max:24 },
+      { id:"mmse", label:"MMSE", max:30 },
+      { id:"fab", label:"FAB", max:18 },
+      { id:"tmtA", label:"TMT-A", min:60, max:180, reverse:true }
+    ];
+    const RADAR_COLORS = [
+      { stroke:"#176b63", fill:"rgba(23,107,99,.16)" },
+      { stroke:"#2563eb", fill:"rgba(37,99,235,.13)" },
+      { stroke:"#dc2626", fill:"rgba(220,38,38,.12)" },
+      { stroke:"#7c3aed", fill:"rgba(124,58,237,.12)" },
+      { stroke:"#d97706", fill:"rgba(217,119,6,.12)" },
+      { stroke:"#0891b2", fill:"rgba(8,145,178,.12)" }
     ];
     const $ = (id) => document.getElementById(id);
     const clean = (value) => String(value ?? "").trim();
     const show = (value) => clean(value) || "-";
+    const num = (value) => {
+      const n = Number(clean(value));
+      return Number.isFinite(n) && clean(value) !== "" ? n : null;
+    };
+    const clamp = (value) => Math.max(0, Math.min(100, value));
+
+    function pair(right, left) {
+      const r = clean(right);
+      const l = clean(left);
+      if (!r && !l) return "";
+      return `${r || "-"} / ${l || "-"}`;
+    }
 
     function loadRecords() {
       try {
@@ -351,6 +505,7 @@
 
       const hasPatients = patients.size > 0;
       $("sheet").style.display = hasPatients ? "block" : "none";
+      $("radarPanel").style.display = hasPatients ? "block" : "none";
       $("emptyState").style.display = hasPatients ? "none" : "block";
       $("downloadPdf").disabled = !hasPatients;
       if (hasPatients) renderSheet();
@@ -361,7 +516,7 @@
     }
 
     function cellValue(record, row) {
-      return clean(record?.measurements?.[row.id]);
+      return clean(row.value ? row.value(record) : record?.measurements?.[row.id]);
     }
 
     function renderSheet() {
@@ -387,15 +542,18 @@
             return `<td class="${value ? "" : "empty"}">${value || "-"}</td>`;
           }).join("")}
         </tr>`;
-      const scoreRows = ROWS.map((row) => `
-        <tr>
-          <td>${row.label} <span class="max">/ ${row.max}点</span></td>
-          ${STAGES.map((stage) => {
-            const value = cellValue(byStage.get(stage.id), row);
-            return `<td class="${value ? "" : "empty"}">${value ? `<span class="score">${value}</span><span class="max">点</span>` : "-"}</td>`;
-          }).join("")}
-        </tr>`).join("");
+      const scoreRows = ROW_GROUPS.map((group) => `
+        <tr class="category-row"><td colspan="${STAGES.length + 1}">${group.label}</td></tr>
+        ${group.rows.map((row) => `
+          <tr>
+            <td>${row.label}${row.max ? ` <span class="max">/ ${row.max}点</span>` : ""}</td>
+            ${STAGES.map((stage) => {
+              const value = cellValue(byStage.get(stage.id), row);
+              return `<td class="${value ? "" : "empty"}">${value ? `<span class="score">${value}</span><span class="max">${row.unit || ""}</span>` : "-"}</td>`;
+            }).join("")}
+          </tr>`).join("")}`).join("");
       $("sheetBody").innerHTML = dateRow + scoreRows;
+      renderRadar();
     }
 
     function canvasText(ctx, text, x, y, options = {}) {
@@ -424,7 +582,7 @@
       ctx.strokeRect(x, y, width, height);
     }
 
-    function drawPdfCanvas(key) {
+    function drawPdfCanvas(key, group, pageIndex) {
       const canvas = document.createElement("canvas");
       canvas.width = 1240;
       canvas.height = 1754;
@@ -439,9 +597,10 @@
       const right = 1170;
       const width = right - left;
 
-      canvasText(ctx, "脳卒中 評価用紙", canvas.width / 2, 92, { size:42, weight:800, align:"center" });
+      canvasText(ctx, "脳卒中 評価用紙", canvas.width / 2, 78, { size:38, weight:800, align:"center" });
+      canvasText(ctx, group.title, canvas.width / 2, 122, { size:21, weight:700, align:"center", color:"#5f6c73" });
       ctx.fillStyle = "#176b63";
-      ctx.fillRect(left, 132, width, 6);
+      ctx.fillRect(left, 150, width, 6);
 
       const infoTop = 180;
       const infoRows = [
@@ -470,37 +629,37 @@
         infoY += 92;
       });
 
-      const tableY = 410;
-      const labelWidth = 250;
+      const tableY = 400;
+      const labelWidth = 265;
       const stageWidth = (width - labelWidth) / STAGES.length;
-      const headerHeight = 76;
-      const rowHeight = 132;
+      const headerHeight = 64;
+      const pdfRows = [
+        { label:"評価日", value:(record) => clean(record?.recordDate) },
+        ...group.rows
+      ];
+      const rowHeight = Math.min(92, Math.floor(1010 / pdfRows.length));
 
       drawCell(ctx, left, tableY, labelWidth, headerHeight, "#eaf4f2");
-      canvasText(ctx, "評価項目", left + 16, tableY + headerHeight / 2, { size:21, weight:800, color:"#174b46" });
+      canvasText(ctx, "評価項目", left + 12, tableY + headerHeight / 2, { size:19, weight:800, color:"#174b46" });
       STAGES.forEach((stage, index) => {
         const x = left + labelWidth + stageWidth * index;
         drawCell(ctx, x, tableY, stageWidth, headerHeight, "#eaf4f2");
-        canvasText(ctx, stage.label, x + stageWidth / 2, tableY + headerHeight / 2, { size:20, weight:800, align:"center", color:"#174b46" });
+        canvasText(ctx, stage.label, x + stageWidth / 2, tableY + headerHeight / 2, { size:18, weight:800, align:"center", color:"#174b46" });
       });
 
-      const pdfRows = [
-        { label:"評価日", max:null, value:(record) => clean(record?.recordDate) },
-        ...ROWS.map((row) => ({ label:row.label, max:row.max, value:(record) => cellValue(record, row) }))
-      ];
       pdfRows.forEach((row, rowIndex) => {
         const y = tableY + headerHeight + rowHeight * rowIndex;
         drawCell(ctx, left, y, labelWidth, rowHeight);
-        canvasText(ctx, row.label, left + 16, y + rowHeight / 2 - (row.max ? 14 : 0), { size:23, weight:800, maxWidth:labelWidth - 32 });
+        canvasText(ctx, row.label, left + 12, y + rowHeight / 2 - (row.max ? 10 : 0), { size:18, weight:800, maxWidth:labelWidth - 24 });
         if (row.max) {
-          canvasText(ctx, `/ ${row.max}点`, left + 16, y + rowHeight / 2 + 26, { size:17, weight:600, color:"#5f6c73" });
+          canvasText(ctx, `/ ${row.max}点`, left + 12, y + rowHeight / 2 + 18, { size:14, weight:600, color:"#5f6c73" });
         }
         STAGES.forEach((stage, stageIndex) => {
           const x = left + labelWidth + stageWidth * stageIndex;
-          const value = row.value(byStage.get(stage.id));
+          const value = row.value ? clean(row.value(byStage.get(stage.id))) : cellValue(byStage.get(stage.id), row);
           drawCell(ctx, x, y, stageWidth, rowHeight, value ? "#ffffff" : "#f8fafb");
           canvasText(ctx, value || "-", x + stageWidth / 2, y + rowHeight / 2, {
-            size:row.max ? 30 : 17,
+            size:row.max ? 21 : 15,
             weight:value ? 800 : 500,
             align:"center",
             color:value ? "#172026" : "#a0a9ad",
@@ -509,11 +668,12 @@
         });
       });
 
-      const noteY = 1110;
-      canvasText(ctx, "備考", left, noteY, { size:22, weight:800 });
-      drawCell(ctx, left, noteY + 28, width, 300);
-      canvasText(ctx, "FMA上肢・FMA下肢・TISの保存済み記録を評価時期ごとに表示しています。", left, 1475, { size:18, color:"#5f6c73" });
-      canvasText(ctx, `作成日: ${new Date().toISOString().slice(0, 10)}`, right, 1625, { size:18, align:"right", color:"#5f6c73" });
+      if (pageIndex === 0) {
+        canvasText(ctx, "HHD麻痺側：分離運動が可能な対象者のみ実施。SARA：運動失調を認める場合のみ実施。", left, 1585, { size:16, color:"#71470a", maxWidth:width });
+      } else {
+        canvasText(ctx, "BBSまたはMini-BESTestは、対象者の状態と目的に応じて選択してください。", left, 1585, { size:16, color:"#5f6c73", maxWidth:width });
+      }
+      canvasText(ctx, `作成日: ${new Date().toISOString().slice(0, 10)}　${pageIndex + 1} / ${PDF_GROUPS.length}`, right, 1640, { size:16, align:"right", color:"#5f6c73" });
       return canvas;
     }
 
@@ -532,11 +692,13 @@
       button.disabled = true;
       button.textContent = "PDFを作成中...";
       try {
-        const canvas = drawPdfCanvas(key);
         const pdfDoc = await PDFLib.PDFDocument.create();
-        const page = pdfDoc.addPage([595.28, 841.89]);
-        const png = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
-        page.drawImage(png, { x:0, y:0, width:595.28, height:841.89 });
+        for (let index = 0; index < PDF_GROUPS.length; index += 1) {
+          const canvas = drawPdfCanvas(key, PDF_GROUPS[index], index);
+          const page = pdfDoc.addPage([595.28, 841.89]);
+          const png = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
+          page.drawImage(png, { x:0, y:0, width:595.28, height:841.89 });
+        }
         const bytes = await pdfDoc.save();
         const blob = new Blob([bytes], { type:"application/pdf" });
         const url = URL.createObjectURL(blob);
@@ -553,6 +715,150 @@
       }
     }
 
+    function initializeRadarControls() {
+      $("radarStages").innerHTML = STAGES.map(stage => `
+        <label><input type="checkbox" name="strokeRadarStage" value="${stage.id}">${stage.label}</label>`).join("");
+      const defaults = new Set(["fmaUpper","fmaLower","tis","bbs","fac"]);
+      $("radarMetrics").innerHTML = RADAR_METRICS.map(metric => `
+        <label><input type="checkbox" name="strokeRadarMetric" value="${metric.id}" ${defaults.has(metric.id) ? "checked" : ""}>${metric.label}</label>`).join("");
+      document.querySelectorAll('input[name="strokeRadarStage"],input[name="strokeRadarMetric"]').forEach(input => {
+        input.addEventListener("change", renderRadar);
+      });
+    }
+
+    function selectedRadarMetrics() {
+      const selected = new Set([...document.querySelectorAll('input[name="strokeRadarMetric"]:checked')].map(input => input.value));
+      return RADAR_METRICS.filter(metric => selected.has(metric.id));
+    }
+
+    function selectedRadarRecords(key) {
+      const selectedStages = [...document.querySelectorAll('input[name="strokeRadarStage"]:checked')].map(input => input.value);
+      const byStage = getStageRecords(key);
+      if (selectedStages.length) {
+        return selectedStages
+          .map(stage => ({ label:STAGES.find(item => item.id === stage)?.label || stage, record:byStage.get(stage) }))
+          .filter(item => clean(item.record?.recordDate) || Object.keys(item.record?.measurements || {}).length);
+      }
+      const latest = [...byStage.entries()]
+        .filter(([, record]) => clean(record?.recordDate) || Object.keys(record?.measurements || {}).length)
+        .sort((a, b) => clean(a[1].recordDate).localeCompare(clean(b[1].recordDate)))
+        .at(-1);
+      return latest ? [{ label:STAGES.find(stage => stage.id === latest[0])?.label || latest[0], record:latest[1] }] : [];
+    }
+
+    function normalizedRadarValue(metric, record) {
+      const raw = num(record?.measurements?.[metric.id]);
+      if (raw === null) return null;
+      if (!metric.reverse) return clamp((raw / metric.max) * 100);
+      if (metric.min !== undefined) return clamp(((metric.max - raw) / (metric.max - metric.min)) * 100);
+      return clamp(((metric.max - raw) / metric.max) * 100);
+    }
+
+    function drawRadarEmpty(ctx, width, height, text) {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#f8fafb";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#627078";
+      ctx.font = "14px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, width / 2, height / 2);
+    }
+
+    function renderRadar() {
+      const canvas = $("strokeRadar");
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+      canvas.height = Math.floor(390 * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const width = canvas.width / dpr;
+      const height = canvas.height / dpr;
+      const metrics = selectedRadarMetrics();
+      const key = $("patientSelect").value;
+      if (metrics.length < 3) {
+        drawRadarEmpty(ctx, width, height, "評価項目を3つ以上選択してください");
+        $("radarCaption").textContent = "評価できた項目だけを3項目以上選択してください。";
+        return;
+      }
+      const records = selectedRadarRecords(key);
+      const series = records.map((item, index) => ({
+        ...item,
+        values:metrics.map(metric => normalizedRadarValue(metric, item.record)),
+        color:RADAR_COLORS[index % RADAR_COLORS.length]
+      })).filter(item => item.values.every(value => value !== null));
+      if (!series.length) {
+        drawRadarEmpty(ctx, width, height, "選択した時期に全項目の入力がありません");
+        $("radarCaption").textContent = "未評価の項目はチェックを外すか、別の評価時期を選択してください。";
+        return;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+      const cx = width / 2;
+      const cy = height / 2 + 10;
+      const radius = Math.min(width, height) * 0.31;
+      const angleAt = index => -Math.PI / 2 + (Math.PI * 2 * index) / metrics.length;
+      for (let level = 1; level <= 5; level += 1) {
+        ctx.beginPath();
+        metrics.forEach((metric, index) => {
+          const angle = angleAt(index);
+          const r = radius * level / 5;
+          const x = cx + Math.cos(angle) * r;
+          const y = cy + Math.sin(angle) * r;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = "#d7e0e3";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      metrics.forEach((metric, index) => {
+        const angle = angleAt(index);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+        ctx.strokeStyle = "#d7e0e3";
+        ctx.stroke();
+        const labelRadius = radius + 25;
+        ctx.fillStyle = "#334047";
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.textAlign = Math.cos(angle) > .25 ? "left" : Math.cos(angle) < -.25 ? "right" : "center";
+        ctx.textBaseline = Math.sin(angle) > .25 ? "top" : Math.sin(angle) < -.25 ? "bottom" : "middle";
+        ctx.fillText(metric.label, cx + Math.cos(angle) * labelRadius, cy + Math.sin(angle) * labelRadius);
+      });
+      series.forEach(item => {
+        ctx.beginPath();
+        item.values.forEach((value, index) => {
+          const angle = angleAt(index);
+          const r = radius * value / 100;
+          const x = cx + Math.cos(angle) * r;
+          const y = cy + Math.sin(angle) * r;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = item.color.fill;
+        ctx.strokeStyle = item.color.stroke;
+        ctx.lineWidth = 2.5;
+        ctx.fill();
+        ctx.stroke();
+      });
+      series.forEach((item, index) => {
+        const x = 14 + (index % 3) * 115;
+        const y = 16 + Math.floor(index / 3) * 20;
+        ctx.fillStyle = item.color.stroke;
+        ctx.fillRect(x, y - 5, 14, 3);
+        ctx.fillStyle = "#334047";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillText(item.label, x + 20, y - 4);
+      });
+      $("radarCaption").textContent = `選択中：${metrics.map(metric => metric.label).join("、")}。SARA・ストライドCV・TMT-Aは低値ほど外側に表示します。`;
+    }
+
     function toast(text) {
       const element = $("toast");
       element.textContent = text;
@@ -563,7 +869,9 @@
 
     $("patientSelect").addEventListener("change", renderSheet);
     $("downloadPdf").addEventListener("click", downloadPdf);
+    window.addEventListener("resize", renderRadar);
     window.addEventListener("storage", renderPatientSelect);
+    initializeRadarControls();
     renderPatientSelect();
   </script>
 </body>

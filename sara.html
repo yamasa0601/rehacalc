@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SARA 運動失調評価</title>
+  <style>
+    :root { --bg:#f5f7f8; --card:#fff; --text:#172026; --muted:#627078; --line:#d7e0e3; --accent:#176b63; --soft:#eaf4f2; --warn:#fff7df; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:16px 16px 110px; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif; }
+    main { width:min(980px,100%); margin:0 auto; }
+    h1 { margin:0 0 6px; font-size:22px; }
+    h2 { margin:0 0 12px; font-size:17px; }
+    p { color:var(--muted); font-size:13px; line-height:1.65; }
+    .card { margin:12px 0; padding:16px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .condition { padding:12px; border-left:4px solid #d97706; background:var(--warn); color:#71470a; font-weight:700; font-size:13px; line-height:1.65; }
+    .total { padding:16px; border-radius:7px; background:var(--soft); text-align:center; }
+    .total strong { display:block; margin:4px 0; color:var(--accent); font-size:38px; }
+    .item { padding:14px 0; border-bottom:1px solid var(--line); }
+    .item:last-child { border-bottom:0; }
+    .item-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .item-title { font-weight:900; }
+    .item-method { margin:5px 0 9px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .inputs { display:flex; flex-wrap:wrap; gap:8px; }
+    label { color:var(--muted); font-size:12px; font-weight:800; }
+    select { min-width:135px; margin-left:5px; padding:9px; border:1px solid #aebbc0; border-radius:6px; background:#fff; font-size:16px; }
+    details { margin-top:8px; padding:9px 11px; border:1px solid var(--line); border-radius:6px; background:#fafcfc; }
+    summary { cursor:pointer; color:#176b63; font-size:12px; font-weight:800; }
+    ol { margin:8px 0 0; padding-left:24px; color:var(--muted); font-size:12px; line-height:1.7; }
+    .footer { position:fixed; left:0; right:0; bottom:0; padding:10px 16px; border-top:1px solid var(--line); background:rgba(255,255,255,.96); }
+    .actions { width:min(980px,100%); margin:0 auto; display:flex; flex-wrap:wrap; gap:8px; }
+    button,a.button { flex:1; min-width:150px; padding:12px; border:1px solid var(--accent); border-radius:6px; color:#fff; background:var(--accent); font-weight:800; text-align:center; text-decoration:none; cursor:pointer; }
+    a.button { color:var(--text); border-color:var(--line); background:#fff; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>SARA 運動失調評価</h1>
+  <p>Scale for the Assessment and Rating of Ataxia。8項目、0〜40点で運動失調の重症度を評価します。低いほど良好です。</p>
+
+  <section class="card">
+    <div class="condition">
+      SARAは運動失調を認める場合のみ実施してください。立位・歩行項目では転倒予防のため監視・介助体制を確保してください。<br>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:8px;color:#71470a;">
+        <input id="ataxiaConfirmed" type="checkbox" style="width:20px;height:20px;accent-color:#176b63;">運動失調を認めるためSARAを実施する
+      </label>
+    </div>
+    <div class="total">
+      SARA 合計
+      <strong id="totalScore">0</strong>
+      <span>/ 40点</span>
+      <p id="interpretation" style="margin:7px 0 0;">8点以下：フリーハンド歩行自立の参考範囲</p>
+    </div>
+  </section>
+
+  <section id="items" class="card">
+    <h2>評価項目</h2>
+  </section>
+</main>
+
+<div class="footer">
+  <div class="actions">
+    <a class="button" href="./index.html">アプリ一覧</a>
+    <button id="reset" type="button">リセット</button>
+    <button id="send" type="button">評価記録へ送る</button>
+  </div>
+</div>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const ITEMS = [
+  {
+    id:"gait", title:"1. 歩行", max:8, method:"歩行、方向転換、つぎ足歩行を総合して評価します。",
+    criteria:["正常。歩行・方向転換・つぎ足が10歩超できる","やや困難。つぎ足は10歩超できるが正常歩行でない","明らかに異常。つぎ足はできるが10歩を超えられない","普通の歩行でふらつきがあるが支えは不要","著しいふらつき。時々壁を伝う","常に1本杖または軽い介助が必要","しっかりした介助で10m超歩行可能","介助しても10m未満","介助があっても歩けない"]
+  },
+  {
+    id:"stance", title:"2. 立位", max:6, method:"自然立位、閉脚立位、つぎ足立位を開眼で評価します。",
+    criteria:["つぎ足で10秒より長く立てる","閉脚立位は安定するが、つぎ足で10秒超立てない","閉脚立位で10秒超立てるが動揺する","閉脚立位は不可だが自然立位で10秒超立てる","軽い間欠的介助で自然立位10秒超","常に片方の腕を支えれば自然立位10秒超","支えても10秒より長く立てない"]
+  },
+  {
+    id:"sitting", title:"3. 座位", max:4, method:"足を浮かせ、両上肢を前方に伸ばした開眼座位を評価します。",
+    criteria:["正常。困難なく10秒超座位保持","軽度困難。間欠的に動揺","常に動揺するが介助なしに10秒超","時々介助すれば10秒超","ずっと支えなければ10秒超保持できない"]
+  },
+  {
+    id:"speech", title:"4. 言語障害", max:6, method:"通常の会話中の構音障害を評価します。",
+    criteria:["正常","わずかな言語障害が疑われる","言語障害があるが容易に理解できる","時々理解困難な言葉がある","多くの言葉が理解困難","かろうじて単語が理解できる","単語を理解できない、または発語なし"]
+  },
+  {
+    id:"fingerChase", title:"5. 指追い試験", max:4, bilateral:true, method:"検者の指を約30cm動かし、5回追従して測定障害を評価します。",
+    criteria:["測定障害なし","測定障害5cm未満","測定障害15cm未満","測定障害15cmより大きい","5回行えない"]
+  },
+  {
+    id:"noseFinger", title:"6. 鼻-指試験", max:4, bilateral:true, method:"鼻と検者の指を往復し、指先の振戦振幅を評価します。",
+    criteria:["振戦なし","振幅2cm未満","振幅5cm未満","振幅5cmより大きい","5回行えない"]
+  },
+  {
+    id:"rapidAlternating", title:"7. 手の回内・回外運動", max:4, bilateral:true, method:"大腿上で回内・回外を10回行い、速度と正確性を評価します。",
+    criteria:["規則的で10秒未満","わずかに不規則で10秒未満","明らかに不規則だが10秒未満","極めて不規則で10秒より長い","10回行えない"]
+  },
+  {
+    id:"heelShin", title:"8. 踵-すね試験", max:4, bilateral:true, method:"踵を反対側の膝からすねに沿わせ、片側3回評価します。",
+    criteria:["正常","わずかに異常。踵はすねから離れない","明らかに異常。すねから離れる3回まで","極めて異常。すねから離れる4回以上","行えない"]
+  }
+];
+
+function options(max) {
+  return Array.from({length:max + 1}, (_, value) => `<option value="${value}">${value}</option>`).join("");
+}
+
+function render() {
+  const container = document.getElementById("items");
+  container.insertAdjacentHTML("beforeend", ITEMS.map(item => `
+    <article class="item">
+      <div class="item-head">
+        <div>
+          <div class="item-title">${item.title}（0〜${item.max}点）</div>
+          <div class="item-method">${item.method}</div>
+        </div>
+      </div>
+      <div class="inputs">
+        ${item.bilateral
+          ? `<label>右<select data-item="${item.id}" data-side="right">${options(item.max)}</select></label><label>左<select data-item="${item.id}" data-side="left">${options(item.max)}</select></label><span style="font-size:12px;color:#627078;">左右平均：<b id="${item.id}Average">0</b></span>`
+          : `<label>得点<select data-item="${item.id}">${options(item.max)}</select></label>`}
+      </div>
+      <details><summary>採点基準</summary><ol start="0">${item.criteria.map(text => `<li>${text}</li>`).join("")}</ol></details>
+    </article>`).join(""));
+  document.querySelectorAll("select[data-item]").forEach(select => select.addEventListener("change", calculate));
+  calculate();
+}
+
+function itemScore(item) {
+  const selects = [...document.querySelectorAll(`select[data-item="${item.id}"]`)];
+  if (!item.bilateral) return Number(selects[0].value);
+  const score = (Number(selects[0].value) + Number(selects[1].value)) / 2;
+  document.getElementById(`${item.id}Average`).textContent = Number.isInteger(score) ? score : score.toFixed(1);
+  return score;
+}
+
+function calculate() {
+  const total = ITEMS.reduce((sum, item) => sum + itemScore(item), 0);
+  document.getElementById("totalScore").textContent = Number.isInteger(total) ? total : total.toFixed(1);
+  let text = "23点以上：全介助レベルの参考範囲";
+  if (total <= 8) text = "8点以下：フリーハンド歩行自立の参考範囲";
+  else if (total <= 11.5) text = "11.5点以下：四点杖歩行自立の参考範囲";
+  else if (total <= 12.25) text = "12.25点以下：歩行器歩行自立の参考範囲";
+  else if (total <= 14.25) text = "14.25点以下：最大介助レベルの参考範囲";
+  document.getElementById("interpretation").textContent = text;
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("SARAの入力をリセットしますか？")) return;
+  document.querySelectorAll("select[data-item]").forEach(select => select.value = "0");
+  calculate();
+});
+
+document.getElementById("send").addEventListener("click", () => {
+  if (!document.getElementById("ataxiaConfirmed").checked) {
+    alert("運動失調を認める場合のみ、確認欄を選択して送信してください。");
+    return;
+  }
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel:"SARA",
+    recordDate:new Date().toISOString().slice(0, 10),
+    measurements:{ sara:document.getElementById("totalScore").textContent }
+  }));
+  location.href = "./evaluation.html";
+});
+
+render();
+</script>
+</body>
+</html>

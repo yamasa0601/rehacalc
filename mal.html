@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAL (Motor Activity Log)</title>
+  <style>
+    :root { --bg:#f5f7f8; --card:#fff; --text:#172026; --muted:#627078; --line:#d7e0e3; --accent:#176b63; --soft:#eaf4f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:16px 16px 110px; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif; }
+    main { width:min(1050px,100%); margin:0 auto; }
+    h1 { margin:0 0 6px; font-size:22px; }
+    h2 { margin:0 0 12px; font-size:17px; }
+    p { color:var(--muted); line-height:1.65; font-size:13px; }
+    .card { margin:12px 0; padding:16px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .summary div { padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--soft); text-align:center; }
+    .summary strong { display:block; margin-top:5px; color:var(--accent); font-size:23px; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; min-width:760px; border-collapse:collapse; }
+    th,td { padding:9px 8px; border:1px solid var(--line); text-align:center; }
+    th { color:#174b46; background:var(--soft); font-size:12px; }
+    td:nth-child(2), th:nth-child(2) { text-align:left; }
+    select { min-width:72px; padding:9px; border:1px solid #aebbc0; border-radius:6px; background:#fff; font-size:16px; }
+    input[type="checkbox"] { width:19px; height:19px; accent-color:var(--accent); }
+    tr.excluded { color:#8a969b; background:#f3f5f6; }
+    details { margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:6px; background:#fafcfc; }
+    summary { cursor:pointer; font-weight:800; }
+    .criteria { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px; }
+    .criteria ol { margin:7px 0 0; padding-left:24px; color:var(--muted); font-size:12px; line-height:1.75; }
+    .notice { padding:11px 12px; border-left:4px solid #d97706; background:#fff8e7; color:#71470a; font-size:12px; line-height:1.7; }
+    .footer { position:fixed; left:0; right:0; bottom:0; z-index:5; padding:10px 16px; border-top:1px solid var(--line); background:rgba(255,255,255,.96); }
+    .actions { width:min(1050px,100%); margin:0 auto; display:flex; flex-wrap:wrap; gap:8px; }
+    button,a.button { flex:1; min-width:150px; padding:12px; border:1px solid var(--accent); border-radius:6px; background:var(--accent); color:#fff; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; }
+    a.button { color:var(--text); border-color:var(--line); background:#fff; }
+    @media(max-width:700px){ .summary{grid-template-columns:1fr;} .criteria{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Motor Activity Log (MAL)</h1>
+  <p>日常生活での麻痺側上肢の使用頻度（AOU）と動作の質（QOM）を、14項目で評価します。</p>
+
+  <section class="card">
+    <div class="summary">
+      <div>評価項目数<strong id="includedCount">14</strong></div>
+      <div>AOU 平均<strong id="aouAverage">0.00</strong></div>
+      <div>QOM 平均<strong id="qomAverage">0.00</strong></div>
+    </div>
+    <p class="notice">必ずAOUから質問してください。AOUが0の場合、QOMは0として扱い追加質問を省略します。病前から使用しない、または実施機会がない項目は「除外」を選択してください。</p>
+  </section>
+
+  <section class="card">
+    <h2>MAL 評価用紙</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>No.</th><th>方法</th><th>AOU<br>0-5</th><th>QOM<br>0-5</th><th>除外</th></tr></thead>
+        <tbody id="malBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>採点基準を確認</summary>
+      <div class="criteria">
+        <div>
+          <strong>AOU：使用頻度</strong>
+          <ol start="0">
+            <li>患側は全く使用していない</li>
+            <li>場合により使用するが、極めてまれ</li>
+            <li>時折使用するが、ほとんど健側のみ</li>
+            <li>発症前の使用頻度の半分程度</li>
+            <li>発症前とほぼ同様の頻度</li>
+            <li>発症前と同様の頻度</li>
+          </ol>
+        </div>
+        <div>
+          <strong>QOM：動作の質</strong>
+          <ol start="0">
+            <li>患側は全く使用していない</li>
+            <li>動かすが、動作の助けになっていない</li>
+            <li>健側の介助が必要、または緩慢・困難</li>
+            <li>やや緩慢、または力が不十分</li>
+            <li>ほぼ正常だが、速度と正確さに劣る</li>
+            <li>発症前と同様に正常</li>
+          </ol>
+        </div>
+      </div>
+    </details>
+  </section>
+</main>
+
+<div class="footer">
+  <div class="actions">
+    <a class="button" href="./index.html">アプリ一覧</a>
+    <button id="reset" type="button">リセット</button>
+    <button id="send" type="button">評価記録へ送る</button>
+  </div>
+</div>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
+const ITEMS = [
+  "本・雑誌・新聞を読む",
+  "タオルを使って顔や身体を拭く",
+  "グラスを持ち上げる",
+  "歯ブラシを使って歯を磨く",
+  "髭剃り・化粧をする",
+  "鍵を使ってドアを開ける",
+  "手紙を書く・タイピングする",
+  "安定した立位を保持する",
+  "服の袖に手を通す",
+  "物を手で動かす",
+  "フォークやスプーンを把持して食事をとる",
+  "髪をブラシや櫛でとかす",
+  "取っ手を把持してカップを持つ",
+  "服の前のボタンをとめる"
+];
+
+const scoreOptions = () => [0,1,2,3,4,5].map(value => `<option value="${value}">${value}</option>`).join("");
+
+function renderItems() {
+  document.getElementById("malBody").innerHTML = ITEMS.map((item, index) => `
+    <tr data-row="${index}">
+      <td>${index + 1}</td>
+      <td>${item}</td>
+      <td><select class="aou" aria-label="${item} AOU">${scoreOptions()}</select></td>
+      <td><select class="qom" aria-label="${item} QOM">${scoreOptions()}</select></td>
+      <td><input class="exclude" type="checkbox" aria-label="${item}を除外"></td>
+    </tr>`).join("");
+  document.querySelectorAll("select,input").forEach(element => element.addEventListener("change", update));
+  update();
+}
+
+function update() {
+  let count = 0;
+  let aouTotal = 0;
+  let qomTotal = 0;
+  document.querySelectorAll("#malBody tr").forEach((row) => {
+    const excluded = row.querySelector(".exclude").checked;
+    const aou = row.querySelector(".aou");
+    const qom = row.querySelector(".qom");
+    row.classList.toggle("excluded", excluded);
+    aou.disabled = excluded;
+    qom.disabled = excluded || aou.value === "0";
+    if (aou.value === "0") qom.value = "0";
+    if (!excluded) {
+      count += 1;
+      aouTotal += Number(aou.value);
+      qomTotal += Number(qom.value);
+    }
+  });
+  document.getElementById("includedCount").textContent = count;
+  document.getElementById("aouAverage").textContent = count ? (aouTotal / count).toFixed(2) : "-";
+  document.getElementById("qomAverage").textContent = count ? (qomTotal / count).toFixed(2) : "-";
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("MALの入力をリセットしますか？")) return;
+  document.querySelectorAll(".aou,.qom").forEach(select => select.value = "0");
+  document.querySelectorAll(".exclude").forEach(input => input.checked = false);
+  update();
+});
+
+document.getElementById("send").addEventListener("click", () => {
+  const count = Number(document.getElementById("includedCount").textContent);
+  if (!count) {
+    alert("評価できる項目がありません。");
+    return;
+  }
+  localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+    sourceLabel:"MAL",
+    recordDate:new Date().toISOString().slice(0, 10),
+    measurements:{
+      malAou:document.getElementById("aouAverage").textContent,
+      malQom:document.getElementById("qomAverage").textContent
+    }
+  }));
+  location.href = "./evaluation.html";
+});
+
+renderItems();
+</script>
+</body>
+</html>
