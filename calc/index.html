@@ -25,6 +25,7 @@
     .feedback { margin-top: 12px; padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; background: #f0f4ff; border: 1px solid #d0daff; }
     .kv { display: grid; grid-template-columns: 1fr auto; padding: 10px 0; border-bottom: 1px solid #eee; }
     .v { font-weight: 800; text-align:right; color: var(--primary); }
+    .unit-hint { margin-top: 8px; padding: 9px; border-radius: 10px; background: #f8fafc; border: 1px solid #e8eaf2; font-size: 11px; color: var(--muted); line-height: 1.5; }
     input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background:#fff; }
     .actions { display:flex; gap: 10px; margin-top: 10px; }
     button { border:0; background: var(--primary); color:#fff; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor:pointer; flex: 1; }
@@ -48,6 +49,9 @@
     .strength-row { display:grid; grid-template-columns:92px 1fr; gap:8px; align-items:center; border:1px solid #e8eaf2; background:#fff; border-radius:12px; padding:9px; }
     .strength-name { font-size:13px; font-weight:800; }
     .strength-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .strength-side { min-width:0; }
+    .strength-unit { min-height:34px; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.45; word-break:keep-all; }
+    .strength-unit strong { color:var(--text); }
     .modal-actions { display:flex; gap:8px; margin-top:12px; }
   </style>
 </head>
@@ -105,13 +109,18 @@
             脳卒中の麻痺側HHDは、共同運動の影響を避けるため、分離運動が可能な対象者のみ実施してください。
           </div>
           <div class="row"><label>体重 (kg)</label><input id="h-bw" type="number" inputmode="decimal"><div class="mini"><input type="checkbox" id="h-lock" checked>体重保存</div></div>
-          <div class="row"><label>アーム (cm)</label><input id="h-arm" type="number" inputmode="decimal"></div>
+          <div class="row"><label>HHDアーム / モーメントアーム (cm)</label><input id="h-arm" type="number" inputmode="decimal"></div>
           <div class="row"><label>右 (N)</label><input id="h-rn" type="number" inputmode="decimal"></div>
           <div class="row"><label>左 (N)</label><input id="h-ln" type="number" inputmode="decimal"></div>
+          <div class="unit-hint">N/kg は体重で正規化、Nm/kg は HHD(N) × アーム(cm)/100 ÷ 体重(kg) で自動計算します。</div>
           <button id="h-reset" class="btn-reset" style="width:100%; margin-top:10px;">クリア</button>
         </section>
         <section class="card">
           <h2>結果</h2>
+          <div class="kv"><span>右HHD (N)</span><span id="h-rn-out" class="v">-</span></div>
+          <div class="kv"><span>左HHD (N)</span><span id="h-ln-out" class="v">-</span></div>
+          <div class="kv"><span>右 (N/kg)</span><span id="h-rnkg" class="v">-</span></div>
+          <div class="kv"><span>左 (N/kg)</span><span id="h-lnkg" class="v">-</span></div>
           <div class="kv"><span>右トルク (Nm)</span><span id="h-rt" class="v">-</span></div>
           <div class="kv"><span>左トルク (Nm)</span><span id="h-lt" class="v">-</span></div>
           <div class="kv"><span>右 (Nm/kg)</span><span id="h-rbw" class="v">-</span></div>
@@ -149,7 +158,7 @@
         <h2 id="strengthModalTitle">筋力一覧入力</h2>
         <button id="strengthModalClose" type="button" class="modal-close">閉じる</button>
       </div>
-      <div class="mini">入力した欄だけ評価記録へ送ります。未入力の欄は送信しません。</div>
+      <div class="mini">入力した欄だけ評価記録へ送ります。未入力の欄は送信しません。体重とHHDアームを入力すると、各欄のN/kg・Nm/kgも自動表示します。</div>
 
       <div class="strength-tools">
         <div>
@@ -170,43 +179,79 @@
         <div class="strength-row">
           <div class="strength-name">股屈筋</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="hipFlexorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipFlexorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="hipFlexorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="hipFlexorLeft">-</div>
+            </div>
           </div>
         </div>
         <div class="strength-row">
           <div class="strength-name">膝伸展</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="kneeExtensorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="kneeExtensorLeft">-</div>
+            </div>
           </div>
         </div>
         <div class="strength-row">
           <div class="strength-name">足背屈</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="ankleDorsiflexorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="ankleDorsiflexorLeft">-</div>
+            </div>
           </div>
         </div>
         <div class="strength-row">
           <div class="strength-name">股伸展</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="hipExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipExtensorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="hipExtensorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="hipExtensorLeft">-</div>
+            </div>
           </div>
         </div>
         <div class="strength-row">
           <div class="strength-name">股外転</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="hipAbductorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipAbductorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="hipAbductorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="hipAbductorLeft">-</div>
+            </div>
           </div>
         </div>
         <div class="strength-row">
           <div class="strength-name">足底屈</div>
           <div class="strength-pair">
-            <input class="strength-input" data-field="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右 N">
-            <input class="strength-input" data-field="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+            <div class="strength-side">
+              <input class="strength-input" data-field="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右 N">
+              <div class="strength-unit" data-preview-for="anklePlantarflexorRight">-</div>
+            </div>
+            <div class="strength-side">
+              <input class="strength-input" data-field="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左 N">
+              <div class="strength-unit" data-preview-for="anklePlantarflexorLeft">-</div>
+            </div>
           </div>
         </div>
       </div>
@@ -221,6 +266,11 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
+  const today = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  };
   let gT = null, gS = 0, gE = 0;
 
   function activateCalcTab(tab) {
@@ -289,18 +339,63 @@
   $("g-steps").oninput = calcG;
 
   // HHD
+  const readNumber = (id) => {
+    const text = String($(id).value ?? "").trim().replaceAll(",", "");
+    if (!text) return null;
+    const value = Number(text);
+    return Number.isFinite(value) ? value : null;
+  };
+  const fmt = (value, digits = 2) => Number.isFinite(value) ? value.toFixed(digits).replace(/\.?0+$/, "") : "-";
+  const setResult = (id, value, digits = 2, suffix = "") => {
+    $(id).innerText = Number.isFinite(value) ? `${fmt(value, digits)}${suffix}` : "-";
+  };
+  const hhdUnits = (forceN, bw, armCm) => {
+    const n = Number.isFinite(forceN) ? forceN : null;
+    const nkg = n !== null && bw > 0 ? n / bw : null;
+    const nm = n !== null && armCm > 0 ? n * (armCm / 100) : null;
+    const nmkg = nm !== null && bw > 0 ? nm / bw : null;
+    return { n, nkg, nm, nmkg };
+  };
+  const strengthPreviewHtml = (forceN, bw, armCm) => {
+    const units = hhdUnits(forceN, bw, armCm);
+    if (units.n === null) return "-";
+    return `<strong>N</strong> ${fmt(units.n, 1)}<br><strong>N/kg</strong> ${fmt(units.nkg, 3)}　<strong>Nm/kg</strong> ${fmt(units.nmkg, 3)}`;
+  };
+  const renderBulkStrengthUnits = () => {
+    const bw = readNumber("h-bw") || 0;
+    const arm = readNumber("h-arm") || 0;
+    document.querySelectorAll(".strength-input").forEach((input) => {
+      const preview = document.querySelector(`[data-preview-for="${input.dataset.field}"]`);
+      if (!preview) return;
+      const value = input.value.trim() ? Number(input.value) : null;
+      preview.innerHTML = strengthPreviewHtml(Number.isFinite(value) ? value : null, bw, arm);
+    });
+  };
   const recalcH = () => {
-    const bw = parseFloat($("h-bw").value) || 0, arm = parseFloat($("h-arm").value) || 0;
-    const rn = parseFloat($("h-rn").value) || 0, ln = parseFloat($("h-ln").value) || 0;
-    if (bw > 0 && arm > 0) {
-      if ($("h-lock").checked) localStorage.setItem("rehacalc_bw", bw);
-      const rt = rn * (arm / 100), lt = ln * (arm / 100);
-      $("h-rt").innerText = rt.toFixed(2); $("h-lt").innerText = lt.toFixed(2);
-      $("h-rbw").innerText = (rt / bw).toFixed(3); $("h-lbw").innerText = (lt / bw).toFixed(3);
-      $("h-si").innerText = ((Math.abs(rt - lt) / ((rt + lt) / 2)) * 100).toFixed(1) + "%";
+    const bw = readNumber("h-bw") || 0;
+    const arm = readNumber("h-arm") || 0;
+    const rn = readNumber("h-rn");
+    const ln = readNumber("h-ln");
+    if (bw > 0 && $("h-lock").checked) localStorage.setItem("rehacalc_bw", bw);
+    const right = hhdUnits(rn, bw, arm);
+    const left = hhdUnits(ln, bw, arm);
+    setResult("h-rn-out", right.n, 1);
+    setResult("h-ln-out", left.n, 1);
+    setResult("h-rnkg", right.nkg, 3);
+    setResult("h-lnkg", left.nkg, 3);
+    setResult("h-rt", right.nm, 2);
+    setResult("h-lt", left.nm, 2);
+    setResult("h-rbw", right.nmkg, 3);
+    setResult("h-lbw", left.nmkg, 3);
+    if (right.n !== null && left.n !== null && (right.n + left.n) > 0) {
+      $("h-si").innerText = ((Math.abs(right.n - left.n) / ((right.n + left.n) / 2)) * 100).toFixed(1) + "%";
+    } else {
+      $("h-si").innerText = "-";
     }
+    renderBulkStrengthUnits();
   };
   ["h-bw","h-arm","h-rn","h-ln"].forEach(id => $(id).oninput = recalcH);
+  document.querySelectorAll(".strength-input").forEach(input => input.addEventListener("input", renderBulkStrengthUnits));
   const savedBW = localStorage.getItem("rehacalc_bw");
   if (savedBW) { $("h-bw").value = savedBW; recalcH(); }
 
@@ -317,7 +412,7 @@
     }
     localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
       sourceLabel: "10m歩行",
-      recordDate: new Date().toISOString().slice(0, 10),
+      recordDate: today(),
       measurements: { comfortable10mSpeed: speed }
     }));
     location.href = "../record-destination.html";
@@ -333,9 +428,11 @@
     const measurements = {};
     measurements[`${target}Right`] = right;
     measurements[`${target}Left`] = left;
+    if ($("h-arm").value) measurements.hhdArmCm = $("h-arm").value;
     localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
       sourceLabel: "HHD",
-      recordDate: new Date().toISOString().slice(0, 10),
+      recordDate: today(),
+      weight: $("h-bw").value,
       measurements
     }));
     location.href = "../record-destination.html";
@@ -380,9 +477,11 @@
     const leftInput = document.querySelector(`[data-field="${target}Left"]`);
     if (rightInput) rightInput.value = right;
     if (leftInput) leftInput.value = left;
+    renderBulkStrengthUnits();
   };
   $("bulk-clear").onclick = () => {
     document.querySelectorAll(".strength-input").forEach((input) => input.value = "");
+    renderBulkStrengthUnits();
   };
   $("bulk-send").onclick = () => {
     const measurements = collectBulkStrength();
@@ -390,9 +489,11 @@
       alert("送信する筋力値を1つ以上入力してください。");
       return;
     }
+    if ($("h-arm").value) measurements.hhdArmCm = $("h-arm").value;
     localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
       sourceLabel: "HHD 筋力一覧",
-      recordDate: new Date().toISOString().slice(0, 10),
+      recordDate: today(),
+      weight: $("h-bw").value,
       measurements
     }));
     location.href = "../record-destination.html";

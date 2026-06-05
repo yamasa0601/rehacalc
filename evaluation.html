@@ -145,6 +145,24 @@
       padding:9px;
       background:#fafafa;
     }
+    .hhd-conversion {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:4px;
+      margin-top:6px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
+    }
+    .hhd-conversion span {
+      padding:6px 7px;
+      border:1px solid var(--line);
+      border-radius:7px;
+      background:#fff;
+    }
+    @media (min-width:520px) {
+      .hhd-conversion { grid-template-columns:1fr 1fr; }
+    }
     .actions {
       display:flex;
       flex-wrap:wrap;
@@ -461,11 +479,16 @@
               <input id="painNrs" type="number" inputmode="decimal" min="0" max="10" />
             </div>
             <div class="measure-row">
+              <div class="row-title">HHDアーム / モーメントアーム (cm)</div>
+              <input id="hhdArmCm" type="number" inputmode="decimal" placeholder="Nm/kg算出に使用" />
+            </div>
+            <div class="measure-row">
               <div class="row-title">股屈筋 (N 右/左)</div>
               <div class="paired">
                 <input id="hipFlexorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="hipFlexor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">膝伸展 (N 右/左)</div>
@@ -473,6 +496,7 @@
                 <input id="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="kneeExtensor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">足背屈 (N 右/左)</div>
@@ -480,6 +504,7 @@
                 <input id="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="ankleDorsiflexor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">股伸展 (N 右/左)</div>
@@ -487,6 +512,7 @@
                 <input id="hipExtensorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="hipExtensor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">股外転 (N 右/左)</div>
@@ -494,6 +520,7 @@
                 <input id="hipAbductorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="hipAbductor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">足底屈 (N 右/左)</div>
@@ -501,6 +528,7 @@
                 <input id="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右" />
                 <input id="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左" />
               </div>
+              <div class="hhd-conversion" data-hhd-row="anklePlantarflexor"></div>
             </div>
             <div class="measure-row">
               <div class="row-title">10mCWS (m/s)</div>
@@ -806,7 +834,7 @@ const PROFILE_FIELDS = [
 ];
 
 const MEASUREMENT_FIELDS = [
-  "weightChange","painNrs",
+  "weightChange","painNrs","hhdArmCm",
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
@@ -814,6 +842,15 @@ const MEASUREMENT_FIELDS = [
 ];
 
 const BBS_MCID_POINTS = 12;
+
+const HHD_STRENGTH_FIELDS = [
+  { id:"hipFlexor", label:"股屈筋", right:"hipFlexorRight", left:"hipFlexorLeft" },
+  { id:"kneeExtensor", label:"膝伸展", right:"kneeExtensorRight", left:"kneeExtensorLeft" },
+  { id:"ankleDorsiflexor", label:"足背屈", right:"ankleDorsiflexorRight", left:"ankleDorsiflexorLeft" },
+  { id:"hipExtensor", label:"股伸展", right:"hipExtensorRight", left:"hipExtensorLeft" },
+  { id:"hipAbductor", label:"股外転", right:"hipAbductorRight", left:"hipAbductorLeft" },
+  { id:"anklePlantarflexor", label:"足底屈", right:"anklePlantarflexorRight", left:"anklePlantarflexorLeft" }
+];
 
 const GRAPH_METRICS = [
   { id:"comfortable10mSpeed", label:"10mCWS", unit:"m/s" },
@@ -828,18 +865,14 @@ const GRAPH_METRICS = [
   { id:"painNrs", label:"歩行時NRS", unit:"" },
   { id:"weightChange", label:"体重変化", unit:"" },
   { id:"mfes", label:"GES", unit:"点" },
-  { id:"hipFlexorRight", label:"股屈筋 右", unit:"N" },
-  { id:"hipFlexorLeft", label:"股屈筋 左", unit:"N" },
-  { id:"kneeExtensorRight", label:"膝伸展 右", unit:"N" },
-  { id:"kneeExtensorLeft", label:"膝伸展 左", unit:"N" },
-  { id:"ankleDorsiflexorRight", label:"足背屈 右", unit:"N" },
-  { id:"ankleDorsiflexorLeft", label:"足背屈 左", unit:"N" },
-  { id:"hipExtensorRight", label:"股伸展 右", unit:"N" },
-  { id:"hipExtensorLeft", label:"股伸展 左", unit:"N" },
-  { id:"hipAbductorRight", label:"股外転 右", unit:"N" },
-  { id:"hipAbductorLeft", label:"股外転 左", unit:"N" },
-  { id:"anklePlantarflexorRight", label:"足底屈 右", unit:"N" },
-  { id:"anklePlantarflexorLeft", label:"足底屈 左", unit:"N" }
+  ...HHD_STRENGTH_FIELDS.flatMap(field => [
+    { id:field.right, label:`${field.label} 右`, unit:"N" },
+    { id:field.left, label:`${field.label} 左`, unit:"N" },
+    { id:`${field.right}Nkg`, label:`${field.label} 右`, unit:"N/kg", value:r => hhdNPerKg(r, field.right) },
+    { id:`${field.left}Nkg`, label:`${field.label} 左`, unit:"N/kg", value:r => hhdNPerKg(r, field.left) },
+    { id:`${field.right}Nmkg`, label:`${field.label} 右`, unit:"Nm/kg", value:r => hhdNmPerKg(r, field.right) },
+    { id:`${field.left}Nmkg`, label:`${field.label} 左`, unit:"Nm/kg", value:r => hhdNmPerKg(r, field.left) }
+  ])
 ];
 
 const FUNCTION_RADAR_METRICS = [
@@ -933,6 +966,52 @@ function pair(right, left) {
   const l = clean(left);
   if (!r && !l) return "";
   return `${r || "-"} / ${l || "-"}`;
+}
+
+function hhdNPerKg(record, field) {
+  const force = num(record.measurements?.[field]);
+  const weight = num(record.weight);
+  if (force === null || !weight || weight <= 0) return null;
+  return force / weight;
+}
+
+function hhdNmPerKg(record, field) {
+  const force = num(record.measurements?.[field]);
+  const weight = num(record.weight);
+  const armCm = num(record.measurements?.hhdArmCm);
+  if (force === null || !weight || weight <= 0 || !armCm || armCm <= 0) return null;
+  return force * (armCm / 100) / weight;
+}
+
+function metricValue(record, metric) {
+  if (typeof metric.value === "function") return metric.value(record);
+  return num(record.measurements?.[metric.id]);
+}
+
+function metricDisplay(record, metric) {
+  const value = metricValue(record, metric);
+  return value === null ? "-" : formatNumber(value);
+}
+
+function hhdConversionSideText(label, force, weight, armCm) {
+  const n = num(force);
+  if (n === null) return `${label}：-`;
+  const nkg = weight && weight > 0 ? n / weight : null;
+  const nmkg = weight && weight > 0 && armCm && armCm > 0 ? n * (armCm / 100) / weight : null;
+  return `${label}：N ${formatNumber(n)} / N/kg ${formatNumber(nkg)} / Nm/kg ${formatNumber(nmkg)}`;
+}
+
+function updateHhdConversions() {
+  const weight = num($("weight").value);
+  const armCm = num($("hhdArmCm").value);
+  HHD_STRENGTH_FIELDS.forEach((field) => {
+    const box = document.querySelector(`[data-hhd-row="${field.id}"]`);
+    if (!box) return;
+    box.innerHTML = `
+      <span>${escapeHtml(hhdConversionSideText("右", $(field.right).value, weight, armCm))}</span>
+      <span>${escapeHtml(hhdConversionSideText("左", $(field.left).value, weight, armCm))}</span>
+    `;
+  });
 }
 
 function loadRecords() {
@@ -1114,6 +1193,7 @@ function updateStats() {
     .filter(r => patientKey(r) === key)
     .sort((a, b) => clean(b.recordDate).localeCompare(clean(a.recordDate)));
   $("latestStage").textContent = patientRecords[0] ? stageLabel(patientRecords[0].stage) : "-";
+  updateHhdConversions();
 }
 
 function renderPatientOptions(selectEl, includeAll) {
@@ -1262,7 +1342,7 @@ function renderHistory() {
       <td>${escapeHtml(m.dgi || "-")}</td>
       <td>${escapeHtml(m.fab || "-")}</td>
       <td>${escapeHtml(m.mmse || "-")}</td>
-      <td>${escapeHtml(m[metric.id] || "-")}</td>
+      <td>${escapeHtml(metricDisplay(record, metric))}</td>
       <td>
         ${keyformButtons}
         <button class="mini-btn" type="button" data-edit="${record.id}">編集</button>
@@ -1350,7 +1430,7 @@ function renderChart() {
   const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
   const records = loadRecords()
     .filter(record => patientKey(record) === patient)
-    .map(record => ({ record, value:num(record.measurements?.[metric.id]) }))
+    .map(record => ({ record, value:metricValue(record, metric) }))
     .filter(item => item.value !== null)
     .sort((a, b) => {
       const d = clean(a.record.recordDate).localeCompare(clean(b.record.recordDate));
@@ -2059,14 +2139,16 @@ function exportCsvForPatient() {
     alert("保存済み記録がありません。");
     return;
   }
-  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","STEF","MAL AOU","MAL QOM","SARA","FAB","MMSE","GES","partA","歩行時NRS","体重変化"];
+  const hhdHeaders = HHD_STRENGTH_FIELDS.flatMap(field => [`${field.label}右(N)`, `${field.label}左(N)`]);
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","STEF","MAL AOU","MAL QOM","SARA","FAB","MMSE","GES","partA","歩行時NRS","体重変化","HHDアーム(cm)", ...hhdHeaders];
   const rows = records.map((record) => {
     const m = record.measurements || {};
     return [
       record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
       m.fac, m.comfortable10mSpeed, m.sixMinuteWalkDistance, m.strideCv,
       m.bbs, m.miniBestest, m.dgi, m.fmaUpper, m.fmaLower, m.tis,
-      m.stef, m.malAou, m.malQom, m.sara, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange
+      m.stef, m.malAou, m.malQom, m.sara, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange, m.hhdArmCm,
+      ...HHD_STRENGTH_FIELDS.flatMap(field => [m[field.right], m[field.left]])
     ];
   });
   const csv = "\uFEFF" + [headers, ...rows]
@@ -2118,6 +2200,7 @@ function applyIncomingDraft() {
     if (draft.patientId) $("patientId").value = draft.patientId;
     if (draft.stage) $("stage").value = draft.stage;
     if (draft.recordDate) $("recordDate").value = draft.recordDate;
+    if (draft.weight) $("weight").value = draft.weight;
     Object.entries(draft.measurements || {}).forEach(([key, value]) => {
       if ($(key)) $(key).value = value;
     });
