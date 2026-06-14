@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>新カルボーネン法 運動負荷計算</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; --accent: #0f766e; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 230px; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.9rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 12px 0; }
+        .lead { font-size: 0.75rem; color: var(--muted); line-height: 1.7; margin: 0 0 4px; }
+
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 6px; }
+        .field .hint { font-size: 0.7rem; color: var(--muted); font-weight: normal; }
+        .field input[type="number"] {
+            width: 100%; padding: 12px; font-size: 1.1rem; border: 1px solid #d1d1d6;
+            border-radius: 10px; -webkit-appearance: none; appearance: none; background: #fff;
+        }
+        .field input:focus { outline: none; border-color: var(--primary); }
+
+        /* 強度プリセット */
+        .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .preset-btn {
+            text-align: left; background: #f0f0f3; border: 2px solid transparent; border-radius: 10px;
+            padding: 10px; cursor: pointer; font-family: inherit; color: var(--text);
+        }
+        .preset-btn.active { border-color: var(--primary); background: #e7f0ff; }
+        .preset-btn .pt { font-size: 0.8rem; font-weight: bold; display: block; }
+        .preset-btn .pr { font-size: 0.72rem; color: var(--muted); }
+
+        /* 強度スライダー */
+        .range-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+        .range-row label { font-size: 0.75rem; min-width: 38px; }
+        .range-row input[type="range"] { flex: 1; }
+        .range-row .val { font-size: 0.9rem; font-weight: bold; min-width: 44px; text-align: right; }
+
+        /* 最大心拍式トグル */
+        .toggle-row { display: flex; gap: 8px; }
+        .toggle-row label {
+            flex: 1; text-align: center; background: #f0f0f3; border-radius: 10px; padding: 10px 6px;
+            font-size: 0.78rem; cursor: pointer; line-height: 1.4;
+        }
+        .toggle-row input { display: none; }
+        .toggle-row input:checked + span { color: var(--primary); font-weight: bold; }
+        .toggle-row label:has(input:checked) { background: #e7f0ff; box-shadow: inset 0 0 0 2px var(--primary); }
+
+        .calc-table { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
+        .calc-table td { padding: 7px 4px; border-bottom: 1px solid #eee; }
+        .calc-table td:last-child { text-align: right; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .calc-table tr:last-child td { border-bottom: none; }
+
+        .warn { font-size: 0.72rem; color: #92400e; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px 12px; line-height: 1.7; }
+
+        /* Footer Result */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 14px 15px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid #ddd; z-index: 1000; }
+        .result-main { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+        .result-label { font-size: 0.85rem; font-weight: bold; }
+        .target-range { font-size: 1.9rem; font-weight: bold; color: var(--primary); font-variant-numeric: tabular-nums; }
+        .target-range small { font-size: 1rem; }
+        .result-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
+        .btn-copy { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="section-card">
+    <h2>新カルボーネン法 運動負荷計算</h2>
+    <p class="lead">
+        年齢・安静時心拍数・運動強度から、安全な目標心拍数（運動時の心拍ゾーン）を自動計算します。<br>
+        新カルボーネン法では最大心拍数に Tanaka 式（208 − 0.7 × 年齢）を用い、高齢者でも過大評価になりにくいのが特徴です。
+    </p>
+</div>
+
+<div class="section-card">
+    <h2>基本情報</h2>
+    <div class="field">
+        <label>年齢 <span class="hint">（歳）</span></label>
+        <input type="number" id="age" inputmode="numeric" min="1" max="120" placeholder="例: 75" oninput="calculate()">
+    </div>
+    <div class="field">
+        <label>安静時心拍数 <span class="hint">（拍/分・座位で1分間測定）</span></label>
+        <input type="number" id="rest" inputmode="numeric" min="30" max="150" placeholder="例: 70" oninput="calculate()">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+        <label>最大心拍数の推定式</label>
+        <div class="toggle-row">
+            <label><input type="radio" name="hrmax" value="new" checked onchange="calculate()"><span>新カルボーネン法<br>208 − 0.7 × 年齢</span></label>
+            <label><input type="radio" name="hrmax" value="old" onchange="calculate()"><span>従来法（簡易）<br>220 − 年齢</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <h2>運動強度の設定</h2>
+    <p class="lead">対象者の状態に合わせてプリセットを選ぶか、下のスライダーで微調整してください。</p>
+    <div class="preset-grid" id="presets"></div>
+
+    <div style="margin-top:14px;">
+        <div class="range-row">
+            <label>下限</label>
+            <input type="range" id="low" min="20" max="80" step="5" value="40" oninput="onSlider()">
+            <span class="val" id="lowVal">40%</span>
+        </div>
+        <div class="range-row">
+            <label>上限</label>
+            <input type="range" id="high" min="20" max="85" step="5" value="60" oninput="onSlider()">
+            <span class="val" id="highVal">60%</span>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <h2>計算内訳</h2>
+    <table class="calc-table">
+        <tr><td>最大心拍数（推定）</td><td><span id="hrmaxOut">—</span> 拍/分</td></tr>
+        <tr><td>予備心拍数 HRR（最大 − 安静）</td><td><span id="hrrOut">—</span> 拍/分</td></tr>
+        <tr><td>目標心拍数（下限 <span id="lowPct">40</span>%）</td><td><span id="thLow">—</span> 拍/分</td></tr>
+        <tr><td>目標心拍数（上限 <span id="highPct">60</span>%）</td><td><span id="thHigh">—</span> 拍/分</td></tr>
+    </table>
+</div>
+
+<div class="section-card">
+    <h2>主観的運動強度（Borg）の目安</h2>
+    <p class="lead">
+        心拍数が測れない場合や β遮断薬服用時は、Borg 指数（主観的運動強度）を併用します。<br>
+        ・11「楽である」＝ 約40%　・13「ややきつい」＝ 約50〜60%　・15「きつい」＝ 約70%<br>
+        一般に <b>「ややきつい（Borg 13）」までを上限</b>とすると安全です。
+    </p>
+</div>
+
+<div class="section-card">
+    <p class="warn">
+        ⚠ 本ツールは目安の算出補助であり、医師の運動処方・中止基準に優先しません。<br>
+        心疾患・不整脈・β遮断薬服用・ペースメーカー装着などでは医師の指示を優先し、運動中は自覚症状（胸痛・息切れ・めまい）と血圧・SpO₂も併せて確認してください。
+    </p>
+</div>
+
+<div class="footer">
+    <div class="result-main">
+        <span class="result-label">目標心拍数ゾーン</span>
+        <div class="target-range"><span id="footLow">—</span> <small>〜</small> <span id="footHigh">—</span> <small>拍/分</small></div>
+    </div>
+    <div class="result-sub" id="footSub">年齢・安静時心拍数を入力してください</div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+</div>
+
+<script>
+// 状態別の運動強度プリセット（下限%, 上限%）
+const PRESETS = [
+    { id: 'active',  t: '活動的・体力に自信', r: '50〜60%', low: 50, high: 60 },
+    { id: 'standard',t: '一般・標準', r: '40〜50%', low: 40, high: 50 },
+    { id: 'low',     t: '運動不足・虚弱', r: '30〜40%', low: 30, high: 40 },
+    { id: 'careful', t: '慎重開始・安静時HR≧80', r: '20〜30%', low: 20, high: 30 },
+];
+
+function renderPresets() {
+    document.getElementById('presets').innerHTML = PRESETS.map(p => `
+        <button type="button" class="preset-btn" data-low="${p.low}" data-high="${p.high}" onclick="applyPreset(this)">
+            <span class="pt">${p.t}</span>
+            <span class="pr">運動強度 ${p.r}</span>
+        </button>
+    `).join('');
+}
+
+function applyPreset(btn) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('low').value = btn.dataset.low;
+    document.getElementById('high').value = btn.dataset.high;
+    syncSliderLabels();
+    calculate();
+}
+
+function onSlider() {
+    // スライダー手動操作でプリセット選択を解除
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    const low = document.getElementById('low');
+    const high = document.getElementById('high');
+    // 下限が上限を超えないよう調整
+    if (parseInt(low.value) > parseInt(high.value)) {
+        if (document.activeElement === low) high.value = low.value;
+        else low.value = high.value;
+    }
+    syncSliderLabels();
+    calculate();
+}
+
+function syncSliderLabels() {
+    const low = document.getElementById('low').value;
+    const high = document.getElementById('high').value;
+    document.getElementById('lowVal').textContent = low + '%';
+    document.getElementById('highVal').textContent = high + '%';
+    document.getElementById('lowPct').textContent = low;
+    document.getElementById('highPct').textContent = high;
+}
+
+function calcMaxHR(age, formula) {
+    return formula === 'old' ? (220 - age) : (208 - 0.7 * age);
+}
+
+function calculate() {
+    syncSliderLabels();
+    const age = parseFloat(document.getElementById('age').value);
+    const rest = parseFloat(document.getElementById('rest').value);
+    const formula = document.querySelector('input[name="hrmax"]:checked').value;
+    const lowPct = parseInt(document.getElementById('low').value) / 100;
+    const highPct = parseInt(document.getElementById('high').value) / 100;
+
+    const valid = age > 0 && age <= 120 && rest >= 30 && rest <= 150;
+    if (!valid) {
+        ['hrmaxOut','hrrOut','thLow','thHigh'].forEach(id => document.getElementById(id).textContent = '—');
+        document.getElementById('footLow').textContent = '—';
+        document.getElementById('footHigh').textContent = '—';
+        document.getElementById('footSub').textContent = '年齢・安静時心拍数を入力してください';
+        return;
+    }
+
+    const hrmax = calcMaxHR(age, formula);
+    const hrr = hrmax - rest;
+    const thLow = Math.round(hrr * lowPct + rest);
+    const thHigh = Math.round(hrr * highPct + rest);
+
+    document.getElementById('hrmaxOut').textContent = Math.round(hrmax);
+    document.getElementById('hrrOut').textContent = Math.round(hrr);
+    document.getElementById('thLow').textContent = thLow;
+    document.getElementById('thHigh').textContent = thHigh;
+    document.getElementById('footLow').textContent = thLow;
+    document.getElementById('footHigh').textContent = thHigh;
+
+    const label = formula === 'old' ? '従来法(220−年齢)' : '新カルボーネン法(208−0.7×年齢)';
+    document.getElementById('footSub').textContent =
+        `${label} ／ 強度 ${Math.round(lowPct*100)}〜${Math.round(highPct*100)}% ／ 最大HR ${Math.round(hrmax)}・安静HR ${rest}`;
+}
+
+function copyResult() {
+    const age = document.getElementById('age').value;
+    const rest = document.getElementById('rest').value;
+    if (!age || !rest) { alert('年齢と安静時心拍数を入力してください'); return; }
+    const formula = document.querySelector('input[name="hrmax"]:checked').value;
+    const label = formula === 'old' ? '従来法（220−年齢）' : '新カルボーネン法（208−0.7×年齢）';
+    const txt =
+`【新カルボーネン法 運動負荷】
+推定式: ${label}
+年齢: ${age}歳 ／ 安静時心拍数: ${rest}拍/分
+最大心拍数: ${document.getElementById('hrmaxOut').textContent}拍/分
+予備心拍数HRR: ${document.getElementById('hrrOut').textContent}拍/分
+運動強度: ${document.getElementById('low').value}〜${document.getElementById('high').value}%
+目標心拍数: ${document.getElementById('footLow').textContent}〜${document.getElementById('footHigh').textContent}拍/分`;
+    navigator.clipboard.writeText(txt).then(() => alert('コピーしました！\n\n' + txt));
+}
+
+renderPresets();
+applyPreset(document.querySelector('.preset-btn[data-low="40"]')); // 既定: 一般・標準 40〜50%
+</script>
+</body>
+</html>
