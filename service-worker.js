@@ -1,4 +1,4 @@
-const CACHE_NAME = "rehacalc-v73";
+const CACHE_NAME = "rehacalc-v74";
 
 const ASSETS = [
   "./",
@@ -14,6 +14,7 @@ const ASSETS = [
   "./assets/evaluation-form.pdf",
   "./assets/hdsr-mmse-sheet.pdf",
   "./assets/pdf-lib.min.js",
+  "./assessment-context.js",
   "./docs/rehacalc_usage_guide.html",
   "./docs/rehacalc_usage_guide.pdf",
   "./calc/index.html",
