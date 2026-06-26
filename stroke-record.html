@@ -199,6 +199,31 @@
       color:#134e4a;
       font-size:13px;
     }
+    .autosave-status {
+      margin:10px 0 0;
+      padding:9px 10px;
+      border:1px solid #bfdbfe;
+      border-radius:9px;
+      background:#eff6ff;
+      color:#1e3a8a;
+      font-size:12px;
+      font-weight:700;
+    }
+    .autosave-status.waiting {
+      border-color:#fde68a;
+      background:#fffbeb;
+      color:#92400e;
+    }
+    .autosave-status.saved {
+      border-color:#99f6e4;
+      background:#f0fdfa;
+      color:#115e59;
+    }
+    .autosave-status.error {
+      border-color:#fecaca;
+      background:#fef2f2;
+      color:#991b1b;
+    }
     .note {
       color:var(--muted);
       font-size:12px;
@@ -376,7 +401,7 @@
             </div>
             <div>
               <label>選択時の動作</label>
-              <input value="氏名・ID・基本情報だけを反映します" disabled />
+              <input value="IDと評価時期の保存済み記録を読み込みます" disabled />
             </div>
           </div>
           <div class="form-grid cols-3">
@@ -606,10 +631,11 @@
           </div>
 
           <div class="actions">
-            <button id="saveRecord" class="action" type="button">記録を保存</button>
+            <button id="saveRecord" class="action" type="button">今すぐ保存</button>
             <button id="newRecord" class="action secondary" type="button">新規入力</button>
             <button id="goHistory" class="action secondary" type="button">履歴を見る</button>
           </div>
+          <div id="autoSaveStatus" class="autosave-status waiting">対象者IDまたは氏名と評価時期を選ぶと、自動保存を開始します。</div>
         </section>
 
         <section class="panel">
@@ -622,7 +648,7 @@
           </div>
           <p class="note">
             脳卒中専用評価と、共通評価画面で送信先に「脳卒中・臨床用」を選んだ結果が、この入力欄に自動反映されます。
-            ここで対象者・評価時期を選んで保存すると、履歴とグラフ、評価用紙PDF出力に使えます。
+            対象者IDまたは氏名と評価時期を選ぶと、入力内容は同じ枠へ自動保存・上書きされます。
           </p>
           <p class="note">
             保存先はこの端末のブラウザ内です。個人情報を扱う場合は、端末の共有やブラウザデータ削除に注意してください。
@@ -955,6 +981,9 @@ const PDF_ROWS = [
 
 let editingId = null;
 let pendingAssessmentDetails = {};
+let suppressAutoSave = false;
+let autoSaveTimer = null;
+const AUTO_SAVE_DELAY_MS = 800;
 
 const $ = (id) => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -1086,6 +1115,96 @@ function toast(text) {
   toast._timer = setTimeout(() => t.style.display = "none", 1500);
 }
 
+function setAutoSaveStatus(text, state = "waiting") {
+  const el = $("autoSaveStatus");
+  if (!el) return;
+  el.className = `autosave-status ${state}`;
+  el.textContent = text;
+}
+
+function timeLabel(date = new Date()) {
+  return date.toLocaleTimeString("ja-JP", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+}
+
+function withSuppressedAutoSave(fn) {
+  suppressAutoSave = true;
+  try {
+    return fn();
+  } finally {
+    suppressAutoSave = false;
+  }
+}
+
+function samePatientStage(record, key, stage) {
+  return patientKey(record) === key && clean(record.stage) === clean(stage);
+}
+
+function getMergedRecordForPatientStage(patient, stage) {
+  const records = loadRecords()
+    .filter(record => samePatientStage(record, patient, stage))
+    .sort(compareRecordsAscending);
+  if (records.length === 0) return null;
+  const merged = { measurements:{}, assessmentDetails:{} };
+  records.forEach((record) => mergeRecordInto(merged, record));
+  return merged;
+}
+
+function loadSelectedStageRecord() {
+  const patient = getCurrentPatientKey();
+  const stage = $("stage").value || "admission";
+  if (!patient) {
+    setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
+    return;
+  }
+  const existing = getMergedRecordForPatientStage(patient, stage);
+  if (existing) {
+    withSuppressedAutoSave(() => fillForm(existing));
+    setNotice(`${stageLabel(stage)}の保存済みデータを読み込みました。変更すると自動保存されます。`);
+    setAutoSaveStatus(`${patient}：${stageLabel(stage)}を読み込み済みです。`, "saved");
+    return;
+  }
+
+  const keep = {};
+  PROFILE_FIELDS.forEach((field) => {
+    if ($(field)) keep[field] = $(field).value;
+  });
+  withSuppressedAutoSave(() => {
+    editingId = null;
+    pendingAssessmentDetails = {};
+    clearMeasurements();
+    PROFILE_FIELDS.forEach((field) => {
+      if ($(field)) $(field).value = keep[field] ?? "";
+    });
+    $("stage").value = stage;
+    $("recordDate").value = keep.recordDate || today();
+    $("saveRecord").textContent = "今すぐ保存";
+    updateStats();
+  });
+  setNotice(`${stageLabel(stage)}は未入力です。入力すると自動保存されます。`);
+  setAutoSaveStatus(`${patient}：${stageLabel(stage)}は未保存です。入力すると自動保存します。`, "waiting");
+}
+
+function scheduleAutoSave() {
+  if (suppressAutoSave) return;
+  clearTimeout(autoSaveTimer);
+  const key = getCurrentPatientKey();
+  if (!key) {
+    setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
+    return;
+  }
+  setAutoSaveStatus(`${key}：${stageLabel($("stage").value)}を自動保存待機中...`, "waiting");
+  autoSaveTimer = setTimeout(() => saveCurrentRecord({ silent:true }), AUTO_SAVE_DELAY_MS);
+}
+
+function handleRecordFieldChange(event) {
+  updateStats();
+  if (event?.target?.id === "stage") {
+    loadSelectedStageRecord();
+    return;
+  }
+  scheduleAutoSave();
+}
+
 function switchView(viewName) {
   document.querySelectorAll(".tab").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === viewName);
@@ -1138,7 +1257,7 @@ function fillForm(record) {
   MEASUREMENT_FIELDS.forEach((field) => {
     $(field).value = record?.measurements?.[field] ?? "";
   });
-  $("saveRecord").textContent = editingId ? "記録を更新" : "記録を保存";
+  $("saveRecord").textContent = "今すぐ保存";
   updateStats();
 }
 
@@ -1171,29 +1290,40 @@ function newRecord() {
   $("recordDate").value = today();
   $("stage").value = "admission";
   clearMeasurements();
-  $("saveRecord").textContent = "記録を保存";
+  $("saveRecord").textContent = "今すぐ保存";
   renderEntryPatientSelect();
-  setNotice("");
+  setNotice("対象者IDまたは氏名と評価時期を選んで入力すると、自動保存されます。");
+  setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
 }
 
-function saveCurrentRecord() {
+function saveCurrentRecord(options = {}) {
+  clearTimeout(autoSaveTimer);
   const record = formToRecord();
   if (!patientKey(record)) {
-    alert("氏名または対象者IDを入力してください。");
+    if (options.silent) {
+      setAutoSaveStatus("対象者IDまたは氏名が未入力のため、まだ自動保存していません。", "waiting");
+    } else {
+      alert("氏名または対象者IDを入力してください。");
+    }
     return;
   }
+  const key = patientKey(record);
   const records = loadRecords();
-  const existingIndex = records.findIndex(r => r.id === record.id);
-  if (existingIndex >= 0) {
-    records[existingIndex] = { ...records[existingIndex], ...record };
-  } else {
-    record.createdAt = new Date().toISOString();
-    records.push(record);
-  }
-  saveRecords(records);
+  const matchingRecords = records
+    .filter(r => r.id === editingId || samePatientStage(r, key, record.stage))
+    .sort(compareRecordsAscending);
+  const latest = matchingRecords.at(-1);
+  record.id = latest?.id || editingId || record.id;
+  record.createdAt = latest?.createdAt || new Date().toISOString();
+  record.updatedAt = new Date().toISOString();
+  saveRecords([
+    ...records.filter(r => r.id !== editingId && !samePatientStage(r, key, record.stage)),
+    record
+  ]);
   editingId = record.id;
-  $("saveRecord").textContent = "記録を更新";
-  toast("記録を保存しました");
+  $("saveRecord").textContent = "今すぐ保存";
+  setAutoSaveStatus(`${key}：${stageLabel(record.stage)}を自動保存しました（${timeLabel()}）`, "saved");
+  if (!options.silent) toast("記録を保存しました");
   renderEntryPatientSelect();
   updateStats();
   renderHistory();
@@ -1314,15 +1444,18 @@ function applyPatientProfile(patient) {
   if (!latest) return;
   const keepDate = $("recordDate").value || today();
   const keepStage = $("stage").value || "admission";
-  [
-    "patientName","patientId","age","sex","height","weight","surgicalSide",
-    "walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
-  ].forEach((field) => {
-    $(field).value = latest[field] ?? "";
+  withSuppressedAutoSave(() => {
+    [
+      "patientName","patientId","age","sex","height","weight","surgicalSide",
+      "walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
+    ].forEach((field) => {
+      $(field).value = latest[field] ?? "";
+    });
+    $("recordDate").value = keepDate;
+    $("stage").value = keepStage;
+    updateStats();
   });
-  $("recordDate").value = keepDate;
-  $("stage").value = keepStage;
-  updateStats();
+  loadSelectedStageRecord();
 }
 
 function renderMetricOptions() {
@@ -2014,6 +2147,9 @@ function compareRecordsAscending(a, b) {
 }
 
 function mergeRecordInto(base, record) {
+  base.id = record.id || base.id;
+  base.createdAt = base.createdAt || record.createdAt;
+  base.updatedAt = record.updatedAt || base.updatedAt;
   PROFILE_FIELDS.forEach((field) => {
     if (field === "stage") return;
     const value = clean(record[field]);
@@ -2021,6 +2157,10 @@ function mergeRecordInto(base, record) {
   });
   base.stage = record.stage || base.stage;
   base.measurements = base.measurements || {};
+  base.assessmentDetails = {
+    ...(base.assessmentDetails || {}),
+    ...cloneAssessmentDetails(record.assessmentDetails)
+  };
   MEASUREMENT_FIELDS.forEach((field) => {
     const value = clean(record.measurements?.[field]);
     if (value) base.measurements[field] = value;
@@ -2268,20 +2408,38 @@ function applyIncomingDraft() {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return;
     const draft = JSON.parse(raw);
-    if (draft.patientName) $("patientName").value = draft.patientName;
-    if (draft.patientId) $("patientId").value = draft.patientId;
-    if (draft.stage) $("stage").value = draft.stage;
-    if (draft.recordDate) $("recordDate").value = draft.recordDate;
-    if (draft.weight) $("weight").value = draft.weight;
-    Object.entries(draft.measurements || {}).forEach(([key, value]) => {
-      if ($(key)) $(key).value = value;
+    withSuppressedAutoSave(() => {
+      if (draft.patientName) $("patientName").value = draft.patientName;
+      if (draft.patientId) $("patientId").value = draft.patientId;
+      if (draft.stage) $("stage").value = draft.stage;
+      if (draft.recordDate) $("recordDate").value = draft.recordDate;
+      if (draft.weight) $("weight").value = draft.weight;
+      const patient = getCurrentPatientKey();
+      const stage = $("stage").value || "admission";
+      const existing = patient ? getMergedRecordForPatientStage(patient, stage) : null;
+      if (existing) fillForm(existing);
+      if (draft.patientName) $("patientName").value = draft.patientName;
+      if (draft.patientId) $("patientId").value = draft.patientId;
+      if (draft.stage) $("stage").value = draft.stage;
+      if (draft.recordDate) $("recordDate").value = draft.recordDate;
+      if (draft.weight) $("weight").value = draft.weight;
+      Object.entries(draft.measurements || {}).forEach(([key, value]) => {
+        if ($(key)) $(key).value = value;
+      });
+      pendingAssessmentDetails = {
+        ...pendingAssessmentDetails,
+        ...cloneAssessmentDetails(draft.assessmentDetails)
+      };
+      updateStats();
     });
-    pendingAssessmentDetails = {
-      ...pendingAssessmentDetails,
-      ...cloneAssessmentDetails(draft.assessmentDetails)
-    };
     localStorage.removeItem(DRAFT_KEY);
-    setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映しました。対象者と評価時期を確認して保存してください。`);
+    if (getCurrentPatientKey()) {
+      saveCurrentRecord({ silent:true });
+      setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映し、自動保存しました。`);
+    } else {
+      setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映しました。対象者IDまたは氏名を入力すると自動保存されます。`);
+      setAutoSaveStatus("対象者IDまたは氏名が未入力のため、まだ自動保存していません。", "waiting");
+    }
   } catch {
     localStorage.removeItem(DRAFT_KEY);
   }
@@ -2318,8 +2476,8 @@ $("downloadGraph").addEventListener("click", downloadGraphPng);
 $("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);
 [...PROFILE_FIELDS, ...MEASUREMENT_FIELDS].forEach((field) => {
   const el = $(field);
-  if (el) el.addEventListener("input", updateStats);
-  if (el && el.tagName === "SELECT") el.addEventListener("change", updateStats);
+  if (el) el.addEventListener("input", handleRecordFieldChange);
+  if (el && el.tagName === "SELECT") el.addEventListener("change", handleRecordFieldChange);
 });
 
 $("recordDate").value = today();
@@ -2327,6 +2485,11 @@ applyIncomingDraft();
 renderEntryPatientSelect();
 renderLegacyPatientSelect();
 updateStats();
+if (!getCurrentPatientKey()) {
+  setAutoSaveStatus("対象者IDまたは氏名と評価時期を選ぶと、自動保存を開始します。", "waiting");
+} else if (!editingId) {
+  setAutoSaveStatus(`${getCurrentPatientKey()}：${stageLabel($("stage").value)}は未保存です。入力すると自動保存します。`, "waiting");
+}
 renderHistory();
 renderPdfPatientSelect();
 </script>
