@@ -3,7 +3,7 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
-  const APP_BUILD = "20260627-cache-v75";
+  const APP_BUILD = "20260627-hhd-v76";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -36,7 +36,7 @@
     { match: "sara.html", label: "SARA", target: "stroke", reader: readSara },
     { match: "minibestest.html", label: "Mini-BESTest", target: "stroke", reader: readMiniBestest },
     { match: "bbs/index.html", label: "BBS", target: "bbs", reader: readBbs, customSnapshot: snapshotBbs, restoreCustomSnapshot: restoreBbs },
-    { match: "calc/index.html", label: "10m歩行・HHD", target: "choice", reader: readCalc },
+    { match: "calc/index.html", label: "HHD", target: "choice", reader: readCalc },
     { match: "gait/index.html", label: "歩行加速度解析", target: "choice", reader: readGait }
   ];
 
@@ -914,11 +914,19 @@
       const value = clean(input.value);
       if (value && input.dataset.field) measurements[input.dataset.field] = value;
     });
+    document.querySelectorAll(".strength-arm-input").forEach((input) => {
+      const value = clean(input.value);
+      if (value && input.dataset.armField) measurements[input.dataset.armField] = value;
+    });
     const arm = clean($("h-arm")?.value);
     if (arm) measurements.hhdArmCm = arm;
     if (!hasMeasurements(measurements)) return null;
+    const hhdKeys = Object.keys(measurements).filter((key) => key !== "comfortable10mSpeed");
+    const sourceLabel = speed && speed !== "-"
+      ? (hhdKeys.length ? "10m歩行・HHD" : "10m歩行")
+      : "HHD";
     return {
-      sourceLabel: "10m歩行・HHD",
+      sourceLabel,
       weight: $("h-bw")?.value || "",
       hhdArmCm: arm,
       measurements
