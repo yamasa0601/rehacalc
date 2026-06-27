@@ -1,4 +1,4 @@
-const CACHE_NAME = "bbs-pwa-v6";
+const CACHE_NAME = "bbs-pwa-v7";
 const ASSETS = ["./","./index.html","./manifest.json","./service-worker.js","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -12,12 +12,16 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   if (event.request.mode === "navigate" || event.request.destination === "document") {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "no-store" })
         .then((resp) => {
           const copy = resp.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
@@ -29,7 +33,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(event.request).then((resp) => {
+    fetch(event.request, { cache: "no-store" }).then((resp) => {
       const url = new URL(event.request.url);
       if (url.origin === self.location.origin && event.request.method === "GET") {
         const copy = resp.clone();

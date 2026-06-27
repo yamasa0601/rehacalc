@@ -3,6 +3,7 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+  const APP_BUILD = "20260627-cache-v75";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -62,6 +63,7 @@
   }
 
   function init() {
+    refreshServiceWorkers();
     injectStyles();
     panel = buildPanel();
     statusEl = panel.querySelector("[data-rac-status]");
@@ -73,6 +75,34 @@
     bindPanelEvents();
     bindAssessmentEvents();
     setStatus("IDまたは氏名と時期を選ぶと、この画面の入力を自動保存します。", "waiting");
+  }
+
+  function refreshServiceWorkers() {
+    if (!("serviceWorker" in navigator)) return;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded || sessionStorage.getItem(APP_BUILD)) return;
+      reloaded = true;
+      sessionStorage.setItem(APP_BUILD, "1");
+      location.reload();
+    });
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        registration.update();
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+        registration.addEventListener("updatefound", () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              worker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      });
+    }).catch(() => {});
   }
 
   function normalizedPath() {
