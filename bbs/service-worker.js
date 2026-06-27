@@ -1,4 +1,4 @@
-const CACHE_NAME = "bbs-pwa-v7";
+const CACHE_NAME = "bbs-pwa-v8";
 const ASSETS = ["./","./index.html","./manifest.json","./service-worker.js","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install", (event) => {

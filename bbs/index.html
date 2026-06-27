@@ -46,6 +46,47 @@
     .btn { border:1px solid var(--line); background:#fff; color:#111; padding: 8px 10px; border-radius: 999px; font-size: 14px; cursor:pointer; min-width: 44px; transition: all 0.15s; }
     .btn:hover { border-color: #999; }
     .btn.active { background:#111; color:#fff; border-color:#111; }
+    .prev-score-row {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+      margin-top:7px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+    .prev-score-btn {
+      border:1px solid #bfdbfe;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .item-change {
+      display:inline-block;
+      padding:2px 7px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      background:#f0f1f5;
+      color:#333;
+    }
+    .item-change.up { background:#dcfce7; color:#166534; }
+    .item-change.down { background:#fee2e2; color:#991b1b; }
+    .feedback-box {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:#fafbfe;
+      margin-top:10px;
+    }
+    .feedback-list { margin:8px 0 0; padding-left:18px; font-size:12px; line-height:1.5; }
+    .feedback-list li { margin:4px 0; }
+    .feedback-section-title { font-weight:900; font-size:12px; margin-top:8px; }
     .muted { color: var(--muted); font-size: 12px; line-height: 1.55; }
     .kv { display:grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
     .kv:last-child { border-bottom: 0; }
@@ -125,7 +166,11 @@
         <label for="prevRecordSearch">評価記録から前回BBSを選択</label>
         <input id="prevRecordSearch" placeholder="IDまたは氏名で検索" />
         <select id="prevRecordSelect"></select>
-        <div class="muted">評価記録に保存したBBSを検索し、前回BBSへ反映できます。</div>
+        <div class="muted">評価記録に保存したBBSを検索し、合計点と14項目の前回値を読み込みます。各項目欄の「前回○点」をタップすると、その値を今回点へ反映できます。</div>
+      </div>
+
+      <div class="actions" style="margin-top:0;">
+        <button class="action secondary" id="applyPrevItems" type="button">前回下位項目を全て反映</button>
       </div>
 
       <div class="row">
@@ -137,6 +182,14 @@
       <div class="kv"><div class="k">前回との差（今回−前回）</div><div class="v" id="delta">-</div></div>
       <div class="kv"><div class="k" id="mdcLabel">MDC</div><div class="v" id="mdcJudge">-</div></div>
       <div class="kv"><div class="k" id="mcidLabel">MCID</div><div class="v" id="mcidJudge">-</div></div>
+
+      <div class="feedback-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <div style="font-weight:900;font-size:13px;">下位項目フィードバック</div>
+          <button class="action secondary" id="copyFeedback" type="button" style="padding:7px 9px;font-size:12px;">コピー</button>
+        </div>
+        <div id="itemFeedback" class="muted" style="margin-top:6px;">前回下位項目を選択すると、向上した項目をここに表示します。</div>
+      </div>
 
       <div style="margin-top:12px;">
         <details open>
@@ -442,6 +495,33 @@
     return id ? `${name} (${id})` : name;
   }
 
+  function itemName(index) {
+    return ITEMS_DATA[index]?.name.replace(/^\d+\.\s*/, "") || `${index + 1}項目`;
+  }
+
+  function bbsItemScoresFromRecord(record) {
+    const detail = record.assessmentDetails?.bbs;
+    if (!Array.isArray(detail?.items)) return [];
+    const scores = Array(ITEMS.length).fill(null);
+    detail.items.forEach((item, index) => {
+      const id = Number(item.id);
+      const targetIndex = Number.isFinite(id) && id >= 1 && id <= ITEMS.length ? id - 1 : index;
+      const score = parseNumber(item.score);
+      if (targetIndex >= 0 && targetIndex < ITEMS.length && score !== null) scores[targetIndex] = clampScore(score);
+    });
+    return scores;
+  }
+
+  function hasPreviousItemScores() {
+    return Array.isArray(state.prevItemScores) && state.prevItemScores.some((score) => Number.isFinite(score));
+  }
+
+  function previousScoreAt(index) {
+    if (!Array.isArray(state.prevItemScores)) return null;
+    const score = state.prevItemScores[index];
+    return Number.isFinite(score) ? score : null;
+  }
+
   function previousBbsRecords(query) {
     const keyword = clean(query).toLowerCase();
     return loadEvaluationRecords()
@@ -449,12 +529,16 @@
         const bbsText = clean(record.measurements?.bbs);
         const bbs = parseNumber(bbsText);
         if (bbs === null) return null;
+        const itemScores = bbsItemScoresFromRecord(record);
+        const label = `${patientLabel(record)} / ${clean(record.recordDate) || "-"} ${stageLabel(record.stage)} / BBS ${bbsText}点`;
         return {
           record,
           bbsText,
+          itemScores,
+          label,
           optionId: record.id || `record_${index}`,
           searchText: [
-            patientLabel(record),
+            label,
             record.patientName,
             record.patientId,
             record.recordDate,
@@ -485,11 +569,12 @@
     blank.textContent = records.length ? "評価記録から選択" : "評価記録にBBSがありません";
     select.appendChild(blank);
 
-    records.forEach(({ record, bbsText, optionId }) => {
+    records.forEach(({ bbsText, optionId, itemScores, label }) => {
       const opt = document.createElement("option");
       opt.value = optionId;
       opt.dataset.bbs = bbsText;
-      opt.textContent = `${patientLabel(record)} / ${clean(record.recordDate) || "-"} ${stageLabel(record.stage)} / BBS ${bbsText}点`;
+      opt.dataset.itemScores = JSON.stringify(itemScores);
+      opt.textContent = `${label}${itemScores.some((score) => Number.isFinite(score)) ? " / 下位項目あり" : " / 合計のみ"}`;
       select.appendChild(opt);
     });
 
@@ -563,6 +648,29 @@
       }
       wrap.appendChild(btns);
 
+      const prevScore = previousScoreAt(idx);
+      if (prevScore !== null) {
+        const prevRow = document.createElement("div");
+        prevRow.className = "prev-score-row";
+        const prevButton = document.createElement("button");
+        prevButton.type = "button";
+        prevButton.className = "prev-score-btn";
+        prevButton.textContent = `前回 ${prevScore}点`;
+        prevButton.addEventListener("click", () => {
+          if (prevScore === 0) state.showZero = true;
+          scores[idx] = prevScore;
+          render();
+        });
+        prevRow.appendChild(prevButton);
+
+        const diff = scores[idx] - prevScore;
+        const change = document.createElement("span");
+        change.className = `item-change ${diff > 0 ? "up" : diff < 0 ? "down" : ""}`;
+        change.textContent = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "変化なし";
+        prevRow.appendChild(change);
+        wrap.appendChild(prevRow);
+      }
+
       // Criteria toggle
       const toggle = document.createElement("span");
       toggle.className = "criteria-toggle";
@@ -603,6 +711,8 @@
   }
 
   function buildBbsDetail(totals) {
+    const changes = bbsItemChanges();
+    const previousTotal = parseNumber(state.prevTotal);
     return {
       assessmentId: state.assessmentId,
       assessmentKey: "bbs",
@@ -616,6 +726,17 @@
         score: state.scores[index],
         max: 4
       })),
+      comparison: changes?.length ? {
+        previousTotal,
+        totalDelta: previousTotal === null ? null : totals.total - previousTotal,
+        items: changes.map((item) => ({
+          id: item.index + 1,
+          name: item.name,
+          previous: item.previous,
+          current: item.current,
+          delta: item.delta
+        }))
+      } : null,
       updatedAt: new Date().toISOString()
     };
   }
@@ -630,6 +751,92 @@
     if (absd < low) return `× 未満（|Δ|=${absd}）`;
     if (absd >= high) return `◯ 以上（|Δ|=${absd}）`;
     return `△ 範囲内（|Δ|=${absd}）`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[ch]));
+  }
+
+  function bbsItemChanges() {
+    if (!hasPreviousItemScores()) return null;
+    return ITEMS_DATA.map((item, index) => {
+      const previous = previousScoreAt(index);
+      if (previous === null) return null;
+      const current = clampScore(state.scores[index]);
+      const delta = current - previous;
+      return {
+        index,
+        name: itemName(index),
+        previous,
+        current,
+        delta
+      };
+    }).filter(Boolean);
+  }
+
+  function changeLine(change) {
+    const prefix = `${change.index + 1}. ${change.name}`;
+    const delta = change.delta > 0 ? `+${change.delta}` : String(change.delta);
+    return `${prefix}：${change.previous}→${change.current}点（${delta}）`;
+  }
+
+  function feedbackText() {
+    const changes = bbsItemChanges();
+    if (!changes?.length) return "前回下位項目が未選択です。";
+    const improved = changes.filter((item) => item.delta > 0);
+    const declined = changes.filter((item) => item.delta < 0);
+    const maintainedMax = changes.filter((item) => item.delta === 0 && item.current === 4);
+    const totalDelta = changes.reduce((sum, item) => sum + item.delta, 0);
+    const lines = [`BBS下位項目フィードバック（前回比 ${totalDelta >= 0 ? "+" : ""}${totalDelta}点）`];
+    lines.push(`向上：${improved.length}項目`);
+    improved.forEach((item) => lines.push(`・${changeLine(item)}`));
+    if (declined.length) {
+      lines.push(`低下：${declined.length}項目`);
+      declined.forEach((item) => lines.push(`・${changeLine(item)}`));
+    }
+    if (maintainedMax.length) {
+      lines.push(`満点維持：${maintainedMax.length}項目`);
+      maintainedMax.forEach((item) => lines.push(`・${item.index + 1}. ${item.name}`));
+    }
+    return lines.join("\n");
+  }
+
+  function renderChangeList(title, items, className) {
+    if (!items.length) return "";
+    return `
+      <div class="feedback-section-title">${escapeHtml(title)}</div>
+      <ul class="feedback-list">
+        ${items.map((item) => `<li><span class="item-change ${className}">${item.delta > 0 ? "+" + item.delta : item.delta}</span> ${escapeHtml(changeLine(item))}</li>`).join("")}
+      </ul>
+    `;
+  }
+
+  function renderItemFeedback() {
+    const root = $("itemFeedback");
+    const applyButton = $("applyPrevItems");
+    if (!root) return;
+    const changes = bbsItemChanges();
+    if (applyButton) applyButton.disabled = !changes?.length;
+    if (!changes?.length) {
+      root.textContent = "前回下位項目を選択すると、向上した項目をここに表示します。";
+      return;
+    }
+    const improved = changes.filter((item) => item.delta > 0);
+    const declined = changes.filter((item) => item.delta < 0);
+    const maintainedMax = changes.filter((item) => item.delta === 0 && item.current === 4);
+    const totalDelta = changes.reduce((sum, item) => sum + item.delta, 0);
+    root.innerHTML = `
+      <div>前回比：<b>${totalDelta >= 0 ? "+" : ""}${totalDelta}点</b> / 向上 ${improved.length}項目 / 低下 ${declined.length}項目</div>
+      ${improved.length ? renderChangeList("向上した項目", improved, "up") : '<div class="muted" style="margin-top:8px;">向上した項目はありません。</div>'}
+      ${renderChangeList("低下した項目", declined, "down")}
+      ${maintainedMax.length ? `<div class="feedback-section-title">満点維持</div><div>${maintainedMax.map((item) => escapeHtml(`${item.index + 1}. ${item.name}`)).join("、")}</div>` : ""}
+    `;
   }
 
   function renderCutoffs(total, datasetKey) {
@@ -718,6 +925,10 @@
       lines.push(`${d.mdc.label}：${d.mdc.low}${d.mdc.low === d.mdc.high ? "" : "-" + d.mdc.high}点`);
       lines.push(`${d.mcid.label}：${d.mcid.low}${d.mcid.low === d.mcid.high ? "" : "-" + d.mcid.high}点`);
     }
+    if (hasPreviousItemScores()) {
+      lines.push("");
+      lines.push(feedbackText());
+    }
     if (d.tests?.length) {
       lines.push("");
       lines.push("【関連テスト】");
@@ -731,16 +942,18 @@
 
   function exportCSV(state, totals) {
     const d = DATASETS[state.datasetKey];
-    const rows = [["項目", "スコア", "判定基準"]];
+    const rows = [["項目", "今回スコア", "前回スコア", "差", "判定基準"]];
     ITEMS_DATA.forEach((data, i) => {
       const score = state.scores[i];
+      const previous = previousScoreAt(i);
+      const delta = previous === null ? "" : score - previous;
       const criteriaText = data.criteria.find(c => parseInt(c.charAt(0), 10) === score) || "";
-      rows.push([data.name, String(score), criteriaText]);
+      rows.push([data.name, String(score), previous === null ? "" : String(previous), delta === "" ? "" : String(delta), criteriaText]);
     });
-    rows.push(["静的（1〜7）", String(totals.staticScore), "/28"]);
-    rows.push(["動的（8〜14）", String(totals.dynamicScore), "/28"]);
-    rows.push(["合計", String(totals.total), "/56"]);
-    rows.push(["データセット", d.name, ""]);
+    rows.push(["静的（1〜7）", String(totals.staticScore), "", "", "/28"]);
+    rows.push(["動的（8〜14）", String(totals.dynamicScore), "", "", "/28"]);
+    rows.push(["合計", String(totals.total), clean(state.prevTotal), parseNumber(state.prevTotal) === null ? "" : String(totals.total - parseNumber(state.prevTotal)), "/56"]);
+    rows.push(["データセット", d.name, "", "", ""]);
 
     const bom = '\uFEFF';
     const csv = bom + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -759,11 +972,13 @@
     scores: Array(ITEMS.length).fill(0),
     assessmentId: makeAssessmentId(),
     prevTotal: "",
+    prevItemScores: [],
     prevRecordId: "",
     prevRecordQuery: "",
     tests: {}
   };
   if (!state.assessmentId) state.assessmentId = makeAssessmentId();
+  if (!Array.isArray(state.prevItemScores)) state.prevItemScores = [];
 
   function normalizeScores() {
     state.scores = state.scores.map(s => {
@@ -804,6 +1019,7 @@
       $("mcidJudge").textContent = "-";
     }
 
+    renderItemFeedback();
     renderCutoffs(totals.total, state.datasetKey);
     renderTests(state.datasetKey, state);
   }
@@ -812,6 +1028,10 @@
   $("dataset").addEventListener("change", (e) => {
     state.datasetKey = e.target.value;
     state.assessmentId = makeAssessmentId();
+    state.prevTotal = "";
+    state.prevItemScores = [];
+    state.prevRecordId = "";
+    state.prevRecordQuery = "";
     render();
   });
   $("showZero").addEventListener("change", (e) => {
@@ -820,6 +1040,7 @@
   });
   $("prevTotal").addEventListener("input", (e) => {
     state.prevTotal = e.target.value;
+    state.prevItemScores = [];
     state.prevRecordId = "";
     saveState(state);
     render();
@@ -835,17 +1056,39 @@
     state.prevRecordId = e.target.value;
     if (option?.dataset.bbs) {
       state.prevTotal = option.dataset.bbs;
+      try {
+        const parsed = JSON.parse(option.dataset.itemScores || "[]");
+        state.prevItemScores = Array.isArray(parsed) ? parsed.map((score) => Number.isFinite(score) ? score : null) : [];
+      } catch {
+        state.prevItemScores = [];
+      }
       saveState(state);
       render();
-      makeToast("前回BBSを反映しました");
+      makeToast(hasPreviousItemScores() ? "前回BBSと下位項目を読み込みました" : "前回BBS合計を反映しました");
       return;
     }
+    state.prevItemScores = [];
     saveState(state);
+  });
+  $("applyPrevItems").addEventListener("click", () => {
+    if (!hasPreviousItemScores()) {
+      makeToast("前回下位項目がありません");
+      return;
+    }
+    state.scores = state.scores.map((score, index) => {
+      const previous = previousScoreAt(index);
+      return previous === null ? score : previous;
+    });
+    if (state.scores.some((score) => score === 0)) state.showZero = true;
+    saveState(state);
+    render();
+    makeToast("前回下位項目を反映しました");
   });
   $("reset").addEventListener("click", () => {
     if (!confirm("全項目を初期化しますか？")) return;
     state.scores = Array(ITEMS.length).fill(state.showZero ? 0 : 1);
     state.prevTotal = "";
+    state.prevItemScores = [];
     state.prevRecordId = "";
     state.prevRecordQuery = "";
     state.tests = {};
@@ -866,6 +1109,21 @@
       document.execCommand("copy");
       ta.remove();
       makeToast("コピーしました");
+    }
+  });
+  $("copyFeedback").addEventListener("click", async () => {
+    const text = feedbackText();
+    try {
+      await navigator.clipboard.writeText(text);
+      makeToast("フィードバックをコピーしました");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      makeToast("フィードバックをコピーしました");
     }
   });
   $("csvExport").addEventListener("click", () => {
