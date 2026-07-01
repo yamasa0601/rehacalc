@@ -496,9 +496,10 @@
             </div>
             <div>
               <label for="daysSinceOnset">発症からの経過 (日)</label>
-              <input id="daysSinceOnset" type="number" inputmode="numeric" />
+              <input id="daysSinceOnset" type="number" inputmode="numeric" placeholder="自動計算" />
             </div>
           </div>
+          <p id="schedulePreview" class="note">入棟時の評価日を基準に1M、2M、3Mの再評価日を自動計算します。退院日は退院時の評価日を手動入力してください。</p>
 
           <h3>評価結果</h3>
           <div class="measure-grid">
@@ -875,6 +876,8 @@ const STAGES = [
   { id:"month3", label:"3M", x:481.5 },
   { id:"discharge", label:"退院", x:535.5 }
 ];
+const SCHEDULE_BASE_STAGE = "admission";
+const AUTO_MONTH_STAGES = { month1:1, month2:2, month3:3 };
 
 const PROFILE_FIELDS = [
   "patientName","patientId","recordDate","stage","age","sex","height","weight",
@@ -1002,6 +1005,7 @@ const $ = (id) => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const stageLabel = (stage) => STAGES.find(s => s.id === stage)?.label || stage || "-";
 const clean = (value) => String(value ?? "").trim();
+const pad2 = (value) => String(value).padStart(2, "0");
 const num = (value) => {
   const text = clean(value).replaceAll(",", "");
   if (text === "") return null;
@@ -1009,6 +1013,48 @@ const num = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 const cloneAssessmentDetails = (value) => JSON.parse(JSON.stringify(value || {}));
+
+function dateParts(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(clean(value));
+  if (!match) return null;
+  const parts = { year:Number(match[1]), month:Number(match[2]), day:Number(match[3]) };
+  if (!parts.year || parts.month < 1 || parts.month > 12 || parts.day < 1 || parts.day > 31) return null;
+  return parts;
+}
+
+function daysInMonth(year, month) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function addMonthsIso(value, months) {
+  const parts = dateParts(value);
+  if (!parts) return "";
+  const rawMonth = parts.month - 1 + months;
+  const year = parts.year + Math.floor(rawMonth / 12);
+  const monthIndex = ((rawMonth % 12) + 12) % 12;
+  const month = monthIndex + 1;
+  const day = Math.min(parts.day, daysInMonth(year, month));
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+function daysBetween(start, end) {
+  const a = dateParts(start);
+  const b = dateParts(end);
+  if (!a || !b) return "";
+  const startUtc = Date.UTC(a.year, a.month - 1, a.day);
+  const endUtc = Date.UTC(b.year, b.month - 1, b.day);
+  return String(Math.round((endUtc - startUtc) / 86400000));
+}
+
+function dateLabel(value) {
+  const parts = dateParts(value);
+  return parts ? `${parts.year}年${parts.month}月${parts.day}日` : "";
+}
+
+function pdfDateLabel(value) {
+  const parts = dateParts(value);
+  return parts ? `${String(parts.year).slice(2)}/${parts.month}/${parts.day}` : "";
+}
 
 function clampPercent(value) {
   if (!Number.isFinite(value)) return null;
@@ -1166,6 +1212,64 @@ function getMergedRecordForPatientStage(patient, stage) {
   return merged;
 }
 
+function scheduleBaseDate(stageMap = null) {
+  if ($("stage")?.value === SCHEDULE_BASE_STAGE && $("recordDate")?.value) return $("recordDate").value;
+  const patient = getCurrentPatientKey();
+  const map = stageMap || (patient ? getMergedRecordsByStage(patient) : new Map());
+  return clean(map.get(SCHEDULE_BASE_STAGE)?.recordDate);
+}
+
+function plannedDateForStage(stage, stageMap = null) {
+  const map = stageMap || (getCurrentPatientKey() ? getMergedRecordsByStage(getCurrentPatientKey()) : new Map());
+  const direct = clean(map.get(stage)?.recordDate);
+  if (direct) return direct;
+  const months = AUTO_MONTH_STAGES[stage];
+  if (!months) return "";
+  const base = scheduleBaseDate(map);
+  return base ? addMonthsIso(base, months) : "";
+}
+
+function suggestedRecordDateForStage(stage, patient) {
+  if (stage === "discharge") return "";
+  const map = patient ? getMergedRecordsByStage(patient) : new Map();
+  if (stage === SCHEDULE_BASE_STAGE) return clean(map.get(stage)?.recordDate);
+  return plannedDateForStage(stage, map);
+}
+
+function scheduleDateForPdf(stage, stageMap) {
+  const direct = clean(stageMap.get(stage)?.recordDate);
+  if (direct) return direct;
+  const months = AUTO_MONTH_STAGES[stage];
+  if (!months || stage === "discharge") return "";
+  const base = clean(stageMap.get(SCHEDULE_BASE_STAGE)?.recordDate);
+  return base ? addMonthsIso(base, months) : "";
+}
+
+function updateDateSchedule() {
+  const patient = getCurrentPatientKey();
+  const stageMap = patient ? getMergedRecordsByStage(patient) : new Map();
+  const base = scheduleBaseDate(stageMap);
+  const onset = clean($("injuryDate")?.value);
+  if (onset && base) {
+    const days = daysBetween(onset, base);
+    if (days !== "") $("daysSinceOnset").value = days;
+  }
+  const preview = $("schedulePreview");
+  if (!preview) return;
+  if (!base) {
+    preview.textContent = "入棟時の評価日を入力すると、1M、2M、3Mの再評価日を自動計算します。退院日は退院時に手動入力してください。";
+    return;
+  }
+  const rows = [
+    `入棟：${dateLabel(base)}`,
+    `1M：${dateLabel(addMonthsIso(base, 1))}`,
+    `2M：${dateLabel(addMonthsIso(base, 2))}`,
+    `3M：${dateLabel(addMonthsIso(base, 3))}`,
+    "退院：手動入力"
+  ];
+  preview.textContent = `再評価予定日　${rows.join(" / ")}`;
+}
+
 function loadSelectedStageRecord() {
   const patient = getCurrentPatientKey();
   const stage = $("stage").value || "admission";
@@ -1193,7 +1297,7 @@ function loadSelectedStageRecord() {
       if ($(field)) $(field).value = keep[field] ?? "";
     });
     $("stage").value = stage;
-    $("recordDate").value = keep.recordDate || today();
+    $("recordDate").value = suggestedRecordDateForStage(stage, patient) || keep.recordDate || today();
     $("saveRecord").textContent = "今すぐ保存";
     updateStats();
   });
@@ -1238,6 +1342,7 @@ function switchView(viewName) {
 }
 
 function formToRecord() {
+  updateDateSchedule();
   const record = {
     id: editingId || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     patientName: clean($("patientName").value),
@@ -1359,6 +1464,7 @@ function updateStats() {
     .sort((a, b) => clean(b.recordDate).localeCompare(clean(a.recordDate)));
   $("latestStage").textContent = patientRecords[0] ? stageLabel(patientRecords[0].stage) : "-";
   updateHhdConversions();
+  updateDateSchedule();
 }
 
 function renderPatientOptions(selectEl, includeAll) {
@@ -2244,8 +2350,13 @@ async function exportFilledPdf() {
   await drawText(pdfDoc, page, profile.procedure, 422, 676.9, { fontSize:11, maxWidth:128 });
   await drawText(pdfDoc, page, jpDate(profile.injuryDate), 438, 702.9, { fontSize:10, maxWidth:120 });
   await drawText(pdfDoc, page, profile.dischargeDestination, 138, 639.9, { fontSize:12, align:"center" });
-  await drawText(pdfDoc, page, profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : "", 468, 639.9, { fontSize:12, align:"center" });
+  await drawText(pdfDoc, page, profileDaysSinceOnset(profile, stageMap), 468, 639.9, { fontSize:12, align:"center" });
   await drawText(pdfDoc, page, "6分間歩行(m)", 132, 312.9, { fontSize:8.5, align:"center", maxWidth:90 });
+
+  for (const stage of STAGES) {
+    const dateText = pdfDateLabel(scheduleDateForPdf(stage.id, stageMap));
+    if (dateText) await drawText(pdfDoc, page, dateText, stage.x, 604.5, { fontSize:6.7, align:"center", maxWidth:50 });
+  }
 
   for (const stage of STAGES) {
     const record = stageMap.get(stage.id);
@@ -2265,6 +2376,13 @@ async function exportFilledPdf() {
   a.click();
   URL.revokeObjectURL(a.href);
   toast("PDFを作成しました");
+}
+
+function profileDaysSinceOnset(profile, stageMap) {
+  const onset = clean(profile.injuryDate);
+  const base = clean(stageMap.get(SCHEDULE_BASE_STAGE)?.recordDate);
+  const days = onset && base ? daysBetween(onset, base) : clean(profile.daysSinceOnset);
+  return days !== "" ? `${days}日` : "";
 }
 
 function getLatestRecordWithValue(patient, field) {

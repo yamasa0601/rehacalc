@@ -276,6 +276,10 @@
           <div id="onsetDate" class="profile-value">-</div>
         </div>
         <div class="profile-item">
+          <div class="profile-label">発症からの経過</div>
+          <div id="daysSinceOnset" class="profile-value">-</div>
+        </div>
+        <div class="profile-item">
           <div class="profile-label">麻痺側</div>
           <div id="affectedSide" class="profile-value">-</div>
         </div>
@@ -335,6 +339,8 @@
       { id:"month3", label:"3M" },
       { id:"discharge", label:"退院" }
     ];
+    const SCHEDULE_BASE_STAGE = "admission";
+    const AUTO_MONTH_STAGES = { month1:1, month2:2, month3:3 };
     const ROW_GROUPS = [
       {
         label:"運動機能・上肢使用",
@@ -415,11 +421,44 @@
     const $ = (id) => document.getElementById(id);
     const clean = (value) => String(value ?? "").trim();
     const show = (value) => clean(value) || "-";
+    const pad2 = (value) => String(value).padStart(2, "0");
     const num = (value) => {
       const n = Number(clean(value));
       return Number.isFinite(n) && clean(value) !== "" ? n : null;
     };
     const clamp = (value) => Math.max(0, Math.min(100, value));
+
+    function dateParts(value) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(clean(value));
+      if (!match) return null;
+      const parts = { year:Number(match[1]), month:Number(match[2]), day:Number(match[3]) };
+      if (!parts.year || parts.month < 1 || parts.month > 12 || parts.day < 1 || parts.day > 31) return null;
+      return parts;
+    }
+
+    function daysInMonth(year, month) {
+      return new Date(Date.UTC(year, month, 0)).getUTCDate();
+    }
+
+    function addMonthsIso(value, months) {
+      const parts = dateParts(value);
+      if (!parts) return "";
+      const rawMonth = parts.month - 1 + months;
+      const year = parts.year + Math.floor(rawMonth / 12);
+      const monthIndex = ((rawMonth % 12) + 12) % 12;
+      const month = monthIndex + 1;
+      const day = Math.min(parts.day, daysInMonth(year, month));
+      return `${year}-${pad2(month)}-${pad2(day)}`;
+    }
+
+    function daysBetween(start, end) {
+      const a = dateParts(start);
+      const b = dateParts(end);
+      if (!a || !b) return "";
+      const startUtc = Date.UTC(a.year, a.month - 1, a.day);
+      const endUtc = Date.UTC(b.year, b.month - 1, b.day);
+      return String(Math.round((endUtc - startUtc) / 86400000));
+    }
 
     function pair(right, left) {
       const r = clean(right);
@@ -457,7 +496,7 @@
 
     function mergeNonEmpty(base, record) {
       const merged = { ...base, measurements:{ ...(base.measurements || {}) } };
-      ["patientName","patientId","age","sex","injuryDate","surgicalSide"].forEach((field) => {
+      ["patientName","patientId","age","sex","injuryDate","daysSinceOnset","surgicalSide"].forEach((field) => {
         if (clean(record[field])) merged[field] = record[field];
       });
       if (clean(record.recordDate)) merged.recordDate = record.recordDate;
@@ -478,6 +517,22 @@
         byStage.set(record.stage, mergeNonEmpty(byStage.get(record.stage), record));
       });
       return byStage;
+    }
+
+    function scheduleDateForStage(stage, byStage) {
+      const direct = clean(byStage.get(stage)?.recordDate);
+      if (direct) return direct;
+      const months = AUTO_MONTH_STAGES[stage];
+      if (!months || stage === "discharge") return "";
+      const base = clean(byStage.get(SCHEDULE_BASE_STAGE)?.recordDate);
+      return base ? addMonthsIso(base, months) : "";
+    }
+
+    function daysSinceOnsetText(profile, byStage) {
+      const onset = clean(profile.injuryDate);
+      const base = clean(byStage.get(SCHEDULE_BASE_STAGE)?.recordDate);
+      const days = onset && base ? daysBetween(onset, base) : clean(profile.daysSinceOnset);
+      return days !== "" ? `${days}日` : "";
     }
 
     function latestProfile(records) {
@@ -531,6 +586,7 @@
       setText("age", profile.age ? `${profile.age} 歳` : "");
       setText("sex", profile.sex);
       setText("onsetDate", profile.injuryDate);
+      setText("daysSinceOnset", daysSinceOnsetText(profile, byStage));
       setText("affectedSide", profile.surgicalSide);
 
       $("stageHeader").innerHTML = "<th>評価項目</th>" + STAGES.map((stage) => `<th>${stage.label}</th>`).join("");
@@ -538,7 +594,7 @@
         <tr>
           <td>評価日</td>
           ${STAGES.map((stage) => {
-            const value = clean(byStage.get(stage.id)?.recordDate);
+            const value = scheduleDateForStage(stage.id, byStage);
             return `<td class="${value ? "" : "empty"}">${value || "-"}</td>`;
           }).join("")}
         </tr>`;
@@ -612,12 +668,13 @@
           { label:"年齢", value:profile.age ? `${profile.age} 歳` : "-", span:1 },
           { label:"性別", value:show(profile.sex), span:1 },
           { label:"発症日", value:show(profile.injuryDate), span:1 },
+          { label:"発症からの経過", value:daysSinceOnsetText(profile, byStage) || "-", span:1 },
           { label:"麻痺側", value:show(profile.surgicalSide), span:1 }
         ]
       ];
-      const unit = width / 4;
       let infoY = infoTop;
       infoRows.forEach((row) => {
+        const unit = width / row.reduce((sum, item) => sum + item.span, 0);
         let x = left;
         row.forEach((item) => {
           const w = unit * item.span;
@@ -634,7 +691,7 @@
       const stageWidth = (width - labelWidth) / STAGES.length;
       const headerHeight = 64;
       const pdfRows = [
-        { label:"評価日", value:(record) => clean(record?.recordDate) },
+        { label:"評価日", isDateRow:true },
         ...group.rows
       ];
       const rowHeight = Math.min(92, Math.floor(1010 / pdfRows.length));
@@ -656,7 +713,11 @@
         }
         STAGES.forEach((stage, stageIndex) => {
           const x = left + labelWidth + stageWidth * stageIndex;
-          const value = row.value ? clean(row.value(byStage.get(stage.id))) : cellValue(byStage.get(stage.id), row);
+          const value = row.isDateRow
+            ? scheduleDateForStage(stage.id, byStage)
+            : row.value
+              ? clean(row.value(byStage.get(stage.id)))
+              : cellValue(byStage.get(stage.id), row);
           drawCell(ctx, x, y, stageWidth, rowHeight, value ? "#ffffff" : "#f8fafb");
           canvasText(ctx, value || "-", x + stageWidth / 2, y + rowHeight / 2, {
             size:row.max ? 21 : 15,
