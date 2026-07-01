@@ -3,7 +3,7 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
-  const APP_BUILD = "20260701-pdf-v79";
+  const APP_BUILD = "20260701-tug-v80";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -1451,6 +1451,8 @@
     if (speed && speed !== "-") measurements.comfortable10mSpeed = speed;
     const steps = clean($("g-steps")?.value);
     if (steps) measurements.comfortable10mSteps = steps;
+    const tug = clean($("res-tug")?.textContent);
+    if (tug && tug !== "-") measurements.tugT = tug;
 
     const singleTarget = $("h-target")?.value;
     if (singleTarget) {
@@ -1470,10 +1472,14 @@
     const arm = clean($("h-arm")?.value);
     if (arm) measurements.hhdArmCm = arm;
     if (!hasMeasurements(measurements)) return null;
-    const hhdKeys = Object.keys(measurements).filter((key) => key !== "comfortable10mSpeed");
-    const sourceLabel = speed && speed !== "-"
-      ? (hhdKeys.length ? "10m歩行・HHD" : "10m歩行")
-      : "HHD";
+    const hhdKeys = Object.keys(measurements).filter((key) =>
+      !["comfortable10mSpeed", "comfortable10mSteps", "tugT"].includes(key)
+    );
+    const sourceParts = [];
+    if (speed && speed !== "-") sourceParts.push("10m歩行");
+    if (tug && tug !== "-") sourceParts.push("TUG");
+    if (hhdKeys.length) sourceParts.push("HHD");
+    const sourceLabel = sourceParts.join("・") || "HHD";
     const hhdItems = hhdDetailItems();
     return {
       sourceLabel,

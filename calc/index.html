@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
-  <title>リハ計算 Pro (10m & HHD)</title>
+  <title>リハ計算 Pro (10m・TUG・HHD)</title>
   <style>
     :root { --gap: 12px; --radius: 14px; --bg: #f6f7fb; --card: #fff; --text:#111; --muted:#666; --danger:#FF3B30; --primary:#007AFF; --success:#34C759; }
     * { box-sizing: border-box; }
@@ -26,6 +26,11 @@
     .kv { display: grid; grid-template-columns: 1fr auto; padding: 10px 0; border-bottom: 1px solid #eee; }
     .v { font-weight: 800; text-align:right; color: var(--primary); }
     .unit-hint { margin-top: 8px; padding: 9px; border-radius: 10px; background: #f8fafc; border: 1px solid #e8eaf2; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .prev-box { margin-top: 12px; padding: 10px; border: 1px solid #e8eaf2; border-radius: 10px; background: #fafbfe; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .prev-box strong { color: var(--text); }
+    .prev-box.good { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+    .prev-box.warn { border-color: #fed7aa; background: #fff7ed; color: #9a3412; }
+    .prev-box.empty { color: var(--muted); }
     input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background:#fff; }
     .actions { display:flex; gap: 10px; margin-top: 10px; }
     button { border:0; background: var(--primary); color:#fff; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: bold; cursor:pointer; flex: 1; }
@@ -64,7 +69,9 @@
   <header>
     <h1>リハ計算 Pro</h1>
     <div class="tabs">
-      <button class="tabbtn active" data-tab="hhd">HHD（筋力→トルク）</button>
+      <button class="tabbtn active" data-tab="gait">10m歩行</button>
+      <button class="tabbtn" data-tab="tug">TUG</button>
+      <button class="tabbtn" data-tab="hhd">HHD（筋力→トルク）</button>
     </div>
   </header>
 
@@ -101,6 +108,38 @@
             <div id="g-ref" class="mini"></div>
           </details>
           <button id="g-send" class="btn-record">評価記録へ送る</button>
+        </section>
+      </div>
+    </section>
+
+    <section id="tab-tug" class="hidden">
+      <div class="grid">
+        <section class="card">
+          <h2>計測：TUG</h2>
+          <div class="mini">
+            椅子から立ち上がり、3m先で方向転換して戻り、着座するまでの時間を計測します。
+          </div>
+          <div class="timer-display" id="tug-timer">0.00</div>
+          <div class="actions">
+            <button id="tug-btn">スタート</button>
+            <button id="tug-reset" class="btn-reset">リセット</button>
+          </div>
+          <div id="tug-fb" class="feedback">TUGを計測してください。</div>
+        </section>
+
+        <section class="card">
+          <h2>結果</h2>
+          <div class="kv"><span>TUG-T (秒)</span><span id="res-tug" class="v">-</span></div>
+          <div id="tug-prev" class="prev-box empty">IDと時期を選ぶと前回値を表示します。</div>
+          <button id="tug-copy" class="btn-copy">結果をコピー</button>
+          <details>
+            <summary style="font-size:13px; cursor:pointer;">判定の参考</summary>
+            <div class="mini">
+              ・値が小さいほど、立ち上がり・歩行・方向転換・着座の一連動作が速いことを示します。<br>
+              ・一般的には13.5秒以上で転倒リスクの参考所見として扱われます。対象者の状態や補助具の条件と合わせて解釈してください。
+            </div>
+          </details>
+          <button id="tug-send" class="btn-record">評価記録へ送る</button>
         </section>
       </div>
     </section>
@@ -252,19 +291,33 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
+  const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
+  const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+  const CONTEXT_KEY = "rehacalc_assessment_context_v1";
+  const STAGES = [
+    { id: "admission", label: "入棟時" },
+    { id: "fac3", label: "FAC3" },
+    { id: "month1", label: "1M" },
+    { id: "month2", label: "2M" },
+    { id: "month3", label: "3M" },
+    { id: "discharge", label: "退院時" }
+  ];
   const today = () => {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 10);
   };
   let gT = null, gS = 0, gE = 0;
+  let tugT = null, tugS = 0, tugE = 0;
 
   function activateCalcTab(tab) {
-    const activeTab = tab === "gait" ? "gait" : "hhd";
+    const activeTab = ["gait", "tug", "hhd"].includes(tab) ? tab : "gait";
     document.querySelectorAll(".tabbtn").forEach(x => x.classList.remove("active"));
     document.querySelector(`.tabbtn[data-tab="${activeTab}"]`)?.classList.add("active");
     $("tab-gait").classList.toggle("hidden", activeTab !== "gait");
+    $("tab-tug").classList.toggle("hidden", activeTab !== "tug");
     $("tab-hhd").classList.toggle("hidden", activeTab !== "hhd");
+    if (activeTab === "tug") renderTugPrevious();
   }
 
   // タブ切り替え
@@ -323,6 +376,184 @@
     }
   }
   $("g-steps").oninput = calcG;
+
+  // TUG計測
+  $("tug-btn").onclick = () => {
+    if (!tugT) {
+      tugS = Date.now() - (tugE * 1000);
+      tugT = setInterval(() => {
+        tugE = (Date.now() - tugS) / 1000;
+        $("tug-timer").innerText = tugE.toFixed(2);
+      }, 10);
+      $("tug-btn").innerText = "ストップ";
+      $("tug-btn").className = "btn-stop";
+    } else {
+      clearInterval(tugT);
+      tugT = null;
+      $("tug-btn").innerText = "再開";
+      $("tug-btn").className = "";
+      calcTug();
+    }
+  };
+
+  $("tug-reset").onclick = () => {
+    clearInterval(tugT);
+    tugT = null;
+    tugE = 0;
+    $("tug-timer").innerText = "0.00";
+    $("res-tug").innerText = "-";
+    $("tug-btn").innerText = "スタート";
+    $("tug-btn").className = "";
+    $("tug-fb").innerHTML = "TUGを計測してください。";
+    renderTugPrevious();
+  };
+
+  function calcTug() {
+    if (tugE > 0) {
+      $("res-tug").innerText = tugE.toFixed(2);
+      $("tug-fb").innerHTML = tugFeedback(tugE);
+    } else {
+      $("res-tug").innerText = "-";
+      $("tug-fb").innerHTML = "TUGを計測してください。";
+    }
+    renderTugPrevious();
+  }
+
+  function tugFeedback(seconds) {
+    if (seconds <= 10) return "<b>10秒以下</b>: 動作速度は比較的良好です。";
+    if (seconds < 13.5) return "<b>13.5秒未満</b>: 転倒リスクの参考カットオフは下回っています。";
+    return "<b>13.5秒以上</b>: 転倒リスクの参考所見として、補助具・介助量・方向転換の安定性も確認してください。";
+  }
+
+  function readJson(key, fallback) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function cleanText(value) {
+    return String(value ?? "").trim();
+  }
+
+  function numberFromText(value) {
+    const text = cleanText(value).replaceAll(",", "");
+    if (!text || text === "-") return null;
+    const number = Number(text);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function stageLabel(stageId) {
+    return STAGES.find((stage) => stage.id === stageId)?.label || stageId || "-";
+  }
+
+  function stageIndex(stageId) {
+    const index = STAGES.findIndex((stage) => stage.id === stageId);
+    return index >= 0 ? index : 999;
+  }
+
+  function currentAssessmentContext() {
+    return readJson(CONTEXT_KEY, {});
+  }
+
+  function patientKeyFrom(value) {
+    const id = cleanText(value?.patientId);
+    const name = cleanText(value?.patientName);
+    if (id) return `id:${id}`;
+    if (name) return `name:${name}`;
+    return "";
+  }
+
+  function recordsForTarget(target) {
+    const key = target === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY;
+    return readJson(key, []);
+  }
+
+  function recordSortValue(record) {
+    return `${String(record?.recordDate || "")}T${String(record?.updatedAt || record?.createdAt || "")}`;
+  }
+
+  function findPreviousTugRecord() {
+    const context = currentAssessmentContext();
+    const patientKey = patientKeyFrom(context);
+    if (!patientKey) return null;
+    const target = context.target === "stroke" ? "stroke" : "hip";
+    const currentStage = cleanText(context.stage);
+    const currentStageIndex = stageIndex(currentStage);
+    const candidates = recordsForTarget(target)
+      .filter((record) => patientKeyFrom(record) === patientKey)
+      .filter((record) => record?.measurements && numberFromText(record.measurements.tugT) !== null)
+      .filter((record) => cleanText(record.stage) !== currentStage);
+    if (!candidates.length) return null;
+
+    const previousStages = candidates.filter((record) => stageIndex(record.stage) < currentStageIndex);
+    const pool = previousStages.length ? previousStages : candidates;
+    pool.sort((a, b) => {
+      const stageDiff = stageIndex(a.stage) - stageIndex(b.stage);
+      if (stageDiff) return stageDiff;
+      return recordSortValue(a).localeCompare(recordSortValue(b));
+    });
+    return pool[pool.length - 1] || null;
+  }
+
+  function renderTugPrevious() {
+    const box = $("tug-prev");
+    if (!box) return;
+    const context = currentAssessmentContext();
+    const patientKey = patientKeyFrom(context);
+    const current = numberFromText($("res-tug")?.textContent);
+    if (!patientKey) {
+      box.className = "prev-box empty";
+      box.innerHTML = "IDと時期を選ぶと前回値を表示します。";
+      return;
+    }
+    const previous = findPreviousTugRecord();
+    if (!previous) {
+      box.className = "prev-box empty";
+      box.innerHTML = "前回のTUG記録はまだありません。";
+      return;
+    }
+    const previousValue = numberFromText(previous.measurements?.tugT);
+    const delta = current !== null && previousValue !== null ? current - previousValue : null;
+    const deltaText = delta === null
+      ? "今回値を計測すると差を表示します。"
+      : `今回との差：<strong>${delta > 0 ? "+" : ""}${delta.toFixed(2)}秒</strong>（${delta < 0 ? "短縮" : delta > 0 ? "延長" : "変化なし"}）`;
+    box.className = `prev-box ${delta === null ? "" : delta < 0 ? "good" : delta > 0 ? "warn" : ""}`.trim();
+    box.innerHTML = `
+      前回値：<strong>${previousValue.toFixed(2)}秒</strong>
+      <span class="mini">（${stageLabel(previous.stage)} / ${previous.recordDate || "-"}）</span><br>
+      ${deltaText}
+    `;
+  }
+
+  $("tug-copy").onclick = () => {
+    if (!tugE) {
+      alert("TUGを計測してからコピーしてください。");
+      return;
+    }
+    const t = `【TUG】時間:${$("res-tug").innerText}秒\n判定:${$("tug-fb").innerText}`;
+    navigator.clipboard.writeText(t).then(() => alert("コピーしました"));
+  };
+
+  $("tug-send").onclick = () => {
+    const result = $("res-tug").innerText;
+    if (!result || result === "-") {
+      alert("TUGを計測してから送ってください。");
+      return;
+    }
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+      sourceLabel: "TUG",
+      recordDate: today(),
+      measurements: { tugT: result }
+    }));
+    location.href = "../record-destination.html";
+  };
+
+  document.addEventListener("input", renderTugPrevious, true);
+  document.addEventListener("change", renderTugPrevious, true);
+  window.addEventListener("storage", renderTugPrevious);
+  renderTugPrevious();
 
   // HHD
   const HHD_MUSCLES = [
@@ -456,6 +687,6 @@
     location.href = "../record-destination.html";
   };
 </script>
-<script src="../assessment-context.js?v=20260701-pdf-v79" data-record-target="choice"></script>
+<script src="../assessment-context.js?v=20260701-tug-v80" data-record-target="choice"></script>
 </body>
 </html>
