@@ -3,7 +3,7 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
-  const APP_BUILD = "20260627-hhd-v76";
+  const APP_BUILD = "20260701-prev-v78";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -24,19 +24,19 @@
   ];
 
   const PAGE_CONFIGS = [
-    { match: "fab.html", label: "FAB", target: "choice", reader: readFab },
-    { match: "fac.html", label: "FAC", target: "choice", reader: readFac },
-    { match: "dgi.html", label: "DGI", target: "choice", reader: readDgi },
-    { match: "ges.html", label: "GES", target: "choice", reader: readGes },
-    { match: "mmse.html", label: "MMSE", target: "choice", reader: readMmse },
+    { match: "fab.html", label: "FAB", target: "choice", reader: readFab, detailKey: "fab" },
+    { match: "fac.html", label: "FAC", target: "choice", reader: readFac, detailKey: "fac" },
+    { match: "dgi.html", label: "DGI", target: "choice", reader: readDgi, detailKey: "dgi" },
+    { match: "ges.html", label: "GES", target: "choice", reader: readGes, detailKey: "ges" },
+    { match: "mmse.html", label: "MMSE", target: "choice", reader: readMmse, detailKey: "mmse" },
     { match: "sixmwt.html", label: "6分間歩行テスト", target: "choice", reader: readSixMwt },
-    { match: "fma.html", label: "FMA", target: "stroke", reader: readFma },
-    { match: "tis.html", label: "TIS", target: "stroke", reader: readTis },
-    { match: "mal.html", label: "MAL", target: "stroke", reader: readMal },
-    { match: "sara.html", label: "SARA", target: "stroke", reader: readSara },
-    { match: "minibestest.html", label: "Mini-BESTest", target: "stroke", reader: readMiniBestest },
+    { match: "fma.html", label: "FMA", target: "stroke", reader: readFma, detailKey: "fma" },
+    { match: "tis.html", label: "TIS", target: "stroke", reader: readTis, detailKey: "tis" },
+    { match: "mal.html", label: "MAL", target: "stroke", reader: readMal, detailKey: "mal" },
+    { match: "sara.html", label: "SARA", target: "stroke", reader: readSara, detailKey: "sara" },
+    { match: "minibestest.html", label: "Mini-BESTest", target: "stroke", reader: readMiniBestest, detailKey: "miniBestest" },
     { match: "bbs/index.html", label: "BBS", target: "bbs", reader: readBbs, customSnapshot: snapshotBbs, restoreCustomSnapshot: restoreBbs },
-    { match: "calc/index.html", label: "HHD", target: "choice", reader: readCalc },
+    { match: "calc/index.html", label: "HHD", target: "choice", reader: readCalc, detailKey: "hhd" },
     { match: "gait/index.html", label: "歩行加速度解析", target: "choice", reader: readGait }
   ];
 
@@ -75,6 +75,7 @@
     bindPanelEvents();
     bindAssessmentEvents();
     setStatus("IDまたは氏名と時期を選ぶと、この画面の入力を自動保存します。", "waiting");
+    renderPreviousComparison();
   }
 
   function refreshServiceWorkers() {
@@ -192,6 +193,19 @@
         </label>
       </div>
       <div class="rac-status waiting" data-rac-status></div>
+      <div class="rac-compare" data-rac-compare hidden>
+        <div class="rac-compare-head">
+          <div>
+            <div class="rac-compare-title">前回下位項目</div>
+            <div class="rac-compare-sub" data-rac-compare-sub></div>
+          </div>
+          <div class="rac-compare-actions">
+            <button type="button" data-rac-apply-prev-all>全て反映</button>
+            <button type="button" data-rac-copy-feedback>コピー</button>
+          </div>
+        </div>
+        <div class="rac-compare-body" data-rac-compare-body></div>
+      </div>
     `;
     configureTargetControl(root);
     return root;
@@ -301,10 +315,76 @@
       .rac-status.waiting { color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; }
       .rac-status.saved { color: #0f5132; background: #edf8f1; border: 1px solid #b7e4ca; }
       .rac-status.warn { color: #7c2d12; background: #fff7ed; border: 1px solid #fed7aa; }
+      .rac-compare {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        background: #f8fbff;
+      }
+      .rac-compare-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .rac-compare-title { font-size: 13px; font-weight: 900; }
+      .rac-compare-sub { margin-top: 2px; color: #64748b; font-size: 12px; line-height: 1.45; }
+      .rac-compare-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+      .rac-compare-actions button,
+      .rac-prev-btn {
+        border: 1px solid #bfdbfe;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        padding: 6px 9px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .rac-compare-body {
+        display: grid;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .rac-compare-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 8px;
+        align-items: center;
+        padding: 7px;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        background: #fff;
+        font-size: 12px;
+      }
+      .rac-compare-name {
+        min-width: 0;
+        color: #0f172a;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+      .rac-delta {
+        display: inline-block;
+        min-width: 48px;
+        padding: 3px 7px;
+        border-radius: 999px;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 900;
+        color: #334155;
+        background: #f1f5f9;
+      }
+      .rac-delta.up { color: #166534; background: #dcfce7; }
+      .rac-delta.down { color: #991b1b; background: #fee2e2; }
       @media (max-width: 760px) {
         .rac-head { flex-direction: column; }
         .rac-save { width: 100%; }
         .rac-grid { grid-template-columns: 1fr; }
+        .rac-compare-head { flex-direction: column; }
+        .rac-compare-actions { width: 100%; justify-content: flex-start; }
+        .rac-compare-item { grid-template-columns: 1fr; }
       }
     `;
     document.head.appendChild(style);
@@ -314,6 +394,15 @@
     panel.querySelector("[data-rac-save]").addEventListener("click", () => {
       saveSnapshot(snapshotKey());
       saveAssessmentRecord({ manual: true });
+      renderPreviousComparison();
+    });
+
+    panel.querySelector("[data-rac-apply-prev-all]")?.addEventListener("click", () => {
+      applyPreviousItems();
+    });
+
+    panel.querySelector("[data-rac-copy-feedback]")?.addEventListener("click", () => {
+      copyComparisonFeedback();
     });
 
     panel.querySelector("[data-rac-target]").addEventListener("change", () => {
@@ -324,6 +413,7 @@
       lastSnapshotKey = snapshotKey();
       restoreSnapshot(lastSnapshotKey);
       saveAssessmentRecord({ reason: "context" });
+      renderPreviousComparison();
     });
 
     panel.querySelector("[data-rac-patient-select]").addEventListener("change", (event) => {
@@ -333,6 +423,7 @@
       lastSnapshotKey = snapshotKey();
       restoreSnapshot(lastSnapshotKey);
       saveAssessmentRecord({ reason: "context" });
+      renderPreviousComparison();
     });
 
     panel.querySelector("[data-rac-stage]").addEventListener("change", () => {
@@ -341,12 +432,14 @@
       lastSnapshotKey = snapshotKey();
       restoreSnapshot(lastSnapshotKey);
       saveAssessmentRecord({ reason: "context" });
+      renderPreviousComparison();
     });
 
     panel.querySelector("[data-rac-record-date]").addEventListener("change", () => {
       persistContext();
       saveSnapshot(snapshotKey());
       saveAssessmentRecord({ reason: "context" });
+      renderPreviousComparison();
     });
 
     ["[data-rac-patient-name]", "[data-rac-patient-id]"].forEach((selector) => {
@@ -356,6 +449,7 @@
         lastSnapshotKey = snapshotKey();
         saveSnapshot(lastSnapshotKey);
         saveAssessmentRecord({ reason: "context" });
+        renderPreviousComparison();
       });
     });
   }
@@ -386,6 +480,7 @@
         saveTimer = setTimeout(() => {
           saveSnapshot(snapshotKey());
           saveAssessmentRecord({ reason: "auto" });
+          renderPreviousComparison();
         }, 250);
       }, true);
     });
@@ -695,6 +790,304 @@
     statusEl.textContent = message;
   }
 
+  function detailKey() {
+    return config.detailKey || "";
+  }
+
+  function stageOrder(stage) {
+    const index = STAGES.findIndex((item) => item.id === stage);
+    return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
+  }
+
+  function previousDetailRecord() {
+    const key = detailKey();
+    if (!key) return null;
+    const context = currentContext();
+    const patient = contextPatientKey(context);
+    if (!patient) return null;
+    const candidates = loadRecords(context.target)
+      .filter((record) => patientKey(record) === patient)
+      .filter((record) => clean(record.stage) !== clean(context.stage))
+      .filter((record) => Array.isArray(record.assessmentDetails?.[key]?.items))
+      .sort((a, b) => {
+        const aEarlier = stageOrder(a.stage) < stageOrder(context.stage);
+        const bEarlier = stageOrder(b.stage) < stageOrder(context.stage);
+        if (aEarlier !== bEarlier) return aEarlier ? 1 : -1;
+        const stageDiff = stageOrder(a.stage) - stageOrder(b.stage);
+        if (stageDiff !== 0) return stageDiff;
+        return compareRecords(a, b);
+      });
+    return candidates.at(-1) || null;
+  }
+
+  function currentAssessmentDetail() {
+    const key = detailKey();
+    if (!key) return null;
+    try {
+      const payload = config.reader();
+      return payload?.assessmentDetails?.[key] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function comparableItems() {
+    const record = previousDetailRecord();
+    if (!record) return null;
+    const key = detailKey();
+    const previousDetail = record.assessmentDetails?.[key];
+    const currentDetail = currentAssessmentDetail();
+    const currentMap = new Map();
+    (currentDetail?.items || []).forEach((item, index) => {
+      currentMap.set(itemIdentity(item, index), item);
+    });
+    return {
+      record,
+      previousDetail,
+      currentDetail,
+      items: (previousDetail.items || []).map((previous, index) => {
+        const current = currentMap.get(itemIdentity(previous, index));
+        const previousScore = numericScore(previous);
+        const currentScore = current ? numericScore(current) : null;
+        return {
+          index,
+          previous,
+          current,
+          previousScore,
+          currentScore,
+          delta: previousScore !== null && currentScore !== null ? currentScore - previousScore : null
+        };
+      }).filter((item) => item.previousScore !== null)
+    };
+  }
+
+  function itemIdentity(item, index) {
+    return clean(item.id) || clean(item.name) || `index:${index}`;
+  }
+
+  function numericScore(item) {
+    const value = numberText(item?.score);
+    return value === null ? null : value;
+  }
+
+  function itemLabel(item, index) {
+    return clean(item?.name) || clean(item?.label) || `項目${index + 1}`;
+  }
+
+  function formatScore(value) {
+    if (value === null || value === undefined) return "-";
+    return Number.isInteger(Number(value)) ? String(Number(value)) : String(Number(value).toFixed(2)).replace(/\.?0+$/, "");
+  }
+
+  function renderPreviousComparison() {
+    const box = panel?.querySelector("[data-rac-compare]");
+    if (!box || !detailKey()) return;
+    const body = box.querySelector("[data-rac-compare-body]");
+    const sub = box.querySelector("[data-rac-compare-sub]");
+    const comparison = comparableItems();
+    if (!comparison?.items?.length) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    const label = `${patientLabel(comparison.record)} / ${clean(comparison.record.recordDate) || "-"} ${stageLabel(comparison.record.stage)}`;
+    const improved = comparison.items.filter(isImprovedItem).length;
+    const declined = comparison.items.filter(isDeclinedItem).length;
+    sub.textContent = `前回：${label}。向上 ${improved}項目 / 低下 ${declined}項目`;
+    body.innerHTML = comparison.items.map((item, arrayIndex) => {
+      const deltaClass = isImprovedItem(item) ? "up" : isDeclinedItem(item) ? "down" : "";
+      const unit = scoreUnit(item.previous);
+      const deltaText = item.delta === null ? "未入力" : item.delta > 0 ? `+${formatScore(item.delta)}${unit}` : item.delta < 0 ? `${formatScore(item.delta)}${unit}` : "変化なし";
+      const currentText = item.currentScore === null ? "今回 -" : `今回 ${formatScore(item.currentScore)}${unit}`;
+      return `
+        <div class="rac-compare-item">
+          <div class="rac-compare-name">${escapeHtml(item.index + 1)}. ${escapeHtml(itemLabel(item.previous, item.index))}<br><span style="color:#64748b;font-weight:700;">前回 ${formatScore(item.previousScore)}${unit} / ${currentText}</span></div>
+          <span class="rac-delta ${deltaClass}">${escapeHtml(deltaText)}</span>
+          <button type="button" class="rac-prev-btn" data-rac-prev-index="${arrayIndex}">前回値を反映</button>
+        </div>
+      `;
+    }).join("");
+    body.querySelectorAll("[data-rac-prev-index]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.racPrevIndex);
+        const item = comparison.items[index];
+        if (!item) return;
+        applyPreviousItem(item.previous, item.index);
+      });
+    });
+  }
+
+  function comparisonFeedbackText() {
+    const comparison = comparableItems();
+    if (!comparison?.items?.length) return "前回下位項目がありません。";
+    const improved = comparison.items.filter(isImprovedItem);
+    const declined = comparison.items.filter(isDeclinedItem);
+    const unchangedMax = comparison.items.filter((item) => itemIsHigherBetter(item) && item.delta === 0 && numericScore(item.previous) === Number(item.previous?.max));
+    const currentTotal = numberText(comparison.currentDetail?.total);
+    const previousTotal = numberText(comparison.previousDetail?.total);
+    const totalDelta = currentTotal !== null && previousTotal !== null ? currentTotal - previousTotal : null;
+    const lines = [`${config.label} 下位項目フィードバック${Number.isFinite(totalDelta) ? `（前回比 ${totalDelta >= 0 ? "+" : ""}${formatScore(totalDelta)}点）` : ""}`];
+    lines.push(`向上：${improved.length}項目`);
+    improved.forEach((item) => lines.push(`・${item.index + 1}. ${itemLabel(item.previous, item.index)}：${formatScore(item.previousScore)}→${formatScore(item.currentScore)}${scoreUnit(item.previous)}（${formatDelta(item.delta)}）`));
+    if (declined.length) {
+      lines.push(`低下：${declined.length}項目`);
+      declined.forEach((item) => lines.push(`・${item.index + 1}. ${itemLabel(item.previous, item.index)}：${formatScore(item.previousScore)}→${formatScore(item.currentScore)}${scoreUnit(item.previous)}（${formatDelta(item.delta)}）`));
+    }
+    if (unchangedMax.length) {
+      lines.push(`満点維持：${unchangedMax.length}項目`);
+      unchangedMax.forEach((item) => lines.push(`・${item.index + 1}. ${itemLabel(item.previous, item.index)}`));
+    }
+    return lines.join("\n");
+  }
+
+  function scoreUnit(item) {
+    return clean(item?.unit) || "点";
+  }
+
+  function formatDelta(delta) {
+    return delta > 0 ? `+${formatScore(delta)}` : formatScore(delta);
+  }
+
+  function itemIsHigherBetter(item) {
+    return item.previous?.compare !== "neutral" && item.previous?.higherIsBetter !== false;
+  }
+
+  function isImprovedItem(item) {
+    if (item.delta === null || item.previous?.compare === "neutral") return false;
+    return item.previous?.higherIsBetter === false ? item.delta < 0 : item.delta > 0;
+  }
+
+  function isDeclinedItem(item) {
+    if (item.delta === null || item.previous?.compare === "neutral") return false;
+    return item.previous?.higherIsBetter === false ? item.delta > 0 : item.delta < 0;
+  }
+
+  function copyComparisonFeedback() {
+    const text = comparisonFeedbackText();
+    navigator.clipboard?.writeText(text)
+      .then(() => setStatus("下位項目フィードバックをコピーしました。", "saved"))
+      .catch(() => {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+        setStatus("下位項目フィードバックをコピーしました。", "saved");
+      });
+  }
+
+  function applyPreviousItems() {
+    const comparison = comparableItems();
+    if (!comparison?.items?.length) return;
+    comparison.items.forEach((item) => applyPreviousItem(item.previous, item.index, { silent: true }));
+    afterApplyingPreviousItems("前回下位項目を全て反映しました。");
+  }
+
+  function applyPreviousItem(item, index, options = {}) {
+    const applied = applyControlValue(item, index);
+    if (!applied) return false;
+    if (!options.silent) afterApplyingPreviousItems("前回値を反映しました。");
+    return true;
+  }
+
+  function afterApplyingPreviousItems(message) {
+    triggerCalculations();
+    saveSnapshot(snapshotKey());
+    saveAssessmentRecord({ reason: "auto" });
+    renderPreviousComparison();
+    setStatus(message, "saved");
+  }
+
+  function applyControlValue(item, index) {
+    const control = item?.control || fallbackControl(item, index);
+    const score = clean(item?.score);
+    if (!control || score === "") return false;
+    if (control.type === "radio") {
+      const input = [...document.querySelectorAll('input[type="radio"]')]
+        .find((candidate) => candidate.name === control.name && clean(candidate.value) === score);
+      if (!input) return false;
+      input.click();
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+    if (control.type === "select") {
+      const select = control.selector
+        ? document.querySelector(control.selector)
+        : control.dataKey
+          ? document.querySelector(`select[data-key="${cssAttr(control.dataKey)}"]`)
+          : control.dataItem
+            ? selectByDataItem(control)
+            : null;
+      if (!select) return false;
+      select.value = score;
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+    if (control.type === "input") {
+      const input = control.selector
+        ? document.querySelector(control.selector)
+        : control.dataField
+          ? document.querySelector(`input[data-field="${cssAttr(control.dataField)}"]`)
+          : control.dataArmField
+            ? document.querySelector(`input[data-arm-field="${cssAttr(control.dataArmField)}"]`)
+            : control.id
+              ? $(control.id)
+              : null;
+      if (!input) return false;
+      input.value = score;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+    if (control.type === "checkbox") {
+      const checkbox = document.querySelector(control.selector);
+      if (!checkbox) return false;
+      checkbox.checked = score === "1" || score === "true";
+      checkbox.dispatchEvent(new Event("input", { bubbles: true }));
+      checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+    return false;
+  }
+
+  function selectByDataItem(control) {
+    const selector = `select[data-item="${cssAttr(control.dataItem)}"]`;
+    const matches = [...document.querySelectorAll(selector)];
+    if (control.side) return matches.find((select) => select.dataset.side === control.side) || null;
+    return matches.find((select) => !select.dataset.side) || matches[0] || null;
+  }
+
+  function cssAttr(value) {
+    return String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  }
+
+  function fallbackControl(item, index) {
+    const key = detailKey();
+    if (key === "fab") return { type: "radio", name: `q${index + 1}` };
+    if (key === "fac") return { type: "radio", name: "facScore" };
+    if (key === "dgi" || key === "ges") return { type: "radio", name: `q${index}` };
+    if (key === "miniBestest") return { type: "radio", name: `item${index + 1}` };
+    if (key === "mmse") return { type: "select", dataKey: item.id };
+    if (key === "tis" || key === "fma") return { type: "radio", name: item.id };
+    if (key === "sara") return { type: "select", dataItem: item.id, side: item.side || "" };
+    if (key === "hhd") {
+      if (clean(item.id).endsWith("ArmCm")) return { type: "input", dataArmField: item.id };
+      return { type: "input", dataField: item.id };
+    }
+    return null;
+  }
+
+  function triggerCalculations() {
+    ["calculate", "calc", "update"].forEach((name) => {
+      if (typeof window[name] === "function") {
+        try { window[name](); } catch {}
+      }
+    });
+  }
+
   function patchDraftTransfers() {
     if (window.__rehacalcAssessmentContextPatched) return;
     window.__rehacalcAssessmentContextPatched = true;
@@ -737,6 +1130,21 @@
     };
     if (context.patientName) next.patientName = context.patientName;
     if (context.patientId) next.patientId = context.patientId;
+    try {
+      const livePayload = config?.reader?.();
+      if (livePayload) {
+        next.measurements = {
+          ...(livePayload.measurements || {}),
+          ...(next.measurements || {})
+        };
+        next.assessmentDetails = {
+          ...(livePayload.assessmentDetails || {}),
+          ...(next.assessmentDetails || {})
+        };
+        if (!clean(next.weight) && clean(livePayload.weight)) next.weight = clean(livePayload.weight);
+        if (!clean(next.hhdArmCm) && clean(livePayload.hhdArmCm)) next.hhdArmCm = clean(livePayload.hhdArmCm);
+      }
+    } catch {}
     return next;
   }
 
@@ -748,8 +1156,49 @@
     return names.filter((name) => clean(checkedValue(name)) !== "").length;
   }
 
-  function radioDetail(names) {
-    return names.map((name, index) => ({ id: index + 1, score: clean(checkedValue(name)) }));
+  function radioInputs(name) {
+    return [...document.querySelectorAll('input[type="radio"]')].filter((input) => input.name === name);
+  }
+
+  function maxRadioValue(name) {
+    const values = radioInputs(name).map((input) => numberText(input.value)).filter((value) => value !== null);
+    return values.length ? Math.max(...values) : null;
+  }
+
+  function radioGroupNames(scope = document) {
+    const names = [];
+    scope.querySelectorAll('input[type="radio"]').forEach((input) => {
+      if (input.name && !names.includes(input.name)) names.push(input.name);
+    });
+    return names;
+  }
+
+  function radioItemLabel(name, index) {
+    const input = radioInputs(name)[0];
+    const item = input?.closest(".item, article, tr, section, .question");
+    const label = item?.querySelector(".item-name, .itemname, .item-title, .title, h3, h2, td:nth-child(2)")?.textContent;
+    return clean(label).replace(/\s+/g, " ") || `項目${index + 1}`;
+  }
+
+  function radioDetail(names, options = {}) {
+    return names.map((name, index) => ({
+      id: options.idMode === "name" ? name : index + 1,
+      name: options.labels?.[index] || radioItemLabel(name, index),
+      score: clean(checkedValue(name)),
+      max: maxRadioValue(name),
+      control: { type: "radio", name }
+    }));
+  }
+
+  function selectMax(select) {
+    const values = [...select.options].map((option) => numberText(option.value)).filter((value) => value !== null);
+    return values.length ? Math.max(...values) : null;
+  }
+
+  function selectItemLabel(select, index) {
+    const item = select.closest(".item, article, tr, section");
+    const label = item?.querySelector(".item-title, .title, .item-name, td:nth-child(2), h3, h2")?.textContent;
+    return clean(label).replace(/\s+/g, " ") || clean(select.getAttribute("aria-label")) || `項目${index + 1}`;
   }
 
   function readFab() {
@@ -767,7 +1216,21 @@
     if (!score) return null;
     return {
       sourceLabel: "FAC",
-      measurements: { fac: score }
+      measurements: { fac: score },
+      assessmentDetails: {
+        fac: {
+          total: numberText(score),
+          max: 5,
+          items: [{
+            id: "fac",
+            name: "歩行自立度（FAC）",
+            score: clean(score),
+            max: 5,
+            control: { type: "radio", name: "facScore" }
+          }],
+          updatedAt: new Date().toISOString()
+        }
+      }
     };
   }
 
@@ -801,7 +1264,13 @@
         mmse: {
           total: numberText($("mmseTotal")?.textContent),
           max: 30,
-          items: mmseSelects.map((select) => ({ id: select.dataset.key, score: clean(select.value) })),
+          items: mmseSelects.map((select, index) => ({
+            id: select.dataset.key,
+            name: selectItemLabel(select, index),
+            score: clean(select.value),
+            max: selectMax(select),
+            control: { type: "select", dataKey: select.dataset.key }
+          })),
           updatedAt: new Date().toISOString()
         }
       }
@@ -826,34 +1295,108 @@
       measurements.fmaLower = clean($("le-motor")?.textContent).split("/")[0];
     }
     if (!hasMeasurements(measurements)) return null;
-    return { sourceLabel: "FMA", measurements };
+    const items = radioDetail(radioGroupNames(document), { idMode: "name" });
+    const upper = numberText(measurements.fmaUpper) ?? 0;
+    const lower = numberText(measurements.fmaLower) ?? 0;
+    return {
+      sourceLabel: "FMA",
+      measurements,
+      assessmentDetails: {
+        fma: {
+          total: upper + lower,
+          max: 100,
+          items,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    };
   }
 
   function readTis() {
     if (!document.querySelector('input[type="radio"]:checked')) return null;
     return {
       sourceLabel: "TIS",
-      measurements: { tis: $("total-score")?.textContent || "" }
+      measurements: { tis: $("total-score")?.textContent || "" },
+      assessmentDetails: {
+        tis: {
+          total: numberText($("total-score")?.textContent),
+          max: 23,
+          items: radioDetail(radioGroupNames(document), { idMode: "name" }),
+          updatedAt: new Date().toISOString()
+        }
+      }
     };
   }
 
   function readMal() {
     const count = Number($("includedCount")?.textContent || 0);
     if (!count) return null;
+    const items = [];
+    document.querySelectorAll("#malBody tr").forEach((row, index) => {
+      if (row.querySelector(".exclude")?.checked) return;
+      const name = clean(row.children[1]?.textContent) || `項目${index + 1}`;
+      const aou = row.querySelector(".aou");
+      const qom = row.querySelector(".qom");
+      items.push({
+        id: `aou_${index + 1}`,
+        name: `${name} AOU`,
+        score: clean(aou?.value),
+        max: 5,
+        control: { type: "select", selector: `#malBody tr[data-row="${index}"] .aou` }
+      });
+      items.push({
+        id: `qom_${index + 1}`,
+        name: `${name} QOM`,
+        score: clean(qom?.value),
+        max: 5,
+        control: { type: "select", selector: `#malBody tr[data-row="${index}"] .qom` }
+      });
+    });
     return {
       sourceLabel: "MAL",
       measurements: {
         malAou: $("aouAverage")?.textContent || "",
         malQom: $("qomAverage")?.textContent || ""
+      },
+      assessmentDetails: {
+        mal: {
+          total: null,
+          max: null,
+          items,
+          updatedAt: new Date().toISOString()
+        }
       }
     };
   }
 
   function readSara() {
     if (!$("ataxiaConfirmed")?.checked) return null;
+    const selects = [...document.querySelectorAll("select[data-item]")];
+    const sideLabel = { right: "右", left: "左" };
+    const items = selects.map((select, index) => {
+      const itemId = clean(select.dataset.item);
+      const side = clean(select.dataset.side);
+      return {
+        id: side ? `${itemId}_${side}` : itemId,
+        name: `${selectItemLabel(select, index)}${side ? ` ${sideLabel[side] || side}` : ""}`,
+        score: clean(select.value),
+        max: selectMax(select),
+        side,
+        higherIsBetter: false,
+        control: { type: "select", dataItem: itemId, side }
+      };
+    });
     return {
       sourceLabel: "SARA",
-      measurements: { sara: $("totalScore")?.textContent || "" }
+      measurements: { sara: $("totalScore")?.textContent || "" },
+      assessmentDetails: {
+        sara: {
+          total: numberText($("totalScore")?.textContent),
+          max: 40,
+          items,
+          updatedAt: new Date().toISOString()
+        }
+      }
     };
   }
 
@@ -861,6 +1404,10 @@
     if (typeof window.buildMiniDetail !== "function") return null;
     const detail = window.buildMiniDetail();
     if (detail.items.some((item) => item.score === null)) return null;
+    detail.items = detail.items.map((item, index) => ({
+      ...item,
+      control: { type: "radio", name: `item${index + 1}` }
+    }));
     return {
       sourceLabel: "Mini-BESTest",
       measurements: { miniBestest: String(detail.total) },
@@ -925,12 +1472,64 @@
     const sourceLabel = speed && speed !== "-"
       ? (hhdKeys.length ? "10m歩行・HHD" : "10m歩行")
       : "HHD";
+    const hhdItems = hhdDetailItems();
     return {
       sourceLabel,
       weight: $("h-bw")?.value || "",
       hhdArmCm: arm,
-      measurements
+      measurements,
+      assessmentDetails: hhdItems.length ? {
+        hhd: {
+          total: null,
+          max: null,
+          weight: $("h-bw")?.value || "",
+          items: hhdItems,
+          updatedAt: new Date().toISOString()
+        }
+      } : {}
     };
+  }
+
+  function hhdDetailItems() {
+    const labels = {
+      hipFlexor: "股屈筋",
+      kneeExtensor: "膝伸展",
+      ankleDorsiflexor: "足背屈",
+      hipExtensor: "股伸展",
+      hipAbductor: "股外転",
+      anklePlantarflexor: "足底屈"
+    };
+    const sideLabels = { Right: "右HHD", Left: "左HHD" };
+    const items = [];
+    document.querySelectorAll(".strength-arm-input").forEach((input) => {
+      const value = clean(input.value);
+      if (!value) return;
+      const muscle = clean(input.dataset.muscle);
+      const field = clean(input.dataset.armField);
+      items.push({
+        id: field,
+        name: `${labels[muscle] || muscle} アーム`,
+        score: value,
+        unit: "cm",
+        compare: "neutral",
+        control: { type: "input", dataArmField: field }
+      });
+    });
+    document.querySelectorAll(".strength-input").forEach((input) => {
+      const value = clean(input.value);
+      if (!value) return;
+      const field = clean(input.dataset.field);
+      const side = field.endsWith("Right") ? "Right" : field.endsWith("Left") ? "Left" : "";
+      const muscle = side ? field.slice(0, -side.length) : field;
+      items.push({
+        id: field,
+        name: `${labels[muscle] || muscle} ${sideLabels[side] || ""}`.trim(),
+        score: value,
+        unit: "N",
+        control: { type: "input", dataField: field }
+      });
+    });
+    return items;
   }
 
   function readGait() {
