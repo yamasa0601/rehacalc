@@ -419,10 +419,13 @@
       alert("10m歩行を計測してから送ってください。");
       return;
     }
+    const steps = $("g-steps").value.trim();
+    const measurements = { comfortable10mSpeed: speed };
+    if (steps) measurements.comfortable10mSteps = steps;
     localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
       sourceLabel: "10m歩行",
       recordDate: today(),
-      measurements: { comfortable10mSpeed: speed }
+      measurements
     }));
     location.href = "../record-destination.html";
   };
@@ -453,6 +456,6 @@
     location.href = "../record-destination.html";
   };
 </script>
-<script src="../assessment-context.js?v=20260701-prev-v78" data-record-target="choice"></script>
+<script src="../assessment-context.js?v=20260701-pdf-v79" data-record-target="choice"></script>
 </body>
 </html>

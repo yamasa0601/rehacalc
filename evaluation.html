@@ -568,8 +568,11 @@
               <div class="hhd-conversion" data-hhd-row="anklePlantarflexor"></div>
             </div>
             <div class="measure-row">
-              <div class="row-title">10mCWS (m/s)</div>
-              <input id="comfortable10mSpeed" type="number" inputmode="decimal" />
+              <div class="row-title">10mCWS / step</div>
+              <div class="paired">
+                <input id="comfortable10mSpeed" type="number" inputmode="decimal" placeholder="m/s" />
+                <input id="comfortable10mSteps" type="number" inputmode="numeric" placeholder="歩数" />
+              </div>
             </div>
             <div class="measure-row">
               <div class="row-title">歩行自立度 FAC (0-5)</div>
@@ -578,6 +581,10 @@
             <div class="measure-row">
               <div class="row-title">6分間歩行テスト (m)</div>
               <input id="sixMinuteWalkDistance" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">TUG-T (秒)</div>
+              <input id="tugT" type="number" inputmode="decimal" />
             </div>
             <div class="measure-row">
               <div class="row-title">ストライド変動係数 (%)</div>
@@ -818,7 +825,7 @@
           </div>
           <p class="note">
             保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
-            LSA、最大歩行速度の行は空欄のまま出力します。6分間歩行テストは評価用紙PDFへ追記し、臨床評価結果グラフにも使用します。
+            アプリ内で保存した対象者情報と各評価時期の結果から、ずれにくい固定レイアウトのPDFを作成します。
           </p>
           <p class="note">
             HDS-R/MMSE共通シートは、MMSE合計点のみを右下のMMSE合計欄へ転記します。
@@ -834,7 +841,7 @@
         <section class="panel">
           <h2>出力内容</h2>
           <p class="note">
-            評価用紙PDFは、保存済み記録から各時期の入力済みデータをまとめて転記します。
+            評価用紙PDFは、保存済み記録から各時期の入力済みデータをまとめて、アプリ内で用紙レイアウトごと作成します。
           </p>
           <p class="note">
             HDS-R/MMSE共通シートはMMSE合計点のみを保存データから転記します。
@@ -877,7 +884,7 @@ const MEASUREMENT_FIELDS = [
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
-  "comfortable10mSpeed","fac","sixMinuteWalkDistance","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","stef","malAou","malQom","sara","mfes","fab","tmtA","mmse"
+  "comfortable10mSpeed","comfortable10mSteps","fac","sixMinuteWalkDistance","tugT","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","stef","malAou","malQom","sara","mfes","fab","tmtA","mmse"
 ];
 
 const BBS_MCID_POINTS = 12;
@@ -893,8 +900,10 @@ const HHD_STRENGTH_FIELDS = [
 
 const GRAPH_METRICS = [
   { id:"comfortable10mSpeed", label:"10mCWS", unit:"m/s" },
+  { id:"comfortable10mSteps", label:"10m step", unit:"歩" },
   { id:"fac", label:"FAC", unit:"点" },
   { id:"sixMinuteWalkDistance", label:"6分間歩行", unit:"m" },
+  { id:"tugT", label:"TUG-T", unit:"秒" },
   { id:"strideCv", label:"ストライド変動係数", unit:"%" },
   { id:"bbs", label:"BBS", unit:"点" },
   { id:"dgi", label:"DGI", unit:"点" },
@@ -956,22 +965,25 @@ const RADAR_COLORS = [
   { stroke:"#0891b2", fill:"rgba(8,145,178,.14)" }
 ];
 
-const PDF_ROWS = [
-  { y:570.9, value:r => r.measurements.weightChange },
-  { y:540.9, value:r => r.measurements.painNrs },
-  { y:511.9, value:r => pair(r.measurements.hipFlexorRight, r.measurements.hipFlexorLeft) },
-  { y:482.9, value:r => pair(r.measurements.kneeExtensorRight, r.measurements.kneeExtensorLeft) },
-  { y:454.9, value:r => pair(r.measurements.ankleDorsiflexorRight, r.measurements.ankleDorsiflexorLeft) },
-  { y:426.9, value:r => pair(r.measurements.hipExtensorRight, r.measurements.hipExtensorLeft) },
-  { y:397.9, value:r => pair(r.measurements.hipAbductorRight, r.measurements.hipAbductorLeft) },
-  { y:368.9, value:r => pair(r.measurements.anklePlantarflexorRight, r.measurements.anklePlantarflexorLeft) },
-  { y:340.9, value:r => r.measurements.comfortable10mSpeed },
-  { y:312.9, value:r => r.measurements.sixMinuteWalkDistance },
-  { y:261.9, value:r => r.measurements.bbs },
-  { y:216.9, value:r => r.measurements.mfes },
-  { y:193.9, value:r => r.measurements.fab },
-  { y:171.9, value:r => r.measurements.tmtA },
-  { y:147.9, value:r => r.measurements.mmse }
+const PDF_FORM_ROWS = [
+  { group:"運動機能", label:"体重変化", value:r => r.measurements.weightChange, h:31 },
+  { group:"運動機能", label:"歩行時のNRS", value:r => r.measurements.painNrs, h:31 },
+  { group:"運動機能", label:"股屈筋(右/左)", value:r => pair(r.measurements.hipFlexorRight, r.measurements.hipFlexorLeft), h:29 },
+  { group:"運動機能", label:"膝伸展(右/左)", value:r => pair(r.measurements.kneeExtensorRight, r.measurements.kneeExtensorLeft), h:29 },
+  { group:"運動機能", label:"足背屈(右/左)", value:r => pair(r.measurements.ankleDorsiflexorRight, r.measurements.ankleDorsiflexorLeft), h:29 },
+  { group:"運動機能", label:"股伸展（右/左）", value:r => pair(r.measurements.hipExtensorRight, r.measurements.hipExtensorLeft), h:29 },
+  { group:"運動機能", label:"股外転（右/左）", value:r => pair(r.measurements.hipAbductorRight, r.measurements.hipAbductorLeft), h:29 },
+  { group:"運動機能", label:"足底屈(右/左)", value:r => pair(r.measurements.anklePlantarflexorRight, r.measurements.anklePlantarflexorLeft), h:30 },
+  { group:"動作能力", label:"FAC", value:r => r.measurements.fac, h:30 },
+  { group:"動作能力", label:"10mCWS/step", value:speedStepValue, h:28 },
+  { group:"動作能力", label:"6分間歩行テスト", value:r => r.measurements.sixMinuteWalkDistance, h:28 },
+  { group:"動作能力", label:"TUG-T", value:r => r.measurements.tugT, h:28 },
+  { group:"動作能力", label:"DGI", value:r => r.measurements.dgi, h:28 },
+  { group:"バランス", label:"BBS", value:r => r.measurements.bbs, h:24 },
+  { group:"転倒恐怖感", label:"mFES", value:r => r.measurements.mfes, h:24, highlight:true },
+  { group:"遂行機能", label:"FAB", value:r => r.measurements.fab, h:24, highlight:true },
+  { group:"注意機能", label:"partA", value:r => r.measurements.tmtA, h:24, highlight:true },
+  { group:"認知機能", label:"MMSE", value:r => r.measurements.mmse, h:26, highlight:true }
 ];
 
 let editingId = null;
@@ -1008,6 +1020,13 @@ function pair(right, left) {
   const l = clean(left);
   if (!r && !l) return "";
   return `${r || "-"} / ${l || "-"}`;
+}
+
+function speedStepValue(record) {
+  const speed = clean(record.measurements?.comfortable10mSpeed);
+  const steps = clean(record.measurements?.comfortable10mSteps);
+  if (speed && steps) return `${speed}/${steps}`;
+  return speed || steps;
 }
 
 function hhdNPerKg(record, field) {
@@ -2155,35 +2174,10 @@ async function exportFilledPdf() {
     return;
   }
 
-  const template = await fetch(TEMPLATE_URL).then(res => res.arrayBuffer());
-  const pdfDoc = await PDFLib.PDFDocument.load(template);
-  const page = pdfDoc.getPage(0);
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]);
   const profile = latestPatientRecord(patient) || {};
-
-  await drawText(pdfDoc, page, [
-    profile.patientName,
-    profile.age,
-    profile.sex,
-    profile.height,
-    profile.weight
-  ].map(v => clean(v) || "　").join(" / "), 304, 735.9, { fontSize:11, maxWidth:250 });
-  await drawText(pdfDoc, page, profile.surgicalSide, 172, 702.9, { fontSize:12, align:"center" });
-  await drawText(pdfDoc, page, profile.walkingAid, 178, 676.9, { fontSize:12, align:"center" });
-  await drawText(pdfDoc, page, profile.procedure, 422, 676.9, { fontSize:11, maxWidth:128 });
-  await drawText(pdfDoc, page, jpDate(profile.injuryDate), 438, 702.9, { fontSize:10, maxWidth:120 });
-  await drawText(pdfDoc, page, profile.dischargeDestination, 138, 639.9, { fontSize:12, align:"center" });
-  await drawText(pdfDoc, page, profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : "", 468, 639.9, { fontSize:12, align:"center" });
-  await drawText(pdfDoc, page, "6分間歩行(m)", 132, 312.9, { fontSize:8.5, align:"center", maxWidth:90 });
-
-  for (const stage of STAGES) {
-    const record = stageMap.get(stage.id);
-    if (!record) continue;
-    for (const row of PDF_ROWS) {
-      const value = clean(row.value(record));
-      if (!value) continue;
-      await drawText(pdfDoc, page, value, stage.x, row.y, { fontSize:9.5, align:"center", maxWidth:50 });
-    }
-  }
+  await drawOutcomePdfForm(pdfDoc, page, profile, stageMap);
 
   const bytes = await pdfDoc.save();
   const blob = new Blob([bytes], { type:"application/pdf" });
@@ -2193,6 +2187,140 @@ async function exportFilledPdf() {
   a.click();
   URL.revokeObjectURL(a.href);
   toast("PDFを作成しました");
+}
+
+async function drawOutcomePdfForm(pdfDoc, page, profile, stageMap) {
+  const black = PDFLib.rgb(0, 0, 0);
+  const orange = PDFLib.rgb(0.93, 0.43, 0.17);
+  const x = 64;
+  const top = 774;
+  const categoryW = 78;
+  const labelW = 103;
+  const stageW = 47.5;
+  const width = categoryW + labelW + stageW * STAGES.length;
+  const x1 = x + categoryW;
+  const x2 = x1 + labelW;
+
+  const rect = (rx, ry, rw, rh, fill = null, borderWidth = 0.75) => {
+    const options = {
+      x: rx,
+      y: ry,
+      width: rw,
+      height: rh,
+      borderColor: black,
+      borderWidth
+    };
+    if (fill) options.color = fill;
+    page.drawRectangle(options);
+  };
+  const cellText = (text, rx, ry, rw, rh, options = {}) => drawText(pdfDoc, page, text, options.align === "center" ? rx + rw / 2 : rx + 5, ry + rh / 2, {
+    fontSize: options.fontSize || 10,
+    align: options.align,
+    maxWidth: rw - 8,
+    weight: options.weight || 700
+  });
+
+  let y = top;
+  rect(x, y - 26, width, 26);
+  await cellText("運動器データベース評価用紙（大腿骨近位部骨折）", x, y - 26, width, 26, { align:"center", fontSize:15 });
+  y -= 26;
+
+  rect(x, y - 42, 230, 42);
+  rect(x + 230, y - 42, width - 230, 42);
+  await cellText("氏名/年齢/性別/身長/体重", x, y - 42, 230, 42, { fontSize:13 });
+  await cellText(profileLine(profile), x + 230, y - 42, width - 230, 42, { align:"center", fontSize:11 });
+  y -= 42;
+
+  const half = width / 2;
+  rect(x, y - 26, categoryW, 26);
+  rect(x + categoryW, y - 26, half - categoryW, 26);
+  rect(x + half, y - 26, 96, 26);
+  rect(x + half + 96, y - 26, half - 96, 26);
+  await cellText("術側側", x, y - 26, categoryW, 26, { fontSize:12 });
+  await cellText(profile.surgicalSide, x + categoryW, y - 26, half - categoryW, 26, { align:"center", fontSize:12 });
+  await cellText("受傷日", x + half, y - 26, 96, 26, { fontSize:12 });
+  await cellText(jpDate(profile.injuryDate), x + half + 96, y - 26, half - 96, 26, { align:"center", fontSize:10 });
+  y -= 26;
+
+  rect(x, y - 26, categoryW, 26);
+  rect(x + categoryW, y - 26, half - categoryW, 26);
+  rect(x + half, y - 26, 96, 26);
+  rect(x + half + 96, y - 26, half - 96, 26);
+  await cellText("歩行補助具", x, y - 26, categoryW, 26, { fontSize:12 });
+  await cellText(profile.walkingAid, x + categoryW, y - 26, half - categoryW, 26, { align:"center", fontSize:12 });
+  await cellText("術式", x + half, y - 26, 96, 26, { fontSize:12 });
+  await cellText(profile.procedure, x + half + 96, y - 26, half - 96, 26, { align:"center", fontSize:10 });
+  y -= 26;
+
+  rect(x, y - 50, half, 50);
+  rect(x + half, y - 50, half, 50);
+  await cellText(`退院先：${clean(profile.dischargeDestination) || "在宅・施設・転院"}`, x, y - 50, half, 50, { align:"center", fontSize:12 });
+  await cellText(`発症からの経過 ${profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : ""}`, x + half, y - 50, half, 50, { align:"center", fontSize:12 });
+  y -= 50;
+
+  rect(x, y - 32, categoryW, 32);
+  rect(x1, y - 32, labelW, 32);
+  await cellText("評価項目", x, y - 32, categoryW, 32, { align:"center", fontSize:12 });
+  await cellText("評価尺度", x1, y - 32, labelW, 32, { align:"center", fontSize:12 });
+  STAGES.forEach((stage, index) => {
+    rect(x2 + stageW * index, y - 32, stageW, 32);
+  });
+  for (let i = 0; i < STAGES.length; i++) {
+    await cellText(STAGES[i].label, x2 + stageW * i, y - 32, stageW, 32, { align:"center", fontSize:12 });
+  }
+  y -= 32;
+
+  const positions = [];
+  let rowTop = y;
+  PDF_FORM_ROWS.forEach((row) => {
+    const bottom = rowTop - row.h;
+    positions.push({ row, top: rowTop, bottom, h: row.h });
+    rowTop = bottom;
+  });
+
+  let index = 0;
+  while (index < positions.length) {
+    const start = positions[index];
+    if (start.row.highlight) {
+      rect(x, start.bottom, categoryW, start.h, orange);
+      await cellText(start.row.group, x, start.bottom, categoryW, start.h, { align:"center", fontSize:10 });
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < positions.length && !positions[end].row.highlight && positions[end].row.group === start.row.group) end += 1;
+    const groupBottom = positions[end - 1].bottom;
+    const groupHeight = start.top - groupBottom;
+    rect(x, groupBottom, categoryW, groupHeight);
+    await cellText(start.row.group, x, groupBottom, categoryW, groupHeight, { align:"center", fontSize:11 });
+    index = end;
+  }
+
+  for (const pos of positions) {
+    const fill = pos.row.highlight ? orange : null;
+    rect(x1, pos.bottom, labelW, pos.h, fill);
+    await cellText(pos.row.label, x1, pos.bottom, labelW, pos.h, { fontSize:10 });
+    STAGES.forEach((_, stageIndex) => {
+      rect(x2 + stageW * stageIndex, pos.bottom, stageW, pos.h);
+    });
+    for (let stageIndex = 0; stageIndex < STAGES.length; stageIndex++) {
+      const stage = STAGES[stageIndex];
+      const record = stageMap.get(stage.id);
+      const value = record ? clean(pos.row.value(record)) : "";
+      if (!value) continue;
+      await cellText(value, x2 + stageW * stageIndex, pos.bottom, stageW, pos.h, { align:"center", fontSize:8.5 });
+    }
+  }
+}
+
+function profileLine(profile) {
+  return [
+    clean(profile.patientName),
+    clean(profile.age) ? `${clean(profile.age)}歳` : "",
+    clean(profile.sex),
+    clean(profile.height) ? `${clean(profile.height)}cm` : "",
+    clean(profile.weight) ? `${clean(profile.weight)}kg` : ""
+  ].map(value => value || " ").join(" / ");
 }
 
 function getLatestRecordWithValue(patient, field) {
@@ -2297,12 +2425,12 @@ function exportCsvForPatient() {
     return;
   }
   const hhdHeaders = HHD_STRENGTH_FIELDS.flatMap(field => [`${field.label}アーム(cm)`, `${field.label}右(N)`, `${field.label}左(N)`]);
-  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","6分間歩行","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","STEF","MAL AOU","MAL QOM","SARA","FAB","MMSE","GES","partA","歩行時NRS","体重変化","HHDアーム(cm)", ...hhdHeaders];
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","10m歩数","6分間歩行","TUG-T","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","STEF","MAL AOU","MAL QOM","SARA","FAB","MMSE","GES","partA","歩行時NRS","体重変化","HHDアーム(cm)", ...hhdHeaders];
   const rows = records.map((record) => {
     const m = record.measurements || {};
     return [
       record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
-      m.fac, m.comfortable10mSpeed, m.sixMinuteWalkDistance, m.strideCv,
+      m.fac, m.comfortable10mSpeed, m.comfortable10mSteps, m.sixMinuteWalkDistance, m.tugT, m.strideCv,
       m.bbs, m.miniBestest, m.dgi, m.fmaUpper, m.fmaLower, m.tis,
       m.stef, m.malAou, m.malQom, m.sara, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange, m.hhdArmCm,
       ...HHD_STRENGTH_FIELDS.flatMap(field => [m[field.arm], m[field.right], m[field.left]])

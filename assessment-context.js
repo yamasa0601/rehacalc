@@ -3,7 +3,7 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
-  const APP_BUILD = "20260701-prev-v78";
+  const APP_BUILD = "20260701-pdf-v79";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -1449,6 +1449,8 @@
     const measurements = {};
     const speed = clean($("res-mps")?.textContent);
     if (speed && speed !== "-") measurements.comfortable10mSpeed = speed;
+    const steps = clean($("g-steps")?.value);
+    if (steps) measurements.comfortable10mSteps = steps;
 
     const singleTarget = $("h-target")?.value;
     if (singleTarget) {
