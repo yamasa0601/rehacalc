@@ -107,6 +107,7 @@
             <select id="recordType">
                 <option value="stroke">脳卒中・臨床記録</option>
                 <option value="hip">大腿骨近位部骨折・研究記録</option>
+                <option value="ortho">運動器・臨床記録</option>
             </select>
         </div>
         <div>
@@ -334,6 +335,7 @@ const SCALES = {
    ================================================================ */
 const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
 const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+const ORTHOPEDIC_RECORDS_KEY = "rehacalc_orthopedic_records_v1";
 const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
 const STAGE_LABELS = {
     admission:"入棟", fac3:"FAC3", month1:"1M", month2:"2M", month3:"3M", discharge:"退院"
@@ -620,7 +622,11 @@ function recordLabel(record, assessmentKey) {
 
 function renderRecordOptions() {
     const type = document.getElementById("recordType").value;
-    const storageKey = type === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY;
+    const storageKey = type === "stroke"
+        ? STROKE_RECORDS_KEY
+        : type === "ortho"
+            ? ORTHOPEDIC_RECORDS_KEY
+            : HIP_RECORDS_KEY;
     const select = document.getElementById("recordSelect");
     recordOptions = [];
     readRecords(storageKey)
@@ -774,7 +780,11 @@ function applyIncomingTransfer() {
         const transfer = JSON.parse(raw);
         const detail = transfer.detail;
         if (transfer.source === "record") {
-            const type = transfer.storageKey === HIP_RECORDS_KEY ? "hip" : "stroke";
+            const type = transfer.storageKey === HIP_RECORDS_KEY
+                ? "hip"
+                : transfer.storageKey === ORTHOPEDIC_RECORDS_KEY
+                    ? "ortho"
+                    : "stroke";
             document.getElementById("recordType").value = type;
             renderRecordOptions();
             loadAssessment(detail, {

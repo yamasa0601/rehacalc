@@ -108,7 +108,7 @@
 <body>
 <header>
   <h1>BBS入力（0〜4点 / 合計56点）</h1>
-  <p>脳卒中 / 大腿骨近位部骨折（2つのCSV相当）を切替。合計点・静的/動的・カットオフ判定をその場で表示します。<br>
+  <p>脳卒中 / 大腿骨近位部骨折 / 運動器臨床用を切替。合計点・静的/動的・カットオフ判定をその場で表示します。<br>
   各項目の「判定基準」を開くと、0〜4点の詳細な採点基準を確認できます。</p>
 </header>
 
@@ -432,6 +432,25 @@
         {"label": "TUG", "unit": "秒", "type": "le", "value": 12},
         {"label": "5回立ち座り", "unit": "秒", "type": "le", "value": 12}
       ]
+    },
+    "ortho": {
+      "name": "シート3：運動器臨床用BBS",
+      "cutoffs": [
+        {"label": "屋内自立", "type": "ge", "value": 43},
+        {"label": "歩行補助具あり自立", "type": "ge", "value": 45.5},
+        {"label": "転倒予測カットオフ（解釈は運用に合わせて）", "type": "ge", "value": 50},
+        {"label": "歩行補助具なし自立", "type": "ge", "value": 51.5},
+        {"label": "車輪付き歩行器監視", "type": "ge", "value": 19},
+        {"label": "監視", "type": "ge", "value": 21},
+        {"label": "車輪付き歩行器自立", "type": "ge", "value": 25},
+        {"label": "自立", "type": "ge", "value": 28}
+      ],
+      "mdc": {"label": "MDC（誤差）", "low": 5, "high": 5},
+      "mcid": {"label": "MCID（効果があったと言える）", "low": 12, "high": 12},
+      "tests": [
+        {"label": "TUG", "unit": "秒", "type": "le", "value": 12},
+        {"label": "5回立ち座り", "unit": "秒", "type": "le", "value": 12}
+      ]
     }
   };
 
@@ -439,8 +458,10 @@
   const LS_KEY = "bbs_pwa_state_v2";
   const HIP_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
   const STROKE_DRAFT_KEY = "rehacalc_stroke_draft_v1";
+  const ORTHOPEDIC_DRAFT_KEY = "rehacalc_orthopedic_draft_v1";
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
+  const ORTHOPEDIC_RECORDS_KEY = "rehacalc_orthopedic_records_v1";
   const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
   const STAGE_LABELS = {
     admission: "入棟",
@@ -477,7 +498,11 @@
 
   function loadEvaluationRecords() {
     try {
-      const key = state.datasetKey === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY;
+      const key = state.datasetKey === "stroke"
+        ? STROKE_RECORDS_KEY
+        : state.datasetKey === "ortho"
+          ? ORTHOPEDIC_RECORDS_KEY
+          : HIP_RECORDS_KEY;
       const records = JSON.parse(localStorage.getItem(key) || "[]");
       return Array.isArray(records) ? records : [];
     } catch {
@@ -1001,7 +1026,11 @@
     $("staticScore").textContent = totals.staticScore;
     $("dynamicScore").textContent = totals.dynamicScore;
     $("totalScore").textContent = totals.total;
-    $("sendEval").textContent = state.datasetKey === "stroke" ? "脳卒中評価記録へ送る" : "大腿骨研究記録へ送る";
+    $("sendEval").textContent = state.datasetKey === "stroke"
+      ? "脳卒中評価記録へ送る"
+      : state.datasetKey === "ortho"
+        ? "運動器臨床記録へ送る"
+        : "大腿骨研究記録へ送る";
 
     const prev = Number(String(state.prevTotal || "").trim().replaceAll(",", ""));
     const d = DATASETS[state.datasetKey];
@@ -1132,14 +1161,23 @@
   });
   $("sendEval").addEventListener("click", () => {
     const totals = sumScores(state.scores);
-    const isStroke = state.datasetKey === "stroke";
-    localStorage.setItem(isStroke ? STROKE_DRAFT_KEY : HIP_DRAFT_KEY, JSON.stringify({
+    const draftKey = state.datasetKey === "stroke"
+      ? STROKE_DRAFT_KEY
+      : state.datasetKey === "ortho"
+        ? ORTHOPEDIC_DRAFT_KEY
+        : HIP_DRAFT_KEY;
+    const href = state.datasetKey === "stroke"
+      ? "../stroke-record.html"
+      : state.datasetKey === "ortho"
+        ? "../orthopedic-record.html"
+        : "../evaluation.html";
+    localStorage.setItem(draftKey, JSON.stringify({
       sourceLabel: "BBS",
       recordDate: new Date().toISOString().slice(0, 10),
       measurements: { bbs: String(totals.total) },
       assessmentDetails: { bbs: buildBbsDetail(totals) }
     }));
-    location.href = isStroke ? "../stroke-record.html" : "../evaluation.html";
+    location.href = href;
   });
   $("openKeyform").addEventListener("click", () => {
     const totals = sumScores(state.scores);
@@ -1165,6 +1203,6 @@
   // init
   render();
 </script>
-<script src="../assessment-context.js?v=20260701-tug-v80" data-record-target="bbs"></script>
+<script src="../assessment-context.js?v=20260702-ortho-v81" data-record-target="bbs"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
 
   const HIP_RECORDS_KEY = "rehacalc_evaluation_records_v1";
   const STROKE_RECORDS_KEY = "rehacalc_stroke_records_v1";
-  const APP_BUILD = "20260701-tug-v80";
+  const ORTHOPEDIC_RECORDS_KEY = "rehacalc_orthopedic_records_v1";
+  const APP_BUILD = "20260702-ortho-v81";
   const CONTEXT_KEY = "rehacalc_assessment_context_v1";
   const SNAPSHOT_PREFIX = "rehacalc_assessment_snapshot_v1";
   const TARGET_PREF_KEY = "rehacalc_assessment_target_v1";
@@ -11,6 +12,7 @@
     "rehacalc_record_transfer_v1",
     "rehacalc_evaluation_draft_v1",
     "rehacalc_stroke_draft_v1",
+    "rehacalc_orthopedic_draft_v1",
     "rehacalc_keyform_transfer_v1"
   ]);
 
@@ -22,6 +24,7 @@
     { id: "month3", label: "3M" },
     { id: "discharge", label: "退院時" }
   ];
+  const ORTHOPEDIC_STAGES = STAGES.filter((stage) => stage.id !== "fac3");
 
   const PAGE_CONFIGS = [
     { match: "fab.html", label: "FAB", target: "choice", reader: readFab, detailKey: "fab" },
@@ -142,7 +145,9 @@
   }
 
   function targetLabel(target) {
-    return target === "stroke" ? "脳卒中・臨床用" : "大腿骨近位部骨折・研究用";
+    if (target === "stroke") return "脳卒中・臨床用";
+    if (target === "ortho") return "運動器・臨床用";
+    return "大腿骨近位部骨折・研究用";
   }
 
   function stageLabel(stage) {
@@ -167,6 +172,7 @@
           <select data-rac-target>
             <option value="hip">大腿骨近位部骨折・研究用</option>
             <option value="stroke">脳卒中・臨床用</option>
+            <option value="ortho">運動器・臨床用</option>
           </select>
         </label>
         <label>
@@ -187,9 +193,7 @@
         </label>
         <label>
           <span>時期</span>
-          <select data-rac-stage>
-            ${STAGES.map((stage) => `<option value="${stage.id}">${stage.label}</option>`).join("")}
-          </select>
+          <select data-rac-stage></select>
         </label>
       </div>
       <div class="rac-status waiting" data-rac-status></div>
@@ -208,13 +212,29 @@
       </div>
     `;
     configureTargetControl(root);
+    renderStageOptions(root);
     return root;
+  }
+
+  function stagesForTarget(target) {
+    return target === "ortho" ? ORTHOPEDIC_STAGES : STAGES;
+  }
+
+  function renderStageOptions(root = panel, preferredStage = "") {
+    const select = root?.querySelector("[data-rac-stage]");
+    if (!select) return;
+    const targetSelect = root.querySelector("[data-rac-target]");
+    const target = targetSelect?.value || currentTarget();
+    const stages = stagesForTarget(target);
+    const current = clean(preferredStage || select.value || "admission");
+    select.innerHTML = stages.map((stage) => `<option value="${stage.id}">${stage.label}</option>`).join("");
+    select.value = stages.some((stage) => stage.id === current) ? current : "admission";
   }
 
   function configureTargetControl(root) {
     const select = root.querySelector("[data-rac-target]");
     const wrap = root.querySelector("[data-rac-target-wrap]");
-    if (config.target === "stroke" || config.target === "hip") {
+    if (["stroke", "hip", "ortho"].includes(config.target)) {
       select.value = config.target;
       select.disabled = true;
       wrap.classList.add("rac-locked");
@@ -226,7 +246,7 @@
       return;
     }
     const stored = localStorage.getItem(TARGET_PREF_KEY);
-    select.value = stored === "stroke" ? "stroke" : "hip";
+    select.value = ["stroke", "hip", "ortho"].includes(stored) ? stored : "hip";
   }
 
   function insertPanel(root) {
@@ -408,6 +428,7 @@
     panel.querySelector("[data-rac-target]").addEventListener("change", () => {
       saveSnapshot(lastSnapshotKey);
       localStorage.setItem(TARGET_PREF_KEY, currentTarget());
+      renderStageOptions(panel);
       persistContext();
       renderPatientOptions();
       lastSnapshotKey = snapshotKey();
@@ -469,6 +490,7 @@
           const newTarget = currentTarget();
           if (newTarget !== targetBeforeDatasetChange) {
             targetBeforeDatasetChange = newTarget;
+            renderStageOptions(panel);
             renderPatientOptions();
           }
         }
@@ -512,14 +534,14 @@
     setPanelValue("[data-rac-patient-name]", saved.patientName || "");
     setPanelValue("[data-rac-patient-id]", saved.patientId || "");
     setPanelValue("[data-rac-record-date]", saved.recordDate || today());
-    setPanelValue("[data-rac-stage]", saved.stage || "admission");
     if (config.target === "choice") {
-      const target = saved.target === "stroke" || saved.target === "hip"
+      const target = ["stroke", "hip", "ortho"].includes(saved.target)
         ? saved.target
         : (localStorage.getItem(TARGET_PREF_KEY) || "hip");
       setPanelValue("[data-rac-target]", target);
     }
     if (config.target === "bbs") setPanelValue("[data-rac-target]", currentTarget());
+    renderStageOptions(panel, saved.stage || "admission");
   }
 
   function setPanelValue(selector, value) {
@@ -530,18 +552,20 @@
   function persistContext() {
     const context = currentContext();
     rawSetItem.call(localStorage, CONTEXT_KEY, JSON.stringify(context));
-    if (context.target === "hip" || context.target === "stroke") {
+    if (["hip", "stroke", "ortho"].includes(context.target)) {
       rawSetItem.call(localStorage, TARGET_PREF_KEY, context.target);
     }
   }
 
   function currentTarget() {
-    if (config.target === "stroke" || config.target === "hip") return config.target;
+    if (["stroke", "hip", "ortho"].includes(config.target)) return config.target;
     if (config.target === "bbs") {
       const dataset = $("dataset")?.value;
-      return dataset === "stroke" ? "stroke" : "hip";
+      if (dataset === "stroke" || dataset === "ortho") return dataset;
+      return "hip";
     }
-    return panel?.querySelector("[data-rac-target]")?.value === "stroke" ? "stroke" : "hip";
+    const value = panel?.querySelector("[data-rac-target]")?.value;
+    return ["stroke", "hip", "ortho"].includes(value) ? value : "hip";
   }
 
   function currentContext() {
@@ -565,7 +589,7 @@
 
   function loadRecords(target = currentTarget()) {
     try {
-      const records = JSON.parse(localStorage.getItem(target === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY) || "[]");
+      const records = JSON.parse(localStorage.getItem(storageKeyForTarget(target)) || "[]");
       return Array.isArray(records) ? records : [];
     } catch {
       return [];
@@ -573,7 +597,13 @@
   }
 
   function writeRecords(target, records) {
-    rawSetItem.call(localStorage, target === "stroke" ? STROKE_RECORDS_KEY : HIP_RECORDS_KEY, JSON.stringify(records));
+    rawSetItem.call(localStorage, storageKeyForTarget(target), JSON.stringify(records));
+  }
+
+  function storageKeyForTarget(target) {
+    if (target === "stroke") return STROKE_RECORDS_KEY;
+    if (target === "ortho") return ORTHOPEDIC_RECORDS_KEY;
+    return HIP_RECORDS_KEY;
   }
 
   function patientKey(record) {
@@ -1100,10 +1130,12 @@
           if (panel && decorated?.measurements) {
             const target = key === "rehacalc_stroke_draft_v1"
               ? "stroke"
+              : key === "rehacalc_orthopedic_draft_v1"
+                ? "ortho"
               : key === "rehacalc_evaluation_draft_v1"
                 ? "hip"
                 : context.target;
-            if ((target === "hip" || target === "stroke") && contextPatientKey({ ...context, target })) {
+            if ((target === "hip" || target === "stroke" || target === "ortho") && contextPatientKey({ ...context, target })) {
               savePayloadToRecords(decorated, { ...context, target });
             }
           }
@@ -1119,6 +1151,8 @@
   function decorateDraft(draft, context, key) {
     const target = key === "rehacalc_stroke_draft_v1"
       ? "stroke"
+      : key === "rehacalc_orthopedic_draft_v1"
+        ? "ortho"
       : key === "rehacalc_evaluation_draft_v1"
         ? "hip"
         : context.target;

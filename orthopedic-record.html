@@ -1,0 +1,2527 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>運動器 臨床評価記録</title>
+  <script src="./assets/pdf-lib.min.js"></script>
+  <style>
+    :root {
+      --bg:#f6f7fb;
+      --panel:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#0f766e;
+      --primary-dark:#115e59;
+      --accent:#2563eb;
+      --danger:#dc2626;
+      --soft:#f0fdfa;
+      --radius:10px;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    header {
+      max-width:1120px;
+      margin:0 auto;
+      padding:18px 14px 8px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    h1 { margin:0; font-size:19px; line-height:1.25; }
+    header p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    a.back {
+      color:#111;
+      text-decoration:none;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+      padding:8px 12px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    main {
+      max-width:1120px;
+      margin:0 auto;
+      padding:10px 14px 28px;
+    }
+    .tabs {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:4px 0 12px;
+    }
+    .tab {
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      border-radius:999px;
+      padding:9px 13px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .tab.active { background:#111827; color:#fff; border-color:#111827; }
+    .view { display:none; }
+    .view.active { display:block; }
+    .layout {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .layout > * { min-width:0; }
+    @media (min-width:980px) {
+      .layout { grid-template-columns:1.1fr .9fr; align-items:start; }
+    }
+    section.panel {
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 1px 5px rgba(15,23,42,.05);
+    }
+    h2 {
+      margin:0 0 10px;
+      font-size:15px;
+      border-left:4px solid var(--primary);
+      padding-left:8px;
+    }
+    h3 {
+      margin:14px 0 8px;
+      font-size:13px;
+      color:#0f172a;
+    }
+    .form-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    @media (min-width:680px) {
+      .form-grid.cols-2 { grid-template-columns:1fr 1fr; }
+      .form-grid.cols-3 { grid-template-columns:1fr 1fr 1fr; }
+    }
+    label { display:block; color:var(--muted); font-size:12px; margin-bottom:4px; }
+    input, select {
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:9px;
+      padding:10px 11px;
+      font-size:16px;
+      background:#fff;
+      color:var(--text);
+    }
+    input[type="date"] { min-height:42px; }
+    .paired {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .paired.hhd-paired {
+      grid-template-columns:.9fr 1fr 1fr;
+    }
+    @media (max-width:520px) {
+      .paired.hhd-paired { grid-template-columns:1fr; }
+    }
+    .row-title {
+      color:#374151;
+      font-size:12px;
+      font-weight:800;
+      margin-bottom:5px;
+    }
+    .measure-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    @media (min-width:680px) {
+      .measure-grid { grid-template-columns:1fr 1fr; }
+    }
+    .measure-row {
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:9px;
+      background:#fafafa;
+    }
+    .hhd-conversion {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:4px;
+      margin-top:6px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
+    }
+    .hhd-conversion span {
+      padding:6px 7px;
+      border:1px solid var(--line);
+      border-radius:7px;
+      background:#fff;
+    }
+    @media (min-width:520px) {
+      .hhd-conversion { grid-template-columns:1fr 1fr; }
+    }
+    .actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+    button.action {
+      appearance:none;
+      border:0;
+      background:var(--primary);
+      color:#fff;
+      border-radius:9px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button.action:hover { background:var(--primary-dark); }
+    button.action.secondary {
+      background:#f3f4f6;
+      color:#111827;
+      border:1px solid var(--line);
+    }
+    button.action.secondary:hover { background:#e5e7eb; }
+    button.action.danger { background:#fee2e2; color:var(--danger); border:1px solid #fecaca; }
+    button.action.danger:hover { background:#fecaca; }
+    .notice {
+      display:none;
+      margin-bottom:12px;
+      padding:10px 12px;
+      border-radius:9px;
+      background:var(--soft);
+      border:1px solid #99f6e4;
+      color:#134e4a;
+      font-size:13px;
+    }
+    .autosave-status {
+      margin:10px 0 0;
+      padding:9px 10px;
+      border:1px solid #bfdbfe;
+      border-radius:9px;
+      background:#eff6ff;
+      color:#1e3a8a;
+      font-size:12px;
+      font-weight:700;
+    }
+    .autosave-status.waiting {
+      border-color:#fde68a;
+      background:#fffbeb;
+      color:#92400e;
+    }
+    .autosave-status.saved {
+      border-color:#99f6e4;
+      background:#f0fdfa;
+      color:#115e59;
+    }
+    .autosave-status.error {
+      border-color:#fecaca;
+      background:#fef2f2;
+      color:#991b1b;
+    }
+    .note {
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.65;
+    }
+    .summary-strip {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    @media (min-width:680px) {
+      .summary-strip { grid-template-columns:repeat(4,1fr); }
+    }
+    .summary-box {
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fafafa;
+      padding:9px;
+    }
+    .summary-box .k { font-size:11px; color:var(--muted); }
+    .summary-box .v { font-size:18px; font-weight:900; margin-top:2px; }
+    .history-table-wrap {
+      overflow-x:auto;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    table {
+      border-collapse:collapse;
+      width:100%;
+      min-width:760px;
+      font-size:13px;
+    }
+    th, td {
+      padding:8px 9px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:middle;
+      white-space:nowrap;
+    }
+    th { background:#f9fafb; color:#4b5563; font-size:12px; }
+    tr:last-child td { border-bottom:0; }
+    .mini-btn {
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      border-radius:8px;
+      padding:6px 8px;
+      font-size:12px;
+      cursor:pointer;
+      margin-right:4px;
+    }
+    .mini-btn.danger { color:var(--danger); background:#fff5f5; border-color:#fecaca; }
+    canvas {
+      display:block;
+      width:100%;
+      height:320px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    .stage-checks {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:8px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fafafa;
+    }
+    .stage-checks label {
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      margin:0;
+      padding:6px 8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:#fff;
+      color:#374151;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .stage-checks input {
+      width:auto;
+      margin:0;
+    }
+    .clinical-status {
+      display:grid;
+      gap:7px;
+      margin:10px 0;
+    }
+    .clinical-status-row {
+      padding:9px 10px;
+      border-left:4px solid #d97706;
+      background:#fffbeb;
+      color:#78350f;
+      font-size:12px;
+      line-height:1.55;
+    }
+    .clinical-status-row.complete {
+      border-left-color:#0f766e;
+      background:#f0fdfa;
+      color:#134e4a;
+    }
+    .clinical-status-row.empty {
+      border-left-color:#9ca3af;
+      background:#f9fafb;
+      color:#4b5563;
+    }
+    .empty {
+      border:1px dashed #cbd5e1;
+      border-radius:9px;
+      padding:18px;
+      color:var(--muted);
+      text-align:center;
+      background:#fff;
+      font-size:13px;
+    }
+    .pdf-preview {
+      width:100%;
+      height:520px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+    }
+    .toast {
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:#111827;
+      color:#fff;
+      border-radius:999px;
+      padding:10px 13px;
+      font-size:13px;
+      display:none;
+      z-index:20;
+      box-shadow:0 6px 18px rgba(15,23,42,.2);
+    }
+    .hidden { display:none !important; }
+    .stroke-only { display:none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>運動器 臨床評価記録</h1>
+      <p>運動器疾患の臨床評価専用です。大腿骨近位部骨折の研究データ、脳卒中の臨床記録とは保存先・履歴・グラフを分離しています。</p>
+    </div>
+    <a class="back" href="./index.html">一覧へ</a>
+  </header>
+
+  <main>
+    <div id="notice" class="notice"></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" type="button" data-view="entry">評価記録</button>
+      <button class="tab" type="button" data-view="history">履歴・グラフ</button>
+      <button class="tab" type="button" data-view="pdf">運動器評価用紙PDF</button>
+    </div>
+
+    <div id="view-entry" class="view active">
+      <div class="layout">
+        <section class="panel">
+          <h2>対象者・評価時期</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="entryPatientSelect">既存対象者から選択</label>
+              <select id="entryPatientSelect"></select>
+            </div>
+            <div>
+              <label>選択時の動作</label>
+              <input value="IDと評価時期の保存済み記録を読み込みます" disabled />
+            </div>
+          </div>
+          <div class="form-grid cols-3">
+            <div>
+              <label for="patientName">氏名</label>
+              <input id="patientName" autocomplete="off" />
+            </div>
+            <div>
+              <label for="patientId">対象者ID</label>
+              <input id="patientId" autocomplete="off" placeholder="任意" />
+            </div>
+            <div>
+              <label for="recordDate">評価日</label>
+              <input id="recordDate" type="date" />
+            </div>
+            <div>
+              <label for="stage">評価時期</label>
+              <select id="stage">
+                <option value="admission">入棟</option>
+                <option value="month1">1M</option>
+                <option value="month2">2M</option>
+                <option value="month3">3M</option>
+                <option value="discharge">退院</option>
+              </select>
+            </div>
+            <div>
+              <label for="age">年齢</label>
+              <input id="age" type="number" inputmode="numeric" />
+            </div>
+            <div>
+              <label for="sex">性別</label>
+              <select id="sex">
+                <option value="">未選択</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+            </div>
+          </div>
+
+          <h3>基本情報</h3>
+          <div class="form-grid cols-3">
+            <div>
+              <label for="height">身長 (cm)</label>
+              <input id="height" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="weight">体重 (kg)</label>
+              <input id="weight" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="surgicalSide">術側</label>
+              <select id="surgicalSide">
+                <option value="">未選択</option>
+                <option value="右">右</option>
+                <option value="左">左</option>
+              </select>
+            </div>
+            <div>
+              <label for="walkingAid">歩行補助具</label>
+              <select id="walkingAid">
+                <option value="">未選択</option>
+                <option value="杖">杖</option>
+                <option value="4点杖">4点杖</option>
+                <option value="独歩">独歩</option>
+                <option value="歩行器">歩行器</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+            <div>
+              <label for="procedure">術式</label>
+              <input id="procedure" autocomplete="off" />
+            </div>
+            <div>
+              <label for="injuryDate">受傷日</label>
+              <input id="injuryDate" type="date" />
+            </div>
+            <div>
+              <label for="dischargeDestination">退院先</label>
+              <select id="dischargeDestination">
+                <option value="">未選択</option>
+                <option value="在宅">在宅</option>
+                <option value="施設">施設</option>
+                <option value="転院">転院</option>
+              </select>
+            </div>
+            <div>
+              <label for="daysSinceOnset">発症からの経過 (日)</label>
+              <input id="daysSinceOnset" type="number" inputmode="numeric" />
+            </div>
+          </div>
+
+          <h3>評価結果</h3>
+          <div class="measure-grid">
+            <div class="measure-row">
+              <div class="row-title">体重変化</div>
+              <input id="weightChange" type="number" inputmode="decimal" placeholder="kg または % など" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">歩行時のNRS</div>
+              <input id="painNrs" type="number" inputmode="decimal" min="0" max="10" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">共通HHDアーム (cm・各筋未入力時)</div>
+              <input id="hhdArmCm" type="number" inputmode="decimal" placeholder="各筋アーム未入力時のみ使用" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股屈筋 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="hipFlexorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="hipFlexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipFlexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="hipFlexor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">膝伸展 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="kneeExtensorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="kneeExtensorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="kneeExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="kneeExtensor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">足背屈 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="ankleDorsiflexorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="ankleDorsiflexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="ankleDorsiflexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="ankleDorsiflexor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股伸展 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="hipExtensorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="hipExtensorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipExtensorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="hipExtensor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">股外転 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="hipAbductorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="hipAbductorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="hipAbductorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="hipAbductor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">足底屈 (アームcm / N 右/左)</div>
+              <div class="paired hhd-paired">
+                <input id="anklePlantarflexorArmCm" type="number" inputmode="decimal" placeholder="アームcm" />
+                <input id="anklePlantarflexorRight" type="number" inputmode="decimal" placeholder="右" />
+                <input id="anklePlantarflexorLeft" type="number" inputmode="decimal" placeholder="左" />
+              </div>
+              <div class="hhd-conversion" data-hhd-row="anklePlantarflexor"></div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">10mCWS / step</div>
+              <div class="paired">
+                <input id="comfortable10mSpeed" type="number" inputmode="decimal" placeholder="m/s" />
+                <input id="comfortable10mSteps" type="number" inputmode="numeric" placeholder="歩数" />
+              </div>
+            </div>
+            <div class="measure-row">
+              <div class="row-title">歩行自立度 FAC (0-5)</div>
+              <input id="fac" type="number" inputmode="numeric" min="0" max="5" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">6分間歩行テスト (m)</div>
+              <input id="sixMinuteWalkDistance" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">TUG-T (秒)</div>
+              <input id="tugT" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">ストライド変動係数 (%)</div>
+              <input id="strideCv" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">BBS (点)</div>
+              <input id="bbs" type="number" inputmode="numeric" min="0" max="56" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">Mini-BESTest (点)</div>
+              <input id="miniBestest" type="number" inputmode="numeric" min="0" max="28" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">DGI (点)</div>
+              <input id="dgi" type="number" inputmode="numeric" min="0" max="24" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">FMA 上肢運動 (点)</div>
+              <input id="fmaUpper" type="number" inputmode="numeric" min="0" max="66" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">FMA 下肢運動 (点)</div>
+              <input id="fmaLower" type="number" inputmode="numeric" min="0" max="34" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">TIS (点)</div>
+              <input id="tis" type="number" inputmode="numeric" min="0" max="23" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">STEF (点)</div>
+              <input id="stef" type="number" inputmode="decimal" min="0" max="100" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">MAL AOU 平均 (0-5)</div>
+              <input id="malAou" type="number" inputmode="decimal" min="0" max="5" step="0.01" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">MAL QOM 平均 (0-5)</div>
+              <input id="malQom" type="number" inputmode="decimal" min="0" max="5" step="0.01" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">SARA (点・運動失調がある場合)</div>
+              <input id="sara" type="number" inputmode="decimal" min="0" max="40" step="0.5" />
+            </div>
+            <div class="measure-row">
+              <div class="row-title">GES (点)</div>
+              <input id="mfes" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">FAB (点)</div>
+              <input id="fab" type="number" inputmode="numeric" min="0" max="18" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">partA / TMT-A (秒)</div>
+              <input id="tmtA" type="number" inputmode="decimal" />
+            </div>
+            <div class="measure-row stroke-only">
+              <div class="row-title">MMSE (点)</div>
+              <input id="mmse" type="number" inputmode="numeric" min="0" max="30" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="saveRecord" class="action" type="button">今すぐ保存</button>
+            <button id="newRecord" class="action secondary" type="button">新規入力</button>
+            <button id="goHistory" class="action secondary" type="button">履歴を見る</button>
+          </div>
+          <div id="autoSaveStatus" class="autosave-status waiting">対象者IDまたは氏名と評価時期を選ぶと、自動保存を開始します。</div>
+        </section>
+
+        <section class="panel">
+          <h2>このページでできること</h2>
+          <div class="summary-strip">
+            <div class="summary-box"><div class="k">対象者数</div><div id="patientCount" class="v">0</div></div>
+            <div class="summary-box"><div class="k">総記録数</div><div id="recordCount" class="v">0</div></div>
+            <div class="summary-box"><div class="k">選択中</div><div id="activePatient" class="v">-</div></div>
+            <div class="summary-box"><div class="k">最新時期</div><div id="latestStage" class="v">-</div></div>
+          </div>
+          <p class="note">
+            共通評価画面で送信先に「運動器・臨床用」を選んだ結果が、この入力欄に自動反映されます。
+            対象者IDまたは氏名と評価時期を選ぶと、入力内容は同じ枠へ自動保存・上書きされます。
+          </p>
+          <p class="note">
+            保存先はこの端末のブラウザ内です。個人情報を扱う場合は、端末の共有やブラウザデータ削除に注意してください。
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <div id="view-history" class="view">
+      <div class="layout">
+        <section class="panel">
+          <h2>過去の評価結果</h2>
+          <p class="note" style="margin:0 0 10px;">BBS MCIDは、同一対象者の直前BBSから +12点以上を達成として判定します。</p>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="patientFilter">対象者</label>
+              <select id="patientFilter"></select>
+            </div>
+            <div>
+              <label for="metricSelect">グラフ項目</label>
+              <select id="metricSelect"></select>
+            </div>
+          </div>
+          <div id="historyEmpty" class="empty hidden">保存された評価記録がありません。</div>
+          <div id="historyWrap" class="history-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>評価日</th>
+                  <th>時期</th>
+                  <th>対象者</th>
+                  <th>10mCWS</th>
+                  <th>BBS</th>
+                  <th>BBS前回差</th>
+                  <th>BBS MCID</th>
+                  <th>DGI</th>
+                  <th>FAB</th>
+                  <th>MMSE</th>
+                  <th id="selectedMetricHeader">選択項目</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>フィードバック用グラフ</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="chartType">グラフ形式</label>
+              <select id="chartType">
+                <option value="line">折れ線グラフ</option>
+                <option value="radar">レーダーチャート</option>
+              </select>
+            </div>
+            <div>
+              <label for="radarKind">レーダー種別</label>
+              <select id="radarKind">
+                <option value="function">総合5項目</option>
+                <option value="strength">筋力のみ</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label>レーダー比較時期</label>
+              <div id="radarStageChoices" class="stage-checks">
+                <label><input type="checkbox" name="radarStages" value="admission" />入棟</label>
+                <label><input type="checkbox" name="radarStages" value="month1" />1M</label>
+                <label><input type="checkbox" name="radarStages" value="month2" />2M</label>
+                <label><input type="checkbox" name="radarStages" value="month3" />3M</label>
+                <label><input type="checkbox" name="radarStages" value="discharge" />退院</label>
+              </div>
+              <p class="note" style="margin:5px 0 0;">複数選択で重ね表示します。未選択時は最新の評価時期を表示します。</p>
+            </div>
+            <div id="strengthRadarControls" class="hidden">
+              <label>筋力項目</label>
+              <div class="stage-checks">
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipFlexor" checked />股屈筋</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="kneeExtensor" checked />膝伸展</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="ankleDorsiflexor" checked />足背屈</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipExtensor" checked />股伸展</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="hipAbductor" checked />股外転</label>
+                <label><input type="checkbox" name="strengthRadarMetrics" value="anklePlantarflexor" checked />足底屈</label>
+              </div>
+              <p class="note" style="margin:5px 0 0;">選択した筋力データ内の最大値を100%として表示します。</p>
+            </div>
+          </div>
+          <canvas id="trendChart"></canvas>
+          <p id="chartCaption" class="note" style="margin:8px 0 0;">対象者と項目を選ぶと推移を表示します。</p>
+          <div class="actions">
+            <button id="downloadGraph" class="action secondary" type="button">グラフPNG保存</button>
+            <button id="goPdf" class="action" type="button">PDF出力へ</button>
+          </div>
+        </section>
+
+        <section class="panel" style="grid-column:1/-1;">
+          <h2>臨床評価結果グラフ</h2>
+          <p class="note" style="margin:0 0 10px;">
+            歩行自立度（FAC）、歩行速度（10m歩行テスト）、歩行耐久性（6分間歩行テスト）、歩行安定性（ストライド変動係数）、バランス（BBSまたはMini-BESTest）、応用歩行（DGI）、歩行の自信（GES）を7角形で表示します。
+          </p>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label>臨床評価の比較時期</label>
+              <div id="clinicalStageChoices" class="stage-checks">
+                <label><input type="checkbox" name="clinicalRadarStages" value="admission" />入棟</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month1" />1M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month2" />2M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="month3" />3M</label>
+                <label><input type="checkbox" name="clinicalRadarStages" value="discharge" />退院</label>
+              </div>
+              <p class="note" style="margin:5px 0 0;">未選択時は最新の評価時期を表示します。7項目すべて入力された時期を描画します。</p>
+            </div>
+            <div>
+              <label>換算基準</label>
+              <p class="note" style="margin:0;">
+                FAC 5点、10mCWS 1.0m/s、6分間歩行 400m、BBS 56点またはMini-BESTest 28点、DGI 24点、GES 100点を100%に換算します。ストライド変動係数は0%を100%、20%以上を0%として低いほど外側に表示します。
+              </p>
+            </div>
+          </div>
+          <div id="clinicalAssessmentStatus" class="clinical-status"></div>
+          <canvas id="clinicalRadarChart"></canvas>
+          <p id="clinicalChartCaption" class="note" style="margin:8px 0 0;">対象者を選ぶと臨床評価結果を表示します。</p>
+          <div class="actions">
+            <button id="downloadClinicalGraph" class="action secondary" type="button">臨床グラフPNG保存</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="view-pdf" class="view">
+      <div class="layout">
+        <section class="panel">
+          <h2>運動器評価用紙PDF</h2>
+          <div class="form-grid cols-2" style="margin-bottom:10px;">
+            <div>
+              <label for="pdfPatient">対象者</label>
+              <select id="pdfPatient"></select>
+            </div>
+          </div>
+          <p class="note">
+            保存済み記録から、各評価時期の最新値を評価用紙へ自動転記します。
+            アプリ内で保存した対象者情報と各評価時期の結果から、ずれにくい固定レイアウトのPDFを作成します。
+          </p>
+          <div class="actions">
+            <button id="exportPdf" class="action" type="button">PDFを作成</button>
+            <button id="copyCsv" class="action secondary" type="button">記録CSV保存</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>出力内容</h2>
+          <p class="note">
+            運動器評価用紙PDFは、保存済み記録から各時期の入力済みデータをまとめて、アプリ内で用紙レイアウトごと作成します。
+          </p>
+          <p class="note">
+            用紙項目は、体重変化、歩行時NRS、HHD 6筋、FAC、10mCWS/step、6分間歩行、TUG-T、DGI、BBS、GESです。
+          </p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">保存しました</div>
+
+<script>
+const STORAGE_KEY = "rehacalc_orthopedic_records_v1";
+const DRAFT_KEY = "rehacalc_orthopedic_draft_v1";
+const KEYFORM_TRANSFER_KEY = "rehacalc_keyform_transfer_v1";
+const TEMPLATE_URL = "./assets/evaluation-form.pdf";
+const MMSE_TEMPLATE_URL = "./assets/hdsr-mmse-sheet.pdf";
+
+const STAGES = [
+  { id:"admission", label:"入棟" },
+  { id:"month1", label:"1M" },
+  { id:"month2", label:"2M" },
+  { id:"month3", label:"3M" },
+  { id:"discharge", label:"退院" }
+];
+
+const PROFILE_FIELDS = [
+  "patientName","patientId","recordDate","stage","age","sex","height","weight",
+  "surgicalSide","walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
+];
+
+const MEASUREMENT_FIELDS = [
+  "weightChange","painNrs","hhdArmCm",
+  "hipFlexorArmCm","kneeExtensorArmCm","ankleDorsiflexorArmCm","hipExtensorArmCm","hipAbductorArmCm","anklePlantarflexorArmCm",
+  "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
+  "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
+  "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
+  "comfortable10mSpeed","comfortable10mSteps","fac","sixMinuteWalkDistance","tugT","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","stef","malAou","malQom","sara","mfes","fab","tmtA","mmse"
+];
+
+const BBS_MCID_POINTS = 12;
+
+const HHD_STRENGTH_FIELDS = [
+  { id:"hipFlexor", label:"股屈筋", arm:"hipFlexorArmCm", right:"hipFlexorRight", left:"hipFlexorLeft" },
+  { id:"kneeExtensor", label:"膝伸展", arm:"kneeExtensorArmCm", right:"kneeExtensorRight", left:"kneeExtensorLeft" },
+  { id:"ankleDorsiflexor", label:"足背屈", arm:"ankleDorsiflexorArmCm", right:"ankleDorsiflexorRight", left:"ankleDorsiflexorLeft" },
+  { id:"hipExtensor", label:"股伸展", arm:"hipExtensorArmCm", right:"hipExtensorRight", left:"hipExtensorLeft" },
+  { id:"hipAbductor", label:"股外転", arm:"hipAbductorArmCm", right:"hipAbductorRight", left:"hipAbductorLeft" },
+  { id:"anklePlantarflexor", label:"足底屈", arm:"anklePlantarflexorArmCm", right:"anklePlantarflexorRight", left:"anklePlantarflexorLeft" }
+];
+
+const GRAPH_METRICS = [
+  { id:"comfortable10mSpeed", label:"10mCWS", unit:"m/s" },
+  { id:"comfortable10mSteps", label:"10m step", unit:"歩" },
+  { id:"fac", label:"FAC", unit:"点" },
+  { id:"sixMinuteWalkDistance", label:"6分間歩行", unit:"m" },
+  { id:"tugT", label:"TUG-T", unit:"秒" },
+  { id:"strideCv", label:"ストライド変動係数", unit:"%" },
+  { id:"bbs", label:"BBS", unit:"点" },
+  { id:"dgi", label:"DGI", unit:"点" },
+  { id:"fab", label:"FAB", unit:"点" },
+  { id:"mmse", label:"MMSE", unit:"点" },
+  { id:"tmtA", label:"partA / TMT-A", unit:"秒" },
+  { id:"painNrs", label:"歩行時NRS", unit:"" },
+  { id:"weightChange", label:"体重変化", unit:"" },
+  { id:"mfes", label:"GES", unit:"点" },
+  ...HHD_STRENGTH_FIELDS.flatMap(field => [
+    { id:field.right, label:`${field.label} 右`, unit:"N" },
+    { id:field.left, label:`${field.label} 左`, unit:"N" },
+    { id:`${field.right}Nkg`, label:`${field.label} 右`, unit:"N/kg", value:r => hhdNPerKg(r, field.right) },
+    { id:`${field.left}Nkg`, label:`${field.label} 左`, unit:"N/kg", value:r => hhdNPerKg(r, field.left) },
+    { id:`${field.right}Nmkg`, label:`${field.label} 右`, unit:"Nm/kg", value:r => hhdNmPerKg(r, field.right) },
+    { id:`${field.left}Nmkg`, label:`${field.label} 左`, unit:"Nm/kg", value:r => hhdNmPerKg(r, field.left) }
+  ])
+];
+
+const FUNCTION_RADAR_METRICS = [
+  { label:"歩行速度", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
+  { label:"バランス", detail:"BBS 56点基準", value:r => num(r.measurements?.bbs), normalize:v => clampPercent(v / 56 * 100) },
+  { label:"認知機能", detail:"MMSE 30点基準", value:r => num(r.measurements?.mmse), normalize:v => clampPercent(v / 30 * 100) },
+  { label:"遂行機能", detail:"FAB 18点基準", value:r => num(r.measurements?.fab), normalize:v => clampPercent(v / 18 * 100) },
+  { label:"注意機能", detail:"TMT-A 60秒以下を100%、180秒以上を0%換算", value:r => num(r.measurements?.tmtA), normalize:v => clampPercent((180 - v) / 120 * 100) }
+];
+
+const STRENGTH_RADAR_METRICS = [
+  { id:"hipFlexor", label:"股屈筋", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipFlexorRight, r.measurements?.hipFlexorLeft) },
+  { id:"kneeExtensor", label:"膝伸展", detail:"左右平均N", value:r => averageNumbers(r.measurements?.kneeExtensorRight, r.measurements?.kneeExtensorLeft) },
+  { id:"ankleDorsiflexor", label:"足背屈", detail:"左右平均N", value:r => averageNumbers(r.measurements?.ankleDorsiflexorRight, r.measurements?.ankleDorsiflexorLeft) },
+  { id:"hipExtensor", label:"股伸展", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipExtensorRight, r.measurements?.hipExtensorLeft) },
+  { id:"hipAbductor", label:"股外転", detail:"左右平均N", value:r => averageNumbers(r.measurements?.hipAbductorRight, r.measurements?.hipAbductorLeft) },
+  { id:"anklePlantarflexor", label:"足底屈", detail:"左右平均N", value:r => averageNumbers(r.measurements?.anklePlantarflexorRight, r.measurements?.anklePlantarflexorLeft) }
+];
+
+const CLINICAL_RADAR_METRICS = [
+  { label:"歩行自立度", missingLabel:"FAC", detail:"FAC 5点基準", value:r => num(r.measurements?.fac), normalize:v => clampPercent(v / 5 * 100) },
+  { label:"歩行速度", missingLabel:"10m歩行テスト", detail:"10mCWS 1.0m/s基準", value:r => num(r.measurements?.comfortable10mSpeed), normalize:v => clampPercent(v / 1.0 * 100) },
+  { label:"歩行耐久性", missingLabel:"6分間歩行テスト", detail:"6分間歩行 400m基準", value:r => num(r.measurements?.sixMinuteWalkDistance), normalize:v => clampPercent(v / 400 * 100) },
+  { label:"歩行安定性", missingLabel:"ストライド変動係数", detail:"ストライド変動係数 低値ほど良好", value:r => num(r.measurements?.strideCv), normalize:v => clampPercent((20 - v) / 20 * 100) },
+  {
+    label:"バランス",
+    missingLabel:"BBSまたはMini-BESTest",
+    detail:"BBS 56点 / Mini-BESTest 28点基準",
+    value:r => num(r.measurements?.bbs) !== null ? num(r.measurements?.bbs) : num(r.measurements?.miniBestest),
+    normalize:(v, r) => num(r.measurements?.bbs) !== null ? clampPercent(v / 56 * 100) : clampPercent(v / 28 * 100)
+  },
+  { label:"応用歩行", missingLabel:"DGI", detail:"DGI 24点基準", value:r => num(r.measurements?.dgi), normalize:v => clampPercent(v / 24 * 100) },
+  { label:"歩行の自信 GES", missingLabel:"GES", detail:"GES 100点基準", value:r => num(r.measurements?.mfes), normalize:v => clampPercent(v) }
+];
+
+const RADAR_COLORS = [
+  { stroke:"#0f766e", fill:"rgba(15,118,110,.18)" },
+  { stroke:"#2563eb", fill:"rgba(37,99,235,.16)" },
+  { stroke:"#dc2626", fill:"rgba(220,38,38,.14)" },
+  { stroke:"#7c3aed", fill:"rgba(124,58,237,.14)" },
+  { stroke:"#d97706", fill:"rgba(217,119,6,.14)" },
+  { stroke:"#0891b2", fill:"rgba(8,145,178,.14)" }
+];
+
+const PDF_FORM_ROWS = [
+  { group:"運動機能", label:"体重変化", value:r => r.measurements.weightChange, h:31 },
+  { group:"運動機能", label:"歩行時のNRS", value:r => r.measurements.painNrs, h:31 },
+  { group:"運動機能", label:"股屈筋(右/左)", value:r => pair(r.measurements.hipFlexorRight, r.measurements.hipFlexorLeft), h:29 },
+  { group:"運動機能", label:"膝伸展(右/左)", value:r => pair(r.measurements.kneeExtensorRight, r.measurements.kneeExtensorLeft), h:29 },
+  { group:"運動機能", label:"足背屈(右/左)", value:r => pair(r.measurements.ankleDorsiflexorRight, r.measurements.ankleDorsiflexorLeft), h:29 },
+  { group:"運動機能", label:"股伸展（右/左）", value:r => pair(r.measurements.hipExtensorRight, r.measurements.hipExtensorLeft), h:29 },
+  { group:"運動機能", label:"股外転（右/左）", value:r => pair(r.measurements.hipAbductorRight, r.measurements.hipAbductorLeft), h:29 },
+  { group:"運動機能", label:"足底屈(右/左)", value:r => pair(r.measurements.anklePlantarflexorRight, r.measurements.anklePlantarflexorLeft), h:30 },
+  { group:"動作能力", label:"FAC", value:r => r.measurements.fac, h:30 },
+  { group:"動作能力", label:"10mCWS/step", value:speedStepValue, h:28 },
+  { group:"動作能力", label:"6分間歩行テスト", value:r => r.measurements.sixMinuteWalkDistance, h:28 },
+  { group:"動作能力", label:"TUG-T", value:r => r.measurements.tugT, h:28 },
+  { group:"動作能力", label:"DGI", value:r => r.measurements.dgi, h:28 },
+  { group:"バランス", label:"BBS", value:r => r.measurements.bbs, h:24 },
+  { group:"", label:"GES", value:r => r.measurements.mfes, h:30 }
+];
+
+let editingId = null;
+let pendingAssessmentDetails = {};
+let suppressAutoSave = false;
+let autoSaveTimer = null;
+const AUTO_SAVE_DELAY_MS = 800;
+
+const $ = (id) => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0, 10);
+const stageLabel = (stage) => STAGES.find(s => s.id === stage)?.label || stage || "-";
+const clean = (value) => String(value ?? "").trim();
+const num = (value) => {
+  const text = clean(value).replaceAll(",", "");
+  if (text === "") return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+};
+const cloneAssessmentDetails = (value) => JSON.parse(JSON.stringify(value || {}));
+
+function clampPercent(value) {
+  if (!Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(100, value));
+}
+
+function averageNumbers(a, b) {
+  const values = [num(a), num(b)].filter(value => value !== null);
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function pair(right, left) {
+  const r = clean(right);
+  const l = clean(left);
+  if (!r && !l) return "";
+  return `${r || "-"} / ${l || "-"}`;
+}
+
+function speedStepValue(record) {
+  const speed = clean(record.measurements?.comfortable10mSpeed);
+  const steps = clean(record.measurements?.comfortable10mSteps);
+  if (speed && steps) return `${speed}/${steps}`;
+  return speed || steps;
+}
+
+function hhdNPerKg(record, field) {
+  const force = num(record.measurements?.[field]);
+  const weight = num(record.weight);
+  if (force === null || !weight || weight <= 0) return null;
+  return force / weight;
+}
+
+function hhdNmPerKg(record, field) {
+  const force = num(record.measurements?.[field]);
+  const weight = num(record.weight);
+  const config = HHD_STRENGTH_FIELDS.find(item => item.right === field || item.left === field);
+  const muscleArm = config ? num(record.measurements?.[config.arm]) : null;
+  const armCm = muscleArm !== null ? muscleArm : num(record.measurements?.hhdArmCm);
+  if (force === null || !weight || weight <= 0 || !armCm || armCm <= 0) return null;
+  return force * (armCm / 100) / weight;
+}
+
+function metricValue(record, metric) {
+  if (typeof metric.value === "function") return metric.value(record);
+  return num(record.measurements?.[metric.id]);
+}
+
+function metricDisplay(record, metric) {
+  const value = metricValue(record, metric);
+  return value === null ? "-" : formatNumber(value);
+}
+
+function hhdConversionSideText(label, force, weight, armCm) {
+  const n = num(force);
+  if (n === null) return `${label}：-`;
+  const nkg = weight && weight > 0 ? n / weight : null;
+  const nmkg = weight && weight > 0 && armCm && armCm > 0 ? n * (armCm / 100) / weight : null;
+  return `${label}：N ${formatNumber(n)} / N/kg ${formatNumber(nkg)} / Nm/kg ${formatNumber(nmkg)}`;
+}
+
+function updateHhdConversions() {
+  const weight = num($("weight").value);
+  const defaultArmCm = num($("hhdArmCm").value);
+  HHD_STRENGTH_FIELDS.forEach((field) => {
+    const box = document.querySelector(`[data-hhd-row="${field.id}"]`);
+    if (!box) return;
+    const muscleArm = num($(field.arm)?.value);
+    const armCm = muscleArm !== null ? muscleArm : defaultArmCm;
+    box.innerHTML = `
+      <span>${escapeHtml(hhdConversionSideText("右", $(field.right).value, weight, armCm))}</span>
+      <span>${escapeHtml(hhdConversionSideText("左", $(field.left).value, weight, armCm))}</span>
+    `;
+  });
+}
+
+function loadRecords() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function patientKey(record) {
+  return clean(record.patientId) || clean(record.patientName);
+}
+
+function patientLabel(record) {
+  const name = clean(record.patientName) || "氏名未入力";
+  const id = clean(record.patientId);
+  return id ? `${name} (${id})` : name;
+}
+
+function getPatients(records) {
+  const map = new Map();
+  records.forEach((record) => {
+    const key = patientKey(record);
+    if (!key) return;
+    if (!map.has(key)) map.set(key, patientLabel(record));
+  });
+  return [...map.entries()].map(([key, label]) => ({ key, label }));
+}
+
+function getCurrentPatientKey() {
+  return clean($("patientId").value) || clean($("patientName").value);
+}
+
+function setNotice(text) {
+  const notice = $("notice");
+  if (!text) {
+    notice.style.display = "none";
+    return;
+  }
+  notice.textContent = text;
+  notice.style.display = "block";
+}
+
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.style.display = "block";
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => t.style.display = "none", 1500);
+}
+
+function setAutoSaveStatus(text, state = "waiting") {
+  const el = $("autoSaveStatus");
+  if (!el) return;
+  el.className = `autosave-status ${state}`;
+  el.textContent = text;
+}
+
+function timeLabel(date = new Date()) {
+  return date.toLocaleTimeString("ja-JP", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+}
+
+function withSuppressedAutoSave(fn) {
+  suppressAutoSave = true;
+  try {
+    return fn();
+  } finally {
+    suppressAutoSave = false;
+  }
+}
+
+function samePatientStage(record, key, stage) {
+  return patientKey(record) === key && clean(record.stage) === clean(stage);
+}
+
+function getMergedRecordForPatientStage(patient, stage) {
+  const records = loadRecords()
+    .filter(record => samePatientStage(record, patient, stage))
+    .sort(compareRecordsAscending);
+  if (records.length === 0) return null;
+  const merged = { measurements:{}, assessmentDetails:{} };
+  records.forEach((record) => mergeRecordInto(merged, record));
+  return merged;
+}
+
+function loadSelectedStageRecord() {
+  const patient = getCurrentPatientKey();
+  const stage = $("stage").value || "admission";
+  if (!patient) {
+    setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
+    return;
+  }
+  const existing = getMergedRecordForPatientStage(patient, stage);
+  if (existing) {
+    withSuppressedAutoSave(() => fillForm(existing));
+    setNotice(`${stageLabel(stage)}の保存済みデータを読み込みました。変更すると自動保存されます。`);
+    setAutoSaveStatus(`${patient}：${stageLabel(stage)}を読み込み済みです。`, "saved");
+    return;
+  }
+
+  const keep = {};
+  PROFILE_FIELDS.forEach((field) => {
+    if ($(field)) keep[field] = $(field).value;
+  });
+  withSuppressedAutoSave(() => {
+    editingId = null;
+    pendingAssessmentDetails = {};
+    clearMeasurements();
+    PROFILE_FIELDS.forEach((field) => {
+      if ($(field)) $(field).value = keep[field] ?? "";
+    });
+    $("stage").value = stage;
+    $("recordDate").value = keep.recordDate || today();
+    $("saveRecord").textContent = "今すぐ保存";
+    updateStats();
+  });
+  setNotice(`${stageLabel(stage)}は未入力です。入力すると自動保存されます。`);
+  setAutoSaveStatus(`${patient}：${stageLabel(stage)}は未保存です。入力すると自動保存します。`, "waiting");
+}
+
+function scheduleAutoSave() {
+  if (suppressAutoSave) return;
+  clearTimeout(autoSaveTimer);
+  const key = getCurrentPatientKey();
+  if (!key) {
+    setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
+    return;
+  }
+  setAutoSaveStatus(`${key}：${stageLabel($("stage").value)}を自動保存待機中...`, "waiting");
+  autoSaveTimer = setTimeout(() => saveCurrentRecord({ silent:true }), AUTO_SAVE_DELAY_MS);
+}
+
+function handleRecordFieldChange(event) {
+  updateStats();
+  if (event?.target?.id === "stage") {
+    loadSelectedStageRecord();
+    return;
+  }
+  scheduleAutoSave();
+}
+
+function switchView(viewName) {
+  document.querySelectorAll(".tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === viewName);
+  });
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("active", view.id === `view-${viewName}`);
+  });
+  if (viewName === "history") {
+    renderHistory();
+  }
+  if (viewName === "pdf") {
+    renderPdfPatientSelect();
+  }
+}
+
+function formToRecord() {
+  const record = {
+    id: editingId || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    patientName: clean($("patientName").value),
+    patientId: clean($("patientId").value),
+    recordDate: $("recordDate").value || today(),
+    stage: $("stage").value,
+    age: clean($("age").value),
+    sex: $("sex").value,
+    height: clean($("height").value),
+    weight: clean($("weight").value),
+    surgicalSide: $("surgicalSide").value,
+    walkingAid: $("walkingAid").value,
+    procedure: clean($("procedure").value),
+    injuryDate: $("injuryDate").value,
+    dischargeDestination: $("dischargeDestination").value,
+    daysSinceOnset: clean($("daysSinceOnset").value),
+    measurements: {},
+    assessmentDetails: cloneAssessmentDetails(pendingAssessmentDetails),
+    updatedAt: new Date().toISOString()
+  };
+  MEASUREMENT_FIELDS.forEach((field) => {
+    record.measurements[field] = clean($(field).value);
+  });
+  return record;
+}
+
+function fillForm(record) {
+  editingId = record?.id || null;
+  pendingAssessmentDetails = cloneAssessmentDetails(record?.assessmentDetails);
+  PROFILE_FIELDS.forEach((field) => {
+    if (!$(field)) return;
+    $(field).value = record?.[field] ?? (field === "recordDate" ? today() : "");
+  });
+  MEASUREMENT_FIELDS.forEach((field) => {
+    $(field).value = record?.measurements?.[field] ?? "";
+  });
+  $("saveRecord").textContent = "今すぐ保存";
+  updateStats();
+}
+
+function clearMeasurements() {
+  MEASUREMENT_FIELDS.forEach((field) => {
+    $(field).value = "";
+  });
+}
+
+function newRecord() {
+  const keep = {
+    patientName: $("patientName").value,
+    patientId: $("patientId").value,
+    age: $("age").value,
+    sex: $("sex").value,
+    height: $("height").value,
+    weight: $("weight").value,
+    surgicalSide: $("surgicalSide").value,
+    walkingAid: $("walkingAid").value,
+    procedure: $("procedure").value,
+    injuryDate: $("injuryDate").value,
+    dischargeDestination: $("dischargeDestination").value,
+    daysSinceOnset: $("daysSinceOnset").value
+  };
+  editingId = null;
+  pendingAssessmentDetails = {};
+  PROFILE_FIELDS.forEach((field) => {
+    if ($(field)) $(field).value = keep[field] ?? "";
+  });
+  $("recordDate").value = today();
+  $("stage").value = "admission";
+  clearMeasurements();
+  $("saveRecord").textContent = "今すぐ保存";
+  renderEntryPatientSelect();
+  setNotice("対象者IDまたは氏名と評価時期を選んで入力すると、自動保存されます。");
+  setAutoSaveStatus("対象者IDまたは氏名を入力すると、自動保存を開始します。", "waiting");
+}
+
+function saveCurrentRecord(options = {}) {
+  clearTimeout(autoSaveTimer);
+  const record = formToRecord();
+  if (!patientKey(record)) {
+    if (options.silent) {
+      setAutoSaveStatus("対象者IDまたは氏名が未入力のため、まだ自動保存していません。", "waiting");
+    } else {
+      alert("氏名または対象者IDを入力してください。");
+    }
+    return;
+  }
+  const key = patientKey(record);
+  const records = loadRecords();
+  const matchingRecords = records
+    .filter(r => r.id === editingId || samePatientStage(r, key, record.stage))
+    .sort(compareRecordsAscending);
+  const latest = matchingRecords.at(-1);
+  record.id = latest?.id || editingId || record.id;
+  record.createdAt = latest?.createdAt || new Date().toISOString();
+  record.updatedAt = new Date().toISOString();
+  saveRecords([
+    ...records.filter(r => r.id !== editingId && !samePatientStage(r, key, record.stage)),
+    record
+  ]);
+  editingId = record.id;
+  $("saveRecord").textContent = "今すぐ保存";
+  setAutoSaveStatus(`${key}：${stageLabel(record.stage)}を自動保存しました（${timeLabel()}）`, "saved");
+  if (!options.silent) toast("記録を保存しました");
+  renderEntryPatientSelect();
+  updateStats();
+  renderHistory();
+  renderPdfPatientSelect();
+}
+
+function updateStats() {
+  const records = loadRecords();
+  const patients = getPatients(records);
+  $("patientCount").textContent = String(patients.length);
+  $("recordCount").textContent = String(records.length);
+  const key = getCurrentPatientKey();
+  $("activePatient").textContent = key || "-";
+  const patientRecords = records
+    .filter(r => patientKey(r) === key)
+    .sort((a, b) => clean(b.recordDate).localeCompare(clean(a.recordDate)));
+  $("latestStage").textContent = patientRecords[0] ? stageLabel(patientRecords[0].stage) : "-";
+  updateHhdConversions();
+}
+
+function renderPatientOptions(selectEl, includeAll) {
+  const records = loadRecords();
+  const patients = getPatients(records);
+  const selected = selectEl.value || getCurrentPatientKey() || patients[0]?.key || "";
+  selectEl.innerHTML = "";
+  if (includeAll) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "すべて";
+    selectEl.appendChild(opt);
+  }
+  patients.forEach((patient) => {
+    const opt = document.createElement("option");
+    opt.value = patient.key;
+    opt.textContent = patient.label;
+    selectEl.appendChild(opt);
+  });
+  selectEl.value = selected;
+}
+
+function renderEntryPatientSelect() {
+  const select = $("entryPatientSelect");
+  const records = loadRecords();
+  const patients = getPatients(records);
+  const current = getCurrentPatientKey();
+  const selected = patients.some(patient => patient.key === current) ? current : "";
+  select.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = patients.length ? "新規/手入力" : "保存済み対象者なし";
+  select.appendChild(blank);
+  patients.forEach((patient) => {
+    const opt = document.createElement("option");
+    opt.value = patient.key;
+    opt.textContent = patient.label;
+    select.appendChild(opt);
+  });
+  select.value = selected;
+}
+
+function applyPatientProfile(patient) {
+  if (!patient) return;
+  const latest = latestPatientRecord(patient);
+  if (!latest) return;
+  const keepDate = $("recordDate").value || today();
+  const keepStage = $("stage").value || "admission";
+  withSuppressedAutoSave(() => {
+    [
+      "patientName","patientId","age","sex","height","weight","surgicalSide",
+      "walkingAid","procedure","injuryDate","dischargeDestination","daysSinceOnset"
+    ].forEach((field) => {
+      $(field).value = latest[field] ?? "";
+    });
+    $("recordDate").value = keepDate;
+    $("stage").value = keepStage;
+    updateStats();
+  });
+  loadSelectedStageRecord();
+}
+
+function renderMetricOptions() {
+  const selected = $("metricSelect").value || "comfortable10mSpeed";
+  $("metricSelect").innerHTML = "";
+  GRAPH_METRICS.forEach((metric) => {
+    const opt = document.createElement("option");
+    opt.value = metric.id;
+    opt.textContent = metric.unit ? `${metric.label} (${metric.unit})` : metric.label;
+    $("metricSelect").appendChild(opt);
+  });
+  $("metricSelect").value = selected;
+}
+
+function selectedMetric() {
+  return GRAPH_METRICS.find(metric => metric.id === $("metricSelect").value) || GRAPH_METRICS[0];
+}
+
+function buildBbsChangeMap() {
+  const map = new Map();
+  const lastByPatient = new Map();
+  loadRecords()
+    .filter(record => clean(record.measurements?.bbs))
+    .sort(compareRecordsAscending)
+    .forEach((record) => {
+      const bbs = num(record.measurements?.bbs);
+      if (bbs === null) return;
+      const key = patientKey(record);
+      const previous = lastByPatient.get(key);
+      if (previous) {
+        const delta = bbs - previous.bbs;
+        map.set(record.id, {
+          previous: previous.bbs,
+          delta,
+          judge: delta >= BBS_MCID_POINTS ? "MCID達成" : "未達成"
+        });
+      } else {
+        map.set(record.id, { previous:null, delta:null, judge:"初回" });
+      }
+      lastByPatient.set(key, { bbs, record });
+    });
+  return map;
+}
+
+function formatBbsDelta(change) {
+  if (!change) return "-";
+  if (change.delta === null) return "初回";
+  return `${change.delta > 0 ? "+" : ""}${change.delta}`;
+}
+
+function renderHistory() {
+  renderPatientOptions($("patientFilter"), true);
+  renderMetricOptions();
+  const metric = selectedMetric();
+  $("selectedMetricHeader").textContent = metric.unit ? `${metric.label} (${metric.unit})` : metric.label;
+  const bbsChangeMap = buildBbsChangeMap();
+  const filter = $("patientFilter").value;
+  const records = loadRecords()
+    .filter(record => !filter || patientKey(record) === filter)
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    });
+
+  $("historyEmpty").classList.toggle("hidden", records.length > 0);
+  $("historyWrap").classList.toggle("hidden", records.length === 0);
+  $("historyBody").innerHTML = "";
+  records.forEach((record) => {
+    const tr = document.createElement("tr");
+    const m = record.measurements || {};
+    const bbsChange = bbsChangeMap.get(record.id);
+    const keyformButtons = [
+      record.assessmentDetails?.bbs?.items?.length
+        ? `<button class="mini-btn" type="button" data-keyform-record="${record.id}" data-keyform-assessment="bbs">BBS KeyForm</button>`
+        : "",
+      record.assessmentDetails?.miniBestest?.items?.length
+        ? `<button class="mini-btn" type="button" data-keyform-record="${record.id}" data-keyform-assessment="miniBestest">Mini KeyForm</button>`
+        : ""
+    ].join("");
+    tr.innerHTML = `
+      <td>${escapeHtml(record.recordDate || "-")}</td>
+      <td>${escapeHtml(stageLabel(record.stage))}</td>
+      <td>${escapeHtml(patientLabel(record))}</td>
+      <td>${escapeHtml(m.comfortable10mSpeed || "-")}</td>
+      <td>${escapeHtml(m.bbs || "-")}</td>
+      <td>${escapeHtml(formatBbsDelta(bbsChange))}</td>
+      <td>${escapeHtml(bbsChange?.judge || "-")}</td>
+      <td>${escapeHtml(m.dgi || "-")}</td>
+      <td>${escapeHtml(m.fab || "-")}</td>
+      <td>${escapeHtml(m.mmse || "-")}</td>
+      <td>${escapeHtml(metricDisplay(record, metric))}</td>
+      <td>
+        ${keyformButtons}
+        <button class="mini-btn" type="button" data-edit="${record.id}">編集</button>
+        <button class="mini-btn danger" type="button" data-delete="${record.id}">削除</button>
+      </td>
+    `;
+    $("historyBody").appendChild(tr);
+  });
+
+  document.querySelectorAll("[data-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const record = loadRecords().find(r => r.id === button.dataset.edit);
+      if (record) {
+        fillForm(record);
+        switchView("entry");
+        setNotice("保存済みの記録を編集中です。");
+      }
+    });
+  });
+  document.querySelectorAll("[data-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteRecord(button.dataset.delete));
+  });
+  document.querySelectorAll("[data-keyform-assessment]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const record = loadRecords().find(r => r.id === button.dataset.keyformRecord);
+      if (record) openKeyformForRecord(record, button.dataset.keyformAssessment);
+    });
+  });
+  renderChart();
+  renderClinicalRadarChart();
+}
+
+function openKeyformForRecord(record, assessmentKey) {
+  const detail = record.assessmentDetails?.[assessmentKey];
+  if (!detail?.items?.length) return;
+  localStorage.setItem(KEYFORM_TRANSFER_KEY, JSON.stringify({
+    source:"record",
+    storageKey:STORAGE_KEY,
+    recordId:record.id,
+    assessmentKey,
+    patientName:record.patientName,
+    patientId:record.patientId,
+    recordDate:record.recordDate,
+    stage:record.stage,
+    detail
+  }));
+  location.href = "./keyform.html";
+}
+
+function deleteRecord(id) {
+  if (!confirm("この記録を削除しますか？")) return;
+  const records = loadRecords().filter(record => record.id !== id);
+  saveRecords(records);
+  if (editingId === id) newRecord();
+  toast("記録を削除しました");
+  renderEntryPatientSelect();
+  updateStats();
+  renderHistory();
+  renderPdfPatientSelect();
+}
+
+function updateRadarControls() {
+  $("strengthRadarControls").classList.toggle("hidden", $("radarKind").value !== "strength");
+}
+
+function renderChart() {
+  updateRadarControls();
+  const canvas = $("trendChart");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+  canvas.height = Math.floor(320 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  if ($("chartType").value === "radar") {
+    renderRadarChart(ctx, w, h);
+    return;
+  }
+
+  const metric = GRAPH_METRICS.find(m => m.id === $("metricSelect").value) || GRAPH_METRICS[0];
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .map(record => ({ record, value:metricValue(record, metric) }))
+    .filter(item => item.value !== null)
+    .sort((a, b) => {
+      const d = clean(a.record.recordDate).localeCompare(clean(b.record.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.record.stage) - STAGES.findIndex(s => s.id === b.record.stage);
+    });
+
+  if (!patient || records.length === 0) {
+    drawEmptyChart(ctx, w, h, "グラフ化できる記録がありません");
+    $("chartCaption").textContent = "対象者と項目を選ぶと推移を表示します。";
+    return;
+  }
+
+  const values = records.map(item => item.value);
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  const pad = (max - min) * 0.12;
+  min -= pad;
+  max += pad;
+
+  const margin = { left:46, right:18, top:22, bottom:54 };
+  const plotW = w - margin.left - margin.right;
+  const plotH = h - margin.top - margin.bottom;
+  const xAt = (i) => margin.left + (records.length === 1 ? plotW / 2 : (plotW * i) / (records.length - 1));
+  const yAt = (v) => margin.top + plotH - ((v - min) / (max - min)) * plotH;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 1;
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.fillStyle = "#6b7280";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const y = margin.top + (plotH * i) / 4;
+    const value = max - ((max - min) * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, y);
+    ctx.lineTo(w - margin.right, y);
+    ctx.stroke();
+    ctx.fillText(formatNumber(value), margin.left - 8, y);
+  }
+
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const y = yAt(item.value);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const y = yAt(item.value);
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#111827";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(formatNumber(item.value), x, y - 9);
+  });
+
+  ctx.fillStyle = "#374151";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  records.forEach((item, i) => {
+    const x = xAt(i);
+    const label = `${stageLabel(item.record.stage)} ${item.record.recordDate?.slice(5) || ""}`;
+    ctx.save();
+    ctx.translate(x, h - margin.bottom + 18);
+    if (records.length > 3) ctx.rotate(-Math.PI / 8);
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
+
+  const label = GRAPH_METRICS.find(m => m.id === metric.id)?.label || metric.id;
+  $("chartCaption").textContent = `${patient}：${label} の推移${metric.unit ? "（" + metric.unit + "）" : ""}`;
+}
+
+function selectedRadarStages() {
+  return [...document.querySelectorAll('input[name="radarStages"]:checked')]
+    .map(input => input.value);
+}
+
+function selectedStrengthRadarMetrics() {
+  const selected = [...document.querySelectorAll('input[name="strengthRadarMetrics"]:checked')]
+    .map(input => input.value);
+  return STRENGTH_RADAR_METRICS.filter(metric => selected.includes(metric.id));
+}
+
+function currentRadarMetrics() {
+  if ($("radarKind").value === "strength") return selectedStrengthRadarMetrics();
+  return FUNCTION_RADAR_METRICS;
+}
+
+function normalizeRadarValue(metric, raw, maxByMetric) {
+  if (raw === null) return null;
+  if (metric.normalize) return metric.normalize(raw);
+  const max = maxByMetric.get(metric.id);
+  if (!max || max <= 0) return null;
+  return clampPercent((raw / max) * 100);
+}
+
+function getRadarRecords(patient) {
+  if (!patient) return [];
+  const stages = selectedRadarStages();
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stages.length) {
+    return stages
+      .map(stage => ({ label:stageLabel(stage), record:stageMap.get(stage) }))
+      .filter(item => item.record);
+  }
+  const latest = [...stageMap.values()]
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    })
+    .at(-1);
+  return latest ? [{ label:stageLabel(latest.stage), record:latest }] : [];
+}
+
+function radarValues(record, metrics, maxByMetric) {
+  return metrics.map((metric) => {
+    const raw = metric.value(record);
+    const normalized = normalizeRadarValue(metric, raw, maxByMetric);
+    return raw === null || normalized === null ? { metric, raw:null, normalized:null } : { metric, raw, normalized };
+  });
+}
+
+function strengthMaxByMetric(records, metrics) {
+  const map = new Map();
+  let globalMax = 0;
+  metrics.forEach((metric) => {
+    records.forEach((item) => {
+      const value = metric.value(item.record);
+      if (value !== null) globalMax = Math.max(globalMax, value);
+    });
+  });
+  metrics.forEach(metric => map.set(metric.id, globalMax));
+  return map;
+}
+
+function renderRadarChart(ctx, w, h) {
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const selectedStages = selectedRadarStages();
+  const metrics = currentRadarMetrics();
+  const isStrengthRadar = $("radarKind").value === "strength";
+  if (isStrengthRadar && metrics.length < 3) {
+    drawEmptyChart(ctx, w, h, "筋力項目を3つ以上選択してください");
+    $("chartCaption").textContent = "筋力レーダーは選択した筋力項目だけで作成します。";
+    return;
+  }
+  const records = getRadarRecords(patient);
+  if (!records.length) {
+    drawEmptyChart(ctx, w, h, "レーダーチャート化できる記録がありません");
+    $("chartCaption").textContent = selectedStages.length ? "選択した時期に記録がありません。" : "対象者と表示時期を選ぶと総合バランスを表示します。";
+    return;
+  }
+
+  const maxByMetric = isStrengthRadar ? strengthMaxByMetric(records, metrics) : new Map();
+  const series = records
+    .map((item, index) => {
+      const values = radarValues(item.record, metrics, maxByMetric);
+      const count = values.filter(value => value.normalized !== null).length;
+      const color = RADAR_COLORS[index % RADAR_COLORS.length];
+      return { ...item, values, count, color };
+    })
+    .filter(item => item.count >= 3);
+
+  if (!series.length) {
+    drawEmptyChart(ctx, w, h, "3項目以上の記録が必要です");
+    $("chartCaption").textContent = isStrengthRadar ? "筋力レーダーは選択した筋力項目に3項目以上の入力が必要です。" : "総合5項目は入力済み項目を0〜100%に換算して表示します。";
+    return;
+  }
+
+  const axes = metrics
+    .map((metric, index) => ({ metric, index }))
+    .filter(axis => !isStrengthRadar || series.some(item => item.values[axis.index].normalized !== null));
+
+  if (axes.length < 3) {
+    drawEmptyChart(ctx, w, h, "3項目以上の記録が必要です");
+    $("chartCaption").textContent = "重ね表示には、選択した時期の入力済み項目が3項目以上必要です。";
+    return;
+  }
+
+  const cx = w / 2;
+  const cy = h / 2 + 2;
+  const radius = Math.min(w, h) * 0.27;
+  const angleAt = (index) => -Math.PI / 2 + (Math.PI * 2 * index) / axes.length;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#6b7280";
+  ctx.lineWidth = 1;
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0.25, 0.5, 0.75, 1].forEach((level) => {
+    ctx.beginPath();
+    axes.forEach((_, index) => {
+      const angle = angleAt(index);
+      const x = cx + Math.cos(angle) * radius * level;
+      const y = cy + Math.sin(angle) * radius * level;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  axes.forEach((axis, index) => {
+    const angle = angleAt(index);
+    const edgeX = cx + Math.cos(angle) * radius;
+    const edgeY = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(edgeX, edgeY);
+    ctx.stroke();
+
+    const labelX = cx + Math.cos(angle) * (radius + 34);
+    const labelY = cy + Math.sin(angle) * (radius + 24);
+    ctx.fillStyle = "#374151";
+    ctx.fillText(axis.metric.label, labelX, labelY);
+  });
+
+  series.forEach((item) => {
+    const points = axes
+      .map((axis, axisIndex) => {
+        const value = item.values[axis.index].normalized;
+        if (value === null) return null;
+        const angle = angleAt(axisIndex);
+        return {
+          x: cx + Math.cos(angle) * radius * (value / 100),
+          y: cy + Math.sin(angle) * radius * (value / 100),
+          value
+        };
+      })
+      .filter(Boolean);
+    if (points.length < 3) return;
+
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = item.color.fill;
+    ctx.strokeStyle = item.color.stroke;
+    ctx.lineWidth = 2.5;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = item.color.stroke;
+    points.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  drawRadarLegend(ctx, w, h, series);
+  const labels = series.map(item => item.label).join("・");
+  const modeText = series.length > 1 ? "を重ね表示" : "を表示";
+  const chartLabel = isStrengthRadar ? "筋力のみ" : "総合5項目";
+  const scaleNote = isStrengthRadar ? "選択中の筋力最大値を100%換算" : "各項目を0〜100%換算";
+  $("chartCaption").textContent = `${patient}：${chartLabel} ${labels}${modeText}（${scaleNote}、未入力項目は描画しません）`;
+}
+
+function drawRadarLegend(ctx, w, h, series) {
+  const startX = 14;
+  const startY = h - 34;
+  const gapX = Math.max(92, Math.floor((w - 28) / Math.min(series.length, 3)));
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  series.forEach((item, index) => {
+    const x = startX + (index % 3) * gapX;
+    const y = startY + Math.floor(index / 3) * 16;
+    ctx.strokeStyle = item.color.stroke;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 18, y);
+    ctx.stroke();
+    ctx.fillStyle = item.color.stroke;
+    ctx.fillText(item.label, x + 24, y);
+  });
+}
+
+function selectedClinicalRadarStages() {
+  return [...document.querySelectorAll('input[name="clinicalRadarStages"]:checked')]
+    .map(input => input.value);
+}
+
+function getClinicalRadarRecords(patient) {
+  if (!patient) return [];
+  const stages = selectedClinicalRadarStages();
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stages.length) {
+    return stages
+      .map(stage => ({ label:stageLabel(stage), record:stageMap.get(stage) }))
+      .filter(item => item.record);
+  }
+  const latest = [...stageMap.values()]
+    .sort((a, b) => {
+      const d = clean(a.recordDate).localeCompare(clean(b.recordDate));
+      if (d !== 0) return d;
+      return STAGES.findIndex(s => s.id === a.stage) - STAGES.findIndex(s => s.id === b.stage);
+    })
+    .at(-1);
+  return latest ? [{ label:stageLabel(latest.stage), record:latest }] : [];
+}
+
+function clinicalRadarValues(record) {
+  return CLINICAL_RADAR_METRICS.map((metric) => {
+    const raw = metric.value(record);
+    const normalized = raw === null ? null : metric.normalize(raw, record);
+    return raw === null || normalized === null ? { metric, raw:null, normalized:null } : { metric, raw, normalized };
+  });
+}
+
+function getClinicalRadarStatusRecords(patient) {
+  if (!patient) return [];
+  const stages = selectedClinicalRadarStages();
+  if (!stages.length) return getClinicalRadarRecords(patient);
+  const stageMap = getMergedRecordsByStage(patient);
+  return stages.map(stage => ({ label:stageLabel(stage), record:stageMap.get(stage) || null }));
+}
+
+function renderClinicalAssessmentStatus(patient) {
+  const root = $("clinicalAssessmentStatus");
+  if (!root) return;
+  const items = getClinicalRadarStatusRecords(patient);
+  if (!items.length) {
+    root.innerHTML = '<div class="clinical-status-row empty">対象者または評価時期を選択すると、未評価項目を確認できます。</div>';
+    return;
+  }
+  root.innerHTML = items.map(item => {
+    if (!item.record) {
+      return `<div class="clinical-status-row empty"><strong>${escapeHtml(item.label)}</strong>：評価記録がありません。</div>`;
+    }
+    const values = clinicalRadarValues(item.record);
+    const missing = values
+      .filter(value => value.normalized === null)
+      .map(value => value.metric.missingLabel || value.metric.label);
+    const completed = values.length - missing.length;
+    const date = clean(item.record.recordDate);
+    const heading = `${item.label}${date ? `（${date}）` : ""}`;
+    if (!missing.length) {
+      return `<div class="clinical-status-row complete"><strong>${escapeHtml(heading)}</strong>：全7項目を入力済みです。</div>`;
+    }
+    return `<div class="clinical-status-row"><strong>${escapeHtml(heading)}</strong>：入力済み ${completed}/7　未評価：${escapeHtml(missing.join("、"))}</div>`;
+  }).join("");
+}
+
+function renderClinicalRadarChart() {
+  const canvas = $("clinicalRadarChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+  canvas.height = Math.floor(320 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  const patient = $("patientFilter").value || getPatients(loadRecords())[0]?.key || "";
+  const selectedStages = selectedClinicalRadarStages();
+  const records = getClinicalRadarRecords(patient);
+  renderClinicalAssessmentStatus(patient);
+  if (!records.length) {
+    drawEmptyChart(ctx, w, h, "臨床評価結果グラフ化できる記録がありません");
+    $("clinicalChartCaption").textContent = selectedStages.length ? "選択した時期に記録がありません。" : "対象者と表示時期を選ぶと臨床評価結果を表示します。";
+    return;
+  }
+
+  const series = records
+    .map((item, index) => {
+      const values = clinicalRadarValues(item.record);
+      const complete = values.every(value => value.normalized !== null);
+      const color = RADAR_COLORS[index % RADAR_COLORS.length];
+      return { ...item, values, complete, color };
+    })
+    .filter(item => item.complete);
+
+  if (!series.length) {
+    drawEmptyChart(ctx, w, h, "未評価項目を上で確認してください");
+    $("clinicalChartCaption").textContent = "上の評価状況に、レーダーチャート作成に必要な未評価項目を表示しています。";
+    return;
+  }
+
+  const axes = CLINICAL_RADAR_METRICS.map((metric, index) => ({ metric, index }));
+  const cx = w / 2;
+  const cy = h / 2 + 2;
+  const radius = Math.min(w, h) * 0.27;
+  const angleAt = (index) => -Math.PI / 2 + (Math.PI * 2 * index) / axes.length;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#6b7280";
+  ctx.lineWidth = 1;
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  [0.25, 0.5, 0.75, 1].forEach((level) => {
+    ctx.beginPath();
+    axes.forEach((_, index) => {
+      const angle = angleAt(index);
+      const x = cx + Math.cos(angle) * radius * level;
+      const y = cy + Math.sin(angle) * radius * level;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  axes.forEach((axis, index) => {
+    const angle = angleAt(index);
+    const edgeX = cx + Math.cos(angle) * radius;
+    const edgeY = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(edgeX, edgeY);
+    ctx.stroke();
+
+    const labelX = cx + Math.cos(angle) * (radius + 38);
+    const labelY = cy + Math.sin(angle) * (radius + 26);
+    ctx.fillStyle = "#374151";
+    ctx.fillText(axis.metric.label, labelX, labelY);
+  });
+
+  series.forEach((item) => {
+    const points = axes.map((axis, axisIndex) => {
+      const value = item.values[axis.index].normalized;
+      const angle = angleAt(axisIndex);
+      return {
+        x: cx + Math.cos(angle) * radius * (value / 100),
+        y: cy + Math.sin(angle) * radius * (value / 100)
+      };
+    });
+
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = item.color.fill;
+    ctx.strokeStyle = item.color.stroke;
+    ctx.lineWidth = 2.5;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = item.color.stroke;
+    points.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  drawRadarLegend(ctx, w, h, series);
+  const labels = series.map(item => item.label).join("・");
+  const modeText = series.length > 1 ? "を重ね表示" : "を表示";
+  $("clinicalChartCaption").textContent = `${patient}：臨床評価結果 ${labels}${modeText}（7項目を0〜100%換算）`;
+}
+
+function drawEmptyChart(ctx, w, h, message) {
+  ctx.fillStyle = "#f9fafb";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "14px -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, w / 2, h / 2);
+}
+
+function formatNumber(value) {
+  if (!Number.isFinite(value)) return "-";
+  if (Math.abs(value) >= 10) return value.toFixed(1).replace(/\.0$/, "");
+  return value.toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
+}
+
+function renderPdfPatientSelect() {
+  renderPatientOptions($("pdfPatient"), false);
+  const current = getCurrentPatientKey();
+  if (current) $("pdfPatient").value = current;
+}
+
+function compareRecordsAscending(a, b) {
+  const aKey = `${clean(a.recordDate)}|${clean(a.updatedAt || a.createdAt)}|${clean(a.id)}`;
+  const bKey = `${clean(b.recordDate)}|${clean(b.updatedAt || b.createdAt)}|${clean(b.id)}`;
+  return aKey.localeCompare(bKey);
+}
+
+function mergeRecordInto(base, record) {
+  base.id = record.id || base.id;
+  base.createdAt = base.createdAt || record.createdAt;
+  base.updatedAt = record.updatedAt || base.updatedAt;
+  PROFILE_FIELDS.forEach((field) => {
+    if (field === "stage") return;
+    const value = clean(record[field]);
+    if (value) base[field] = value;
+  });
+  base.stage = record.stage || base.stage;
+  base.measurements = base.measurements || {};
+  base.assessmentDetails = {
+    ...(base.assessmentDetails || {}),
+    ...cloneAssessmentDetails(record.assessmentDetails)
+  };
+  MEASUREMENT_FIELDS.forEach((field) => {
+    const value = clean(record.measurements?.[field]);
+    if (value) base.measurements[field] = value;
+  });
+  return base;
+}
+
+function getMergedRecordsByStage(patient) {
+  const stageMap = new Map();
+  loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort(compareRecordsAscending)
+    .forEach((record) => {
+      const current = stageMap.get(record.stage) || {
+        patientName: record.patientName,
+        patientId: record.patientId,
+        stage: record.stage,
+        measurements: {}
+      };
+      stageMap.set(record.stage, mergeRecordInto(current, record));
+    });
+  return stageMap;
+}
+
+function latestPatientRecord(patient) {
+  const merged = { measurements:{} };
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort(compareRecordsAscending);
+  records.forEach((record) => mergeRecordInto(merged, record));
+  return records.length ? merged : null;
+}
+
+async function exportFilledPdf() {
+  if (!window.PDFLib) {
+    alert("PDF生成ライブラリを読み込めませんでした。");
+    return;
+  }
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const stageMap = getMergedRecordsByStage(patient);
+  if (stageMap.size === 0) {
+    alert("この対象者の保存済み記録がありません。");
+    return;
+  }
+
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]);
+  const profile = latestPatientRecord(patient) || {};
+  await drawOutcomePdfForm(pdfDoc, page, profile, stageMap);
+
+  const bytes = await pdfDoc.save();
+  const blob = new Blob([bytes], { type:"application/pdf" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `運動器評価用紙_${fileSafe(patient)}_${today()}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("PDFを作成しました");
+}
+
+async function drawOutcomePdfForm(pdfDoc, page, profile, stageMap) {
+  const black = PDFLib.rgb(0, 0, 0);
+  const orange = PDFLib.rgb(0.93, 0.43, 0.17);
+  const x = 64;
+  const top = 774;
+  const categoryW = 78;
+  const labelW = 103;
+  const stageW = 47.5;
+  const width = categoryW + labelW + stageW * STAGES.length;
+  const x1 = x + categoryW;
+  const x2 = x1 + labelW;
+
+  const rect = (rx, ry, rw, rh, fill = null, borderWidth = 0.75) => {
+    const options = {
+      x: rx,
+      y: ry,
+      width: rw,
+      height: rh,
+      borderColor: black,
+      borderWidth
+    };
+    if (fill) options.color = fill;
+    page.drawRectangle(options);
+  };
+  const cellText = (text, rx, ry, rw, rh, options = {}) => drawText(pdfDoc, page, text, options.align === "center" ? rx + rw / 2 : rx + 5, ry + rh / 2, {
+    fontSize: options.fontSize || 10,
+    align: options.align,
+    maxWidth: rw - 8,
+    weight: options.weight || 700
+  });
+
+  let y = top;
+  rect(x, y - 26, width, 26);
+  await cellText("臨床用評価用紙", x, y - 26, width, 26, { align:"center", fontSize:15 });
+  y -= 26;
+
+  rect(x, y - 42, 230, 42);
+  rect(x + 230, y - 42, width - 230, 42);
+  await cellText("氏名/年齢/性別/身長/体重", x, y - 42, 230, 42, { fontSize:13 });
+  await cellText(profileLine(profile), x + 230, y - 42, width - 230, 42, { fontSize:9 });
+  y -= 42;
+
+  const half = width / 2;
+  rect(x, y - 26, categoryW, 26);
+  rect(x + categoryW, y - 26, half - categoryW, 26);
+  rect(x + half, y - 26, 96, 26);
+  rect(x + half + 96, y - 26, half - 96, 26);
+  await cellText("術側側", x, y - 26, categoryW, 26, { fontSize:12 });
+  await cellText(profile.surgicalSide, x + categoryW, y - 26, half - categoryW, 26, { align:"center", fontSize:12 });
+  await cellText("受傷日", x + half, y - 26, 96, 26, { fontSize:12 });
+  await cellText(jpDate(profile.injuryDate), x + half + 96, y - 26, half - 96, 26, { align:"center", fontSize:10 });
+  y -= 26;
+
+  rect(x, y - 52, half, 52);
+  rect(x + half, y - 52, half, 52);
+  await cellText(`発症からの経過 ${profile.daysSinceOnset ? `${profile.daysSinceOnset}日` : ""}`, x + half, y - 52, half, 52, { align:"center", fontSize:13 });
+  y -= 52;
+
+  rect(x, y - 32, categoryW, 32);
+  rect(x1, y - 32, labelW, 32);
+  await cellText("評価項目", x, y - 32, categoryW, 32, { align:"center", fontSize:12 });
+  await cellText("評価尺度", x1, y - 32, labelW, 32, { align:"center", fontSize:12 });
+  STAGES.forEach((stage, index) => {
+    rect(x2 + stageW * index, y - 32, stageW, 32);
+  });
+  for (let i = 0; i < STAGES.length; i++) {
+    await cellText(STAGES[i].label, x2 + stageW * i, y - 32, stageW, 32, { align:"center", fontSize:12 });
+  }
+  y -= 32;
+
+  const positions = [];
+  let rowTop = y;
+  PDF_FORM_ROWS.forEach((row) => {
+    const bottom = rowTop - row.h;
+    positions.push({ row, top: rowTop, bottom, h: row.h });
+    rowTop = bottom;
+  });
+
+  let index = 0;
+  while (index < positions.length) {
+    const start = positions[index];
+    if (start.row.highlight) {
+      rect(x, start.bottom, categoryW, start.h, orange);
+      await cellText(start.row.group, x, start.bottom, categoryW, start.h, { align:"center", fontSize:10 });
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < positions.length && !positions[end].row.highlight && positions[end].row.group === start.row.group) end += 1;
+    const groupBottom = positions[end - 1].bottom;
+    const groupHeight = start.top - groupBottom;
+    rect(x, groupBottom, categoryW, groupHeight);
+    await cellText(start.row.group, x, groupBottom, categoryW, groupHeight, { align:"center", fontSize:11 });
+    index = end;
+  }
+
+  for (const pos of positions) {
+    const fill = pos.row.highlight ? orange : null;
+    rect(x1, pos.bottom, labelW, pos.h, fill);
+    await cellText(pos.row.label, x1, pos.bottom, labelW, pos.h, { fontSize:10 });
+    STAGES.forEach((_, stageIndex) => {
+      rect(x2 + stageW * stageIndex, pos.bottom, stageW, pos.h);
+    });
+    for (let stageIndex = 0; stageIndex < STAGES.length; stageIndex++) {
+      const stage = STAGES[stageIndex];
+      const record = stageMap.get(stage.id);
+      const value = record ? clean(pos.row.value(record)) : "";
+      if (!value) continue;
+      await cellText(value, x2 + stageW * stageIndex, pos.bottom, stageW, pos.h, { align:"center", fontSize:8.5 });
+    }
+  }
+}
+
+function profileLine(profile) {
+  return [
+    clean(profile.patientName),
+    clean(profile.age) ? `${clean(profile.age)}歳` : "",
+    clean(profile.sex),
+    clean(profile.height) ? `${clean(profile.height)}cm` : "",
+    clean(profile.weight) ? `${clean(profile.weight)}kg` : ""
+  ].filter(Boolean).join(" / ");
+}
+
+function getLatestRecordWithValue(patient, field) {
+  return loadRecords()
+    .filter(record => patientKey(record) === patient && clean(record.measurements?.[field]))
+    .sort(compareRecordsAscending)
+    .at(-1) || null;
+}
+
+function getRecordForStageValue(patient, stage, field) {
+  const merged = getMergedRecordsByStage(patient).get(stage);
+  return clean(merged?.measurements?.[field]) ? merged : null;
+}
+
+async function exportMmsePdf() {
+  if (!window.PDFLib) {
+    alert("PDF生成ライブラリを読み込めませんでした。");
+    return;
+  }
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const stage = $("mmsePdfStage").value;
+  const record = stage
+    ? getRecordForStageValue(patient, stage, "mmse")
+    : getLatestRecordWithValue(patient, "mmse");
+  const mmse = clean(record?.measurements?.mmse);
+  if (!mmse) {
+    alert("選択した対象者・時期にMMSEの保存データがありません。");
+    return;
+  }
+
+  const template = await fetch(MMSE_TEMPLATE_URL).then(res => res.arrayBuffer());
+  const pdfDoc = await PDFLib.PDFDocument.load(template);
+  const page = pdfDoc.getPage(0);
+  await drawText(pdfDoc, page, mmse, 535, 31, { fontSize:12, align:"center", maxWidth:32 });
+
+  const bytes = await pdfDoc.save();
+  const blob = new Blob([bytes], { type:"application/pdf" });
+  const a = document.createElement("a");
+  const suffix = stage ? stageLabel(stage) : "最新";
+  a.href = URL.createObjectURL(blob);
+  a.download = `MMSE共通シート_${fileSafe(patient)}_${suffix}_${today()}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("MMSE用紙PDFを作成しました");
+}
+
+async function drawText(pdfDoc, page, text, x, y, options = {}) {
+  text = clean(text);
+  if (!text) return;
+  const baseFont = options.fontSize || 10;
+  const maxWidth = options.maxWidth || 170;
+  let fontSize = baseFont;
+  const scale = 3;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const fontFamily = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.font = `700 ${fontSize * scale}px ${fontFamily}`;
+  while ((ctx.measureText(text).width / scale) > maxWidth && fontSize > 6) {
+    fontSize -= 0.5;
+    ctx.font = `700 ${fontSize * scale}px ${fontFamily}`;
+  }
+  const textWidth = Math.min(maxWidth, ctx.measureText(text).width / scale + 4);
+  const textHeight = fontSize * 1.55;
+  canvas.width = Math.ceil(textWidth * scale);
+  canvas.height = Math.ceil(textHeight * scale);
+  const drawCtx = canvas.getContext("2d");
+  drawCtx.scale(scale, scale);
+  drawCtx.clearRect(0, 0, textWidth, textHeight);
+  drawCtx.fillStyle = "#111111";
+  drawCtx.font = `700 ${fontSize}px ${fontFamily}`;
+  drawCtx.textBaseline = "middle";
+  drawCtx.textAlign = options.align === "center" ? "center" : "left";
+  const textX = options.align === "center" ? textWidth / 2 : 2;
+  drawCtx.fillText(text, textX, textHeight / 2);
+  const image = await pdfDoc.embedPng(canvas.toDataURL("image/png"));
+  const drawX = options.align === "center" ? x - textWidth / 2 : x;
+  page.drawImage(image, { x:drawX, y:y - textHeight * 0.48, width:textWidth, height:textHeight });
+}
+
+function jpDate(value) {
+  if (!value) return "";
+  const parts = value.split("-");
+  if (parts.length !== 3) return value;
+  return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
+}
+
+function exportCsvForPatient() {
+  const patient = $("pdfPatient").value || getCurrentPatientKey();
+  if (!patient) {
+    alert("対象者を選択してください。");
+    return;
+  }
+  const records = loadRecords()
+    .filter(record => patientKey(record) === patient)
+    .sort((a, b) => clean(a.recordDate).localeCompare(clean(b.recordDate)));
+  if (records.length === 0) {
+    alert("保存済み記録がありません。");
+    return;
+  }
+  const hhdHeaders = HHD_STRENGTH_FIELDS.flatMap(field => [`${field.label}アーム(cm)`, `${field.label}右(N)`, `${field.label}左(N)`]);
+  const headers = ["評価日","評価時期","氏名","対象者ID","FAC","10mCWS","10m歩数","6分間歩行","TUG-T","ストライド変動係数","BBS","Mini-BESTest","DGI","FMA上肢","FMA下肢","TIS","STEF","MAL AOU","MAL QOM","SARA","FAB","MMSE","GES","partA","歩行時NRS","体重変化","HHDアーム(cm)", ...hhdHeaders];
+  const rows = records.map((record) => {
+    const m = record.measurements || {};
+    return [
+      record.recordDate, stageLabel(record.stage), record.patientName, record.patientId,
+      m.fac, m.comfortable10mSpeed, m.comfortable10mSteps, m.sixMinuteWalkDistance, m.tugT, m.strideCv,
+      m.bbs, m.miniBestest, m.dgi, m.fmaUpper, m.fmaLower, m.tis,
+      m.stef, m.malAou, m.malQom, m.sara, m.fab, m.mmse, m.mfes, m.tmtA, m.painNrs, m.weightChange, m.hhdArmCm,
+      ...HHD_STRENGTH_FIELDS.flatMap(field => [m[field.arm], m[field.right], m[field.left]])
+    ];
+  });
+  const csv = "\uFEFF" + [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `運動器評価記録_${fileSafe(patient)}_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function fileSafe(value) {
+  return clean(value).replace(/[\\/:*?"<>|]/g, "_") || "target";
+}
+
+function downloadGraphPng() {
+  const canvas = $("trendChart");
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = `評価推移_${today()}.png`;
+  a.click();
+}
+
+function downloadClinicalGraphPng() {
+  const canvas = $("clinicalRadarChart");
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = `臨床評価結果_${today()}.png`;
+  a.click();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function applyIncomingDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    withSuppressedAutoSave(() => {
+      if (draft.patientName) $("patientName").value = draft.patientName;
+      if (draft.patientId) $("patientId").value = draft.patientId;
+      if (draft.stage) $("stage").value = draft.stage;
+      if (draft.recordDate) $("recordDate").value = draft.recordDate;
+      if (draft.weight) $("weight").value = draft.weight;
+      const patient = getCurrentPatientKey();
+      const stage = $("stage").value || "admission";
+      const existing = patient ? getMergedRecordForPatientStage(patient, stage) : null;
+      if (existing) fillForm(existing);
+      if (draft.patientName) $("patientName").value = draft.patientName;
+      if (draft.patientId) $("patientId").value = draft.patientId;
+      if (draft.stage) $("stage").value = draft.stage;
+      if (draft.recordDate) $("recordDate").value = draft.recordDate;
+      if (draft.weight) $("weight").value = draft.weight;
+      Object.entries(draft.measurements || {}).forEach(([key, value]) => {
+        if ($(key)) $(key).value = value;
+      });
+      pendingAssessmentDetails = {
+        ...pendingAssessmentDetails,
+        ...cloneAssessmentDetails(draft.assessmentDetails)
+      };
+      updateStats();
+    });
+    localStorage.removeItem(DRAFT_KEY);
+    if (getCurrentPatientKey()) {
+      saveCurrentRecord({ silent:true });
+      setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映し、自動保存しました。`);
+    } else {
+      setNotice(`${draft.sourceLabel || "別画面"}の結果を評価記録へ反映しました。対象者IDまたは氏名を入力すると自動保存されます。`);
+      setAutoSaveStatus("対象者IDまたは氏名が未入力のため、まだ自動保存していません。", "waiting");
+    }
+  } catch {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+}
+
+document.querySelectorAll(".tab").forEach((button) => {
+  button.addEventListener("click", () => switchView(button.dataset.view));
+});
+$("saveRecord").addEventListener("click", saveCurrentRecord);
+$("newRecord").addEventListener("click", newRecord);
+$("goHistory").addEventListener("click", () => switchView("history"));
+$("goPdf").addEventListener("click", () => switchView("pdf"));
+$("entryPatientSelect").addEventListener("change", (event) => applyPatientProfile(event.target.value));
+$("patientFilter").addEventListener("change", renderHistory);
+$("metricSelect").addEventListener("change", renderHistory);
+$("chartType").addEventListener("change", renderChart);
+$("radarKind").addEventListener("change", renderChart);
+document.querySelectorAll('input[name="radarStages"]').forEach((input) => {
+  input.addEventListener("change", renderChart);
+});
+document.querySelectorAll('input[name="strengthRadarMetrics"]').forEach((input) => {
+  input.addEventListener("change", renderChart);
+});
+document.querySelectorAll('input[name="clinicalRadarStages"]').forEach((input) => {
+  input.addEventListener("change", renderClinicalRadarChart);
+});
+$("pdfPatient").addEventListener("change", () => {});
+$("exportPdf").addEventListener("click", exportFilledPdf);
+$("copyCsv").addEventListener("click", exportCsvForPatient);
+$("downloadGraph").addEventListener("click", downloadGraphPng);
+$("downloadClinicalGraph").addEventListener("click", downloadClinicalGraphPng);
+[...PROFILE_FIELDS, ...MEASUREMENT_FIELDS].forEach((field) => {
+  const el = $(field);
+  if (el) el.addEventListener("input", handleRecordFieldChange);
+  if (el && el.tagName === "SELECT") el.addEventListener("change", handleRecordFieldChange);
+});
+
+$("recordDate").value = today();
+applyIncomingDraft();
+renderEntryPatientSelect();
+updateStats();
+if (!getCurrentPatientKey()) {
+  setAutoSaveStatus("対象者IDまたは氏名と評価時期を選ぶと、自動保存を開始します。", "waiting");
+} else if (!editingId) {
+  setAutoSaveStatus(`${getCurrentPatientKey()}：${stageLabel($("stage").value)}は未保存です。入力すると自動保存します。`, "waiting");
+}
+renderHistory();
+renderPdfPatientSelect();
+</script>
+</body>
+</html>

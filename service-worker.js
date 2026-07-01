@@ -1,9 +1,10 @@
-const CACHE_NAME = "rehacalc-v80";
+const CACHE_NAME = "rehacalc-v81";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./evaluation.html",
+  "./orthopedic-record.html",
   "./stroke-record.html",
   "./stroke-evaluation.html",
   "./record-destination.html",

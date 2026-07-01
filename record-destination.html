@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>評価記録の送信先を選択</title>
   <style>
-    :root { --bg:#f4f7f8; --card:#fff; --text:#172026; --muted:#627078; --line:#d7e0e3; --hip:#334155; --stroke:#176b63; }
+    :root { --bg:#f4f7f8; --card:#fff; --text:#172026; --muted:#627078; --line:#d7e0e3; --hip:#334155; --stroke:#176b63; --ortho:#7c3aed; }
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; display:grid; place-items:center; padding:20px; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif; }
     main { width:min(680px,100%); padding:24px; border:1px solid var(--line); border-radius:8px; background:var(--card); box-shadow:0 4px 18px rgba(35,55,63,.08); }
     h1 { margin:0 0 6px; font-size:22px; }
     p { margin:7px 0; color:var(--muted); font-size:13px; line-height:1.7; }
     .source { margin:16px 0; padding:12px; border:1px solid var(--line); border-radius:6px; background:#f8fafb; font-weight:800; }
-    .choices { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    .choices { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-top:16px; }
     button { min-height:108px; padding:16px; border:0; border-radius:7px; color:#fff; font:inherit; font-weight:900; cursor:pointer; }
     button span { display:block; margin-top:8px; font-size:12px; font-weight:500; line-height:1.55; opacity:.9; }
     .hip { background:var(--hip); }
     .stroke { background:var(--stroke); }
+    .ortho { background:var(--ortho); }
     a { display:block; margin-top:15px; color:var(--muted); font-size:13px; text-align:center; }
     .empty { padding:20px; border:1px dashed var(--line); color:var(--muted); text-align:center; }
     @media(max-width:620px){ .choices{grid-template-columns:1fr;} }
@@ -26,7 +27,7 @@
 <main>
   <div id="content">
     <h1>評価記録の送信先</h1>
-    <p>研究データと脳卒中臨床データが混ざらないよう、保存する記録画面を選択してください。</p>
+    <p>研究データと臨床データが混ざらないよう、保存する記録画面を選択してください。</p>
     <div id="source" class="source"></div>
     <div class="choices">
       <button id="hip" class="hip" type="button">
@@ -37,6 +38,10 @@
         脳卒中・臨床用へ
         <span>脳卒中対象者の臨床評価記録に使用します。</span>
       </button>
+      <button id="ortho" class="ortho" type="button">
+        運動器・臨床用へ
+        <span>運動器疾患の臨床評価記録に使用します。</span>
+      </button>
     </div>
   </div>
   <div id="empty" class="empty" hidden>送信する評価結果がありません。評価画面からもう一度送信してください。</div>
@@ -46,6 +51,7 @@
 const TRANSFER_KEY = "rehacalc_record_transfer_v1";
 const HIP_DRAFT_KEY = "rehacalc_evaluation_draft_v1";
 const STROKE_DRAFT_KEY = "rehacalc_stroke_draft_v1";
+const ORTHOPEDIC_DRAFT_KEY = "rehacalc_orthopedic_draft_v1";
 const raw = localStorage.getItem(TRANSFER_KEY);
 if (!raw) {
   document.getElementById("content").hidden = true;
@@ -68,6 +74,7 @@ function sendTo(draftKey, href) {
 
 document.getElementById("hip").addEventListener("click", () => sendTo(HIP_DRAFT_KEY, "./evaluation.html"));
 document.getElementById("stroke").addEventListener("click", () => sendTo(STROKE_DRAFT_KEY, "./stroke-record.html"));
+document.getElementById("ortho").addEventListener("click", () => sendTo(ORTHOPEDIC_DRAFT_KEY, "./orthopedic-record.html"));
 </script>
 </body>
 </html>
