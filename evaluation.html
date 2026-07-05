@@ -393,6 +393,7 @@
       <button class="tab active" type="button" data-view="entry">評価記録</button>
       <button class="tab" type="button" data-view="history">履歴・グラフ</button>
       <button class="tab" type="button" data-view="pdf">評価用紙PDF</button>
+      <button class="tab" type="button" data-view="db">DB送信</button>
     </div>
 
     <div id="view-entry" class="view active">
@@ -657,6 +658,7 @@
             <button id="saveRecord" class="action" type="button">今すぐ保存</button>
             <button id="newRecord" class="action secondary" type="button">新規入力</button>
             <button id="goHistory" class="action secondary" type="button">履歴を見る</button>
+            <button id="goDb" class="action secondary" type="button">DB送信へ</button>
           </div>
           <div id="autoSaveStatus" class="autosave-status waiting">対象者IDまたは氏名と評価時期を選ぶと、自動保存を開始します。</div>
         </section>
@@ -858,6 +860,125 @@
         </section>
       </div>
     </div>
+
+    <div id="view-db" class="view">
+      <div class="layout">
+        <section class="panel">
+          <h2>研究DBへ送信</h2>
+          <p class="note">
+            送信対象は「評価記録」タブで選択中の対象者・評価時期です。
+            送信前に、研究DB上の対象者ID（H番号）と氏名の対応（連結匿名化）に矛盾がないか自動確認します。
+          </p>
+          <div class="form-grid cols-3" style="margin-bottom:10px;">
+            <div>
+              <label>送信対象（ID / 氏名）</label>
+              <input id="dbTargetLabel" disabled value="-" />
+            </div>
+            <div>
+              <label>評価時期</label>
+              <input id="dbTargetStage" disabled value="-" />
+            </div>
+            <div>
+              <label>評価日</label>
+              <input id="dbTargetDate" disabled value="-" />
+            </div>
+          </div>
+
+          <h3>研究DB専用項目（アプリの評価欄にない列）</h3>
+          <p class="note">入力した項目だけが送信されます。空欄の項目はスプレッドシートの値を変更しません。</p>
+          <div class="form-grid cols-3">
+            <div>
+              <label for="cci">CCI（既往歴スコア）</label>
+              <input id="cci" type="number" inputmode="numeric" />
+            </div>
+            <div>
+              <label for="wardAdmissionDate">回復期入棟日</label>
+              <input id="wardAdmissionDate" type="date" />
+            </div>
+            <div>
+              <label for="daysToFac3">FAC3に至った日数 (日)</label>
+              <input id="daysToFac3" type="number" inputmode="numeric" />
+            </div>
+            <div>
+              <label for="lengthOfStay">入院期間 (日)</label>
+              <input id="lengthOfStay" type="number" inputmode="numeric" />
+            </div>
+            <div>
+              <label for="dischargeDate">退院日</label>
+              <input id="dischargeDate" type="date" />
+            </div>
+            <div>
+              <label for="albumin">Alb (g/dL)</label>
+              <input id="albumin" type="number" inputmode="decimal" step="0.1" />
+            </div>
+            <div>
+              <label for="rTla">R_TLA (deg)</label>
+              <input id="rTla" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="lTla">L_TLA (deg)</label>
+              <input id="lTla" type="number" inputmode="decimal" />
+            </div>
+            <div>
+              <label for="smi">SMI</label>
+              <input id="smi" type="number" inputmode="decimal" step="0.1" />
+            </div>
+            <div>
+              <label for="rLimbLength">R_LimbLength (m)</label>
+              <input id="rLimbLength" type="number" inputmode="decimal" step="0.01" />
+            </div>
+            <div>
+              <label for="lLimbLength">L_LimbLength (m)</label>
+              <input id="lLimbLength" type="number" inputmode="decimal" step="0.01" />
+            </div>
+            <div>
+              <label for="phaseAngle">位相角 Pha (°)</label>
+              <input id="phaseAngle" type="number" inputmode="decimal" step="0.1" />
+            </div>
+            <div>
+              <label for="naturalTeeth">残存歯</label>
+              <select id="naturalTeeth">
+                <option value="">未選択</option>
+                <option value="あり">あり</option>
+                <option value="なし">なし</option>
+              </select>
+            </div>
+            <div>
+              <label for="dentureUse">入れ歯</label>
+              <select id="dentureUse">
+                <option value="">未選択</option>
+                <option value="入れ歯あり">入れ歯あり</option>
+                <option value="なし">なし</option>
+              </select>
+            </div>
+            <div>
+              <label for="dentureType">入れ歯の種類</label>
+              <select id="dentureType">
+                <option value="">未選択</option>
+                <option value="総入れ歯">総入れ歯</option>
+                <option value="部分入れ歯">部分入れ歯</option>
+                <option value="NA">NA</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="sendSheet" class="action" type="button">整合性を確認して送信</button>
+            <button id="sheetSetting" class="action secondary" type="button">DB連携設定</button>
+          </div>
+          <div id="dbSyncStatus" class="autosave-status waiting">「整合性を確認して送信」を押すと、ID⇔氏名の対応を確認したうえで研究DBに書き込みます。</div>
+        </section>
+
+        <section class="panel">
+          <h2>連結匿名化の整合性チェック</h2>
+          <p class="note">送信前に研究DBの登録済みID・氏名の対応表を取得し、次を確認します。</p>
+          <p class="note">・入力中のIDがDBに登録済みの場合：氏名が一致するか（不一致なら送信を中止）</p>
+          <p class="note">・入力中のIDが未登録の場合：同じ氏名が別のIDで登録されていないか（重複登録の防止）</p>
+          <p class="note">・新規IDのときは確認ダイアログを表示してから登録します。</p>
+          <p class="note">同じ「ID + 評価時期」を再送信した場合は同じ行を上書きするため、重複行はできません。CCI・SMI・歯の変数など、このタブの項目以外でシートに直接入力した列が消えることはありません。</p>
+        </section>
+      </div>
+    </div>
   </main>
 
   <div id="toast" class="toast">保存しました</div>
@@ -891,7 +1012,10 @@ const MEASUREMENT_FIELDS = [
   "hipFlexorRight","hipFlexorLeft","kneeExtensorRight","kneeExtensorLeft",
   "ankleDorsiflexorRight","ankleDorsiflexorLeft","hipExtensorRight","hipExtensorLeft",
   "hipAbductorRight","hipAbductorLeft","anklePlantarflexorRight","anklePlantarflexorLeft",
-  "comfortable10mSpeed","comfortable10mSteps","fac","sixMinuteWalkDistance","tugT","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","stef","malAou","malQom","sara","mfes","fab","tmtA","mmse"
+  "comfortable10mSpeed","comfortable10mSteps","fac","sixMinuteWalkDistance","tugT","strideCv","bbs","miniBestest","dgi","fmaUpper","fmaLower","tis","stef","malAou","malQom","sara","mfes","fab","tmtA","mmse",
+  // 研究DB専用項目（DB送信タブ）
+  "cci","wardAdmissionDate","daysToFac3","lengthOfStay","dischargeDate","albumin",
+  "rTla","lTla","rLimbLength","lLimbLength","smi","phaseAngle","naturalTeeth","dentureUse","dentureType"
 ];
 
 const BBS_MCID_POINTS = 12;
@@ -1344,6 +1468,9 @@ function switchView(viewName) {
   if (viewName === "pdf") {
     renderPdfPatientSelect();
   }
+  if (viewName === "db") {
+    renderDbSummary();
+  }
 }
 
 function formToRecord() {
@@ -1457,6 +1584,237 @@ function saveCurrentRecord(options = {}) {
   updateStats();
   renderHistory();
   renderPdfPatientSelect();
+}
+
+// ===== 研究DB（Googleスプレッドシート）連携 =====
+// 送信先は Apps Script のウェブアプリURL（設定手順は apps-script/README.md）。
+// URLとトークンは端末ごとに localStorage に保存する。
+const SHEET_SYNC_URL_KEY = "rehacalc_sheet_sync_url_v1";
+const SHEET_SYNC_TOKEN_KEY = "rehacalc_sheet_sync_token_v1";
+const SHEET_STAGE_VALUES = { admission:"admission", fac3:"FAC3", month1:"1M", month2:"2M", month3:"3M", discharge:"discharge" };
+const SHEET_MUSCLES = [
+  { op:"hip_flex", opBw:"hiplex_BW", non:"nhip_flex", nonBw:"nhiplex_BW", right:"hipFlexorRight", left:"hipFlexorLeft" },
+  { op:"hip_exten", opBw:"hipexten_BW", non:"nhip_exten", nonBw:"nhipexten_BW", right:"hipExtensorRight", left:"hipExtensorLeft" },
+  { op:"hip_abd", opBw:"hipabd_BW", non:"nhip_abd", nonBw:"nhipabd_BW", right:"hipAbductorRight", left:"hipAbductorLeft" },
+  { op:"knee_exten", opBw:"knee_exten_BW", non:"nknee_exten", nonBw:"nknee_exten_BW", right:"kneeExtensorRight", left:"kneeExtensorLeft" },
+  { op:"ankle_flex", opBw:"ankle_flex_BW", non:"nankle_flex", nonBw:"nankle_flex_BW", right:"anklePlantarflexorRight", left:"anklePlantarflexorLeft" },
+  { op:"ankle_dorsal", opBw:"ankle_dorsal_BW", non:"nankle_dorsal", nonBw:"nankle_dorsal_BW", right:"ankleDorsiflexorRight", left:"ankleDorsiflexorLeft" }
+];
+
+function sheetSyncUrl() {
+  return clean(localStorage.getItem(SHEET_SYNC_URL_KEY) || "");
+}
+
+function configureSheetSync() {
+  const url = prompt(
+    "研究DB連携: Apps Script ウェブアプリのURLを入力してください。\n（空欄で保存すると連携を解除します。設定手順は apps-script/README.md）",
+    sheetSyncUrl()
+  );
+  if (url === null) return;
+  localStorage.setItem(SHEET_SYNC_URL_KEY, clean(url));
+  if (!clean(url)) {
+    localStorage.removeItem(SHEET_SYNC_TOKEN_KEY);
+    toast("研究DB連携を解除しました");
+    return;
+  }
+  const token = prompt("認証トークン（Code.gs の TOKEN が空欄なら、このまま OK）", clean(localStorage.getItem(SHEET_SYNC_TOKEN_KEY) || ""));
+  if (token !== null) localStorage.setItem(SHEET_SYNC_TOKEN_KEY, clean(token));
+  toast("研究DBの連携先を保存しました");
+}
+
+// アプリの記録1件を、シートの列キー（Code.gs の COLUMNS と同じ名前）に変換する
+function buildSheetValues(record) {
+  const m = record.measurements || {};
+  const weight = num(record.weight);
+  let heightM = num(record.height);
+  if (heightM !== null && heightM > 3) heightM = heightM / 100; // cm入力 → m
+  const bmi = weight !== null && heightM ? Math.round(weight / (heightM * heightM) * 10) / 10 : "";
+  const sexMap = { "男":"m", "女":"f" };
+  const sideMap = { "右":"R", "左":"L" };
+  const aidMap = { "独歩":"Nouse", "杖":"Tcane", "4点杖":"Qcane", "歩行器":"Walker", "その他":"Other" };
+  const slashDate = (value) => clean(value).replaceAll("-", "/");
+
+  const values = {
+    ID: record.patientId,
+    name: record.patientName,
+    "年齢": record.age,
+    "身長": heightM ?? "",
+    "体重": record.weight,
+    BMI: bmi,
+    "性別": sexMap[record.sex] ?? "",
+    "受傷日または手術日": slashDate(record.injuryDate || record.surgeryDate),
+    "術側": sideMap[record.surgicalSide] ?? "",
+    "術式": record.procedure,
+    "歩行補助具": aidMap[record.walkingAid] ?? record.walkingAid,
+    "退院先": record.dischargeDestination,
+    NRS: m.painNrs,
+    BBS: m.bbs,
+    "10mCWS": m.comfortable10mSpeed,
+    CWS_step: m.comfortable10mSteps,
+    MMSE: m.mmse,
+    FAB: m.fab,
+    TMT_A: m.tmtA,
+    mFES: m.mfes,
+    time_point: SHEET_STAGE_VALUES[record.stage] || record.stage
+  };
+
+  // HHD筋力: 術側→無印列、非術側→n付き列、_BW = N ÷ 体重kg
+  const opSide = sideMap[record.surgicalSide];
+  if (opSide) {
+    SHEET_MUSCLES.forEach((muscle) => {
+      const opForce = num(opSide === "R" ? m[muscle.right] : m[muscle.left]);
+      const nonForce = num(opSide === "R" ? m[muscle.left] : m[muscle.right]);
+      if (opForce !== null) {
+        values[muscle.op] = opForce;
+        if (weight) values[muscle.opBw] = opForce / weight;
+      }
+      if (nonForce !== null) {
+        values[muscle.non] = nonForce;
+        if (weight) values[muscle.nonBw] = nonForce / weight;
+      }
+    });
+  }
+
+  // DB送信タブの研究DB専用項目
+  values["CCI"] = m.cci;
+  values["回復期入棟日"] = slashDate(m.wardAdmissionDate);
+  values["FAC3に至った日数"] = m.daysToFac3;
+  values["入院期間"] = m.lengthOfStay;
+  values["退院日"] = slashDate(m.dischargeDate);
+  values["Alb"] = m.albumin;
+  values["R_TLA"] = m.rTla;
+  values["L_TLA"] = m.lTla;
+  values["R_LimbLength"] = m.rLimbLength;
+  values["L_LimbLength"] = m.lLimbLength;
+  values["SMI"] = m.smi;
+  values["Pha"] = m.phaseAngle;
+  values["natural_teeth"] = m.naturalTeeth;
+  values["denture_use"] = m.dentureUse;
+  values["denture_type"] = m.dentureType;
+
+  // 空欄はシートの既存値を変更しない（送信対象から除外）
+  Object.keys(values).forEach((key) => {
+    if (clean(values[key]) === "") delete values[key];
+  });
+  return values;
+}
+
+function setDbStatus(text, state = "waiting") {
+  const el = $("dbSyncStatus");
+  el.textContent = text;
+  el.className = `autosave-status ${state}`;
+}
+
+function renderDbSummary() {
+  const record = formToRecord();
+  const id = clean(record.patientId);
+  const name = clean(record.patientName);
+  $("dbTargetLabel").value = id || name ? `${id || "（ID未入力）"} / ${name || "（氏名未入力）"}` : "-";
+  $("dbTargetStage").value = stageLabel(record.stage);
+  $("dbTargetDate").value = record.recordDate || "-";
+}
+
+// 研究DBから登録済みの ID⇔氏名 対応表を取得する
+async function fetchDbRoster(url) {
+  const token = clean(localStorage.getItem(SHEET_SYNC_TOKEN_KEY) || "");
+  const rosterUrl = `${url}${url.includes("?") ? "&" : "?"}action=roster${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(rosterUrl);
+  const data = await response.json();
+  if (!data.ok) throw new Error(data.error || "対応表を取得できませんでした");
+  return data.roster || [];
+}
+
+// 連結匿名化（H番号⇔氏名）の整合性チェック
+// 戻り値: { level: "ok" | "new" | "mismatch", message }
+function checkLinkageConsistency(record, roster) {
+  const id = clean(record.patientId).toLowerCase();
+  const name = clean(record.patientName).toLowerCase();
+  if (!id) {
+    return { level:"mismatch", message:"研究DBへ送信するには対象者ID（H001形式の匿名ID）が必要です。" };
+  }
+  const idEntries = roster.filter((row) => clean(row.id).toLowerCase() === id);
+  const registeredNames = [...new Set(idEntries.map((row) => clean(row.name)).filter(Boolean))];
+  if (registeredNames.length) {
+    if (!name) {
+      return { level:"mismatch", message:`DBでは ${record.patientId} = 「${registeredNames.join("、")}」で登録済みです。氏名を入力して対応を確認してください。` };
+    }
+    if (registeredNames.some((n) => n.toLowerCase() === name)) {
+      return { level:"ok", message:`登録済みの連結（${record.patientId} = ${registeredNames.join("、")}）と一致しました。` };
+    }
+    return { level:"mismatch", message:`連結の不一致: DBでは ${record.patientId} = 「${registeredNames.join("、")}」ですが、入力は「${record.patientName}」です。IDまたは氏名を確認してください。` };
+  }
+  if (name) {
+    const nameEntries = roster.filter((row) => clean(row.name).toLowerCase() === name && clean(row.id).toLowerCase() !== id);
+    const otherIds = [...new Set(nameEntries.map((row) => clean(row.id)).filter(Boolean))];
+    if (otherIds.length) {
+      return { level:"mismatch", message:`連結の不一致: 氏名「${record.patientName}」は既に ${otherIds.join("、")} として登録されています。IDを確認してください。` };
+    }
+  }
+  const idNote = /^H\d{3,}$/i.test(clean(record.patientId)) ? "" : "（注意: IDがH001形式ではありません）";
+  return { level:"new", message:`${record.patientId}${name ? ` = ${record.patientName}` : ""} はDB未登録です。新規IDとして登録します。${idNote}` };
+}
+
+async function sendCurrentRecordToSheet() {
+  const url = sheetSyncUrl();
+  if (!url) {
+    alert("研究DBの連携先が未設定です。「DB連携設定」からApps ScriptのウェブアプリURLを登録してください。");
+    return;
+  }
+  const record = formToRecord();
+  if (!patientKey(record)) {
+    alert("「評価記録」タブで氏名または対象者IDを入力してください。");
+    return;
+  }
+  saveCurrentRecord({ silent:true });
+  renderDbSummary();
+  const button = $("sendSheet");
+  button.disabled = true;
+  try {
+    // 1) 連結匿名化（ID⇔氏名）の整合性を確認
+    button.textContent = "整合性を確認中…";
+    setDbStatus("研究DBからID⇔氏名の対応表を取得しています…", "waiting");
+    const roster = await fetchDbRoster(url);
+    const check = checkLinkageConsistency(record, roster);
+    if (check.level === "mismatch") {
+      setDbStatus(`送信を中止しました。${check.message}`, "waiting");
+      alert(`連結匿名化の整合性エラー\n\n${check.message}\n\n送信を中止しました。`);
+      return;
+    }
+    if (check.level === "new" && !confirm(`${check.message}\n\n送信してよろしいですか？`)) {
+      setDbStatus("新規登録をキャンセルしました。", "waiting");
+      return;
+    }
+    setDbStatus(check.message, "saved");
+
+    // 2) 整合性OK → 研究DBへ書き込み
+    button.textContent = "送信中…";
+    const response = await fetch(url, {
+      method: "POST",
+      // text/plain にするとプリフライトが発生せず Apps Script で受信できる
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        token: clean(localStorage.getItem(SHEET_SYNC_TOKEN_KEY) || ""),
+        records: [{ values: buildSheetValues(record) }]
+      })
+    });
+    const result = await response.json();
+    const first = result.results?.[0];
+    if (result.ok && first?.ok) {
+      const actionLabel = first.action === "appended" ? "追記" : "上書き";
+      toast(`研究DBへ送信しました（${first.row}行目に${actionLabel}）`);
+      setDbStatus(`${check.message} ${patientKey(record)}：${stageLabel(record.stage)}を${first.row}行目に${actionLabel}しました（${timeLabel()}）`, "saved");
+    } else {
+      const message = first?.error || result.error || "不明なエラー";
+      setDbStatus(`送信に失敗しました: ${message}`, "waiting");
+      alert(`研究DBへの送信に失敗しました: ${message}`);
+    }
+  } catch (err) {
+    setDbStatus("送信に失敗しました。通信環境と連携設定を確認してください。", "waiting");
+    alert("研究DBへの送信に失敗しました。通信環境と連携設定（URL・デプロイのアクセス権「全員」）を確認してください。\n" + err);
+  } finally {
+    button.disabled = false;
+    button.textContent = "整合性を確認して送信";
+  }
 }
 
 function updateStats() {
@@ -2650,7 +3008,10 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 $("saveRecord").addEventListener("click", saveCurrentRecord);
 $("newRecord").addEventListener("click", newRecord);
+$("sendSheet").addEventListener("click", sendCurrentRecordToSheet);
+$("sheetSetting").addEventListener("click", configureSheetSync);
 $("goHistory").addEventListener("click", () => switchView("history"));
+$("goDb").addEventListener("click", () => switchView("db"));
 $("goPdf").addEventListener("click", () => switchView("pdf"));
 $("entryPatientSelect").addEventListener("change", (event) => applyPatientProfile(event.target.value));
 $("patientFilter").addEventListener("change", renderHistory);
