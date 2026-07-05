@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CCI (Charlson併存疾患指数) 評価ツール</title>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #8e8e93; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 230px; }
+        .section-card { background: var(--card); border-radius: 14px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 0.95rem; border-left: 4px solid var(--primary); padding-left: 8px; color: var(--primary); margin: 0 0 12px 0; }
+        .check-item { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .check-item:last-child { border-bottom: none; }
+        .check-item input { width: 20px; height: 20px; accent-color: var(--primary); flex-shrink: 0; }
+        .check-name { font-size: 0.85rem; font-weight: bold; flex: 1; line-height: 1.3; }
+        .check-name small { display: block; font-weight: normal; color: var(--muted); font-size: 0.72rem; }
+        .weight { background: #eef4ff; color: var(--primary); font-weight: bold; font-size: 0.8rem; border-radius: 8px; padding: 3px 9px; flex-shrink: 0; }
+        .item { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .item-name { font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 4px; line-height: 1.3; }
+        .item-desc { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; display: block; }
+        .options { display: flex; gap: 5px; }
+        .options label { flex: 1; text-align: center; background: #f0f0f0; padding: 10px 4px; border-radius: 8px; font-size: 0.78rem; font-weight: bold; cursor: pointer; }
+        .options input { display: none; }
+        .options input:checked + span { background: var(--primary); color: white; display: block; border-radius: 8px; padding: 10px 4px; margin: -10px -4px; }
+        .age-row { display: flex; align-items: center; gap: 10px; }
+        .age-row input { width: 90px; font-size: 1rem; padding: 8px; border: 1px solid #ddd; border-radius: 8px; }
+        .age-add { font-size: 0.85rem; color: var(--muted); }
+        /* Footer UI */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); padding: 12px 15px; border-top: 1px solid #ddd; z-index: 1000; }
+        .result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .total-score { font-size: 1.7rem; font-weight: bold; color: var(--primary); }
+        .sub-score { font-size: 0.8rem; color: var(--muted); }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; background: #eee; }
+        .record-choice { display: flex; gap: 12px; align-items: center; font-size: 0.8rem; margin-bottom: 8px; }
+        .record-choice label { display: flex; align-items: center; gap: 4px; font-weight: bold; }
+        .btn-copy { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; }
+        .btn-record { width: 100%; padding: 12px; background: #0f766e; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 8px; }
+        details { background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #444; margin-top: 8px; }
+        summary { font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="section-card">
+    <h2>1点の併存疾患（該当にチェック）</h2>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">心筋梗塞<small>心筋梗塞の既往（心電図変化のみは含めない）</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">うっ血性心不全<small>労作時呼吸困難などで治療歴あり</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">末梢血管疾患<small>間欠性跛行、バイパス術後、動脈瘤(≥6cm)など</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">脳血管疾患<small>脳卒中（軽度後遺症）・TIAの既往</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">認知症<small>慢性的な認知機能障害</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">慢性肺疾患<small>COPD、喘息など</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">結合組織病<small>SLE、関節リウマチ、多発性筋炎など</small></span><span class="weight">1</span></label>
+    <label class="check-item"><input type="checkbox" data-w="1" onchange="calc()"><span class="check-name">消化性潰瘍<small>潰瘍の治療歴</small></span><span class="weight">1</span></label>
+</div>
+
+<div class="section-card">
+    <h2>2点・6点の併存疾患</h2>
+    <label class="check-item"><input type="checkbox" data-w="2" onchange="calc()"><span class="check-name">片麻痺・対麻痺<small>脳卒中などによる麻痺</small></span><span class="weight">2</span></label>
+    <label class="check-item"><input type="checkbox" data-w="2" onchange="calc()"><span class="check-name">中等度〜重度の腎疾患<small>Cr &gt; 3mg/dL、透析、腎移植など</small></span><span class="weight">2</span></label>
+    <label class="check-item"><input type="checkbox" data-w="6" onchange="calc()"><span class="check-name">AIDS<small>HIV感染のみは含めない</small></span><span class="weight">6</span></label>
+</div>
+
+<div class="section-card">
+    <h2>重症度で点数が変わる疾患</h2>
+    <div class="item">
+        <span class="item-name">糖尿病</span>
+        <span class="item-desc">臓器障害＝網膜症・神経障害・腎症など</span>
+        <div class="options">
+            <label><input type="radio" name="dm" value="0" checked onchange="calc()"><span>なし<br>0点</span></label>
+            <label><input type="radio" name="dm" value="1" onchange="calc()"><span>合併症なし<br>1点</span></label>
+            <label><input type="radio" name="dm" value="2" onchange="calc()"><span>臓器障害あり<br>2点</span></label>
+        </div>
+    </div>
+    <div class="item">
+        <span class="item-name">肝疾患</span>
+        <span class="item-desc">軽度＝慢性肝炎など／中等度以上＝肝硬変・門脈圧亢進など</span>
+        <div class="options">
+            <label><input type="radio" name="liver" value="0" checked onchange="calc()"><span>なし<br>0点</span></label>
+            <label><input type="radio" name="liver" value="1" onchange="calc()"><span>軽度<br>1点</span></label>
+            <label><input type="radio" name="liver" value="3" onchange="calc()"><span>中等度〜重度<br>3点</span></label>
+        </div>
+    </div>
+    <div class="item">
+        <span class="item-name">悪性腫瘍</span>
+        <span class="item-desc">診断後5年以内の固形癌・白血病・リンパ腫／転移があれば6点</span>
+        <div class="options">
+            <label><input type="radio" name="tumor" value="0" checked onchange="calc()"><span>なし<br>0点</span></label>
+            <label><input type="radio" name="tumor" value="2" onchange="calc()"><span>あり<br>2点</span></label>
+            <label><input type="radio" name="tumor" value="6" onchange="calc()"><span>転移性固形癌<br>6点</span></label>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <h2>年齢加算（年齢調整CCI）</h2>
+    <div class="age-row">
+        <input id="age" type="number" inputmode="numeric" placeholder="年齢" onchange="calc()" oninput="calc()">
+        <span class="age-add">歳 → 加算 <b id="age-add">0</b> 点<br><small>50代+1／60代+2／70代+3／80歳以上+4</small></span>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="result-row">
+        <div>
+            <span id="total-score" class="total-score">0</span><span style="font-weight:bold;"> 点</span>
+            <div class="sub-score">併存疾患 <b id="raw-score">0</b> 点 ＋ 年齢 <b id="age-score">0</b> 点｜予測10年生存率 <b id="survival">98%</b></div>
+        </div>
+        <span id="status-badge" class="status-badge">軽度</span>
+    </div>
+    <div class="record-choice">
+        記録する値:
+        <label><input type="radio" name="recordType" value="adjusted" checked onchange="calc()">年齢調整あり</label>
+        <label><input type="radio" name="recordType" value="raw" onchange="calc()">併存疾患のみ</label>
+    </div>
+    <button class="btn-copy" onclick="copyResult()">結果をコピー</button>
+    <button class="btn-record" onclick="sendToEvaluation()">評価記録へ送る</button>
+    <details>
+        <summary>参考（Charlson Comorbidity Index）</summary>
+        ・重み付け: Charlson 1987、年齢加算: Charlson 1994（50歳以上10歳ごとに+1点、+4点まで）<br>
+        ・予測10年生存率 = 0.983^(e^(0.9×年齢調整CCI))<br>
+        ・目安: 0〜1点 軽度 / 2〜3点 中等度 / 4点以上 重度<br>
+        ・研究DBのCCI列にはここで選択した「記録する値」が転記されます
+    </details>
+</div>
+
+<script>
+const EVAL_DRAFT_KEY = "rehacalc_record_transfer_v1";
+
+function ageAddition() {
+    const age = Number(document.getElementById('age').value);
+    if (!age || age < 50) return 0;
+    if (age < 60) return 1;
+    if (age < 70) return 2;
+    if (age < 80) return 3;
+    return 4;
+}
+
+function scores() {
+    let raw = 0;
+    document.querySelectorAll('input[type="checkbox"][data-w]:checked').forEach((el) => {
+        raw += Number(el.dataset.w);
+    });
+    ["dm", "liver", "tumor"].forEach((name) => {
+        raw += Number(document.querySelector(`input[name="${name}"]:checked`).value);
+    });
+    const ageAdd = ageAddition();
+    return { raw, ageAdd, adjusted: raw + ageAdd };
+}
+
+function recordedScore() {
+    const type = document.querySelector('input[name="recordType"]:checked').value;
+    const s = scores();
+    return type === "raw" ? s.raw : s.adjusted;
+}
+
+function calc() {
+    const s = scores();
+    document.getElementById('age-add').innerText = s.ageAdd;
+    document.getElementById('raw-score').innerText = s.raw;
+    document.getElementById('age-score').innerText = s.ageAdd;
+    document.getElementById('total-score').innerText = recordedScore();
+    const survival = Math.pow(0.983, Math.exp(0.9 * s.adjusted)) * 100;
+    document.getElementById('survival').innerText = `${survival < 1 ? "<1" : Math.round(survival)}%`;
+
+    const shown = recordedScore();
+    const badge = document.getElementById('status-badge');
+    if (shown <= 1) {
+        badge.innerText = "軽度"; badge.style.background = "#e3f9e5"; badge.style.color = "#27ae60";
+    } else if (shown <= 3) {
+        badge.innerText = "中等度"; badge.style.background = "#fff9db"; badge.style.color = "#f0932b";
+    } else {
+        badge.innerText = "重度"; badge.style.background = "#ffe5e5"; badge.style.color = "#d63031";
+    }
+}
+
+function copyResult() {
+    const s = scores();
+    const type = document.querySelector('input[name="recordType"]:checked').value === "raw" ? "年齢調整なし" : "年齢調整あり";
+    const items = [...document.querySelectorAll('input[type="checkbox"][data-w]:checked')]
+        .map((el) => el.parentElement.querySelector('.check-name').firstChild.textContent);
+    ["dm", "liver", "tumor"].forEach((name) => {
+        const el = document.querySelector(`input[name="${name}"]:checked`);
+        if (Number(el.value) > 0) items.push(el.parentElement.textContent.trim().replace(/\s+/g, " "));
+    });
+    const txt = `【CCI評価結果】\n記録値: ${recordedScore()}点（${type}）\n併存疾患: ${s.raw}点 / 年齢加算: ${s.ageAdd}点\n該当: ${items.length ? items.join("、") : "なし"}`;
+    navigator.clipboard.writeText(txt).then(() => alert("コピーしました！\n" + txt));
+}
+
+function sendToEvaluation() {
+    localStorage.setItem(EVAL_DRAFT_KEY, JSON.stringify({
+        sourceLabel: "CCI",
+        recordDate: new Date().toISOString().slice(0, 10),
+        measurements: { cci: String(recordedScore()) }
+    }));
+    location.href = "./record-destination.html";
+}
+
+calc();
+</script>
+<script src="./assessment-context.js?v=20260702-ortho-v81" data-record-target="choice"></script>
+</body>
+</html>
