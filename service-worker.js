@@ -1,4 +1,4 @@
-const CACHE_NAME = "rehacalc-v86";
+const CACHE_NAME = "rehacalc-v87";
 
 const ASSETS = [
   "./",
@@ -19,6 +19,9 @@ const ASSETS = [
   "./docs/rehacalc_usage_guide.html",
   "./docs/rehacalc_usage_guide.pdf",
   "./calc/index.html",
+  "./treadmill-speed.html",
+  "./cadence-metronome.html",
+  "./hhd-training-load.html",
   "./bbs/index.html",
   "./fac.html",
   "./sixmwt.html",

@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>10m歩行 ケイデンス・メトロノーム</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #fff;
+      --text: #111827;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --primary: #0f766e;
+      --primary-soft: #e6f5f2;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --amber-soft: #fff7ed;
+      --danger: #b91c1c;
+      --danger-soft: #fef2f2;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 18px 16px 8px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    a.back-link {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 12px 16px 28px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (min-width: 920px) {
+      .layout { grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); }
+      .summary-panel { position: sticky; top: 12px; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 1px 6px rgba(17, 24, 39, .05);
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: 0;
+      line-height: 1.35;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .fields.two { grid-template-columns: 1fr 1fr; }
+      .fields.three { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      font-size: 18px;
+      padding: 9px 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    select {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+    }
+
+    .formula {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .formula strong { color: var(--text); }
+
+    .result-main {
+      border-radius: var(--radius);
+      padding: 14px;
+      color: #fff;
+      background: #10201f;
+      margin-bottom: 12px;
+    }
+
+    .result-main .caption {
+      color: #b7cbc8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .result-main .tempo {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .result-main .tempo strong {
+      font-size: 54px;
+      line-height: .95;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-main .tempo span {
+      color: #dce7e5;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .status {
+      margin-top: 10px;
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: rgba(255, 255, 255, .1);
+      color: #f3fffd;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kpi {
+      min-height: 84px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-size: 25px;
+      font-weight: 950;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi .unit {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tempo-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tempo-card {
+      display: grid;
+      grid-template-columns: 76px 1fr auto;
+      gap: 10px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .tempo-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .12);
+    }
+
+    .tempo-card .pct {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--primary);
+      font-size: 18px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tempo-card:nth-child(1) .pct { background: #64748b; }
+    .tempo-card:nth-child(3) .pct { background: var(--blue); }
+    .tempo-card:nth-child(4) .pct { background: var(--amber); }
+
+    .tempo-body {
+      min-width: 0;
+      padding: 10px 0;
+    }
+
+    .tempo-title {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .tempo-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .tempo-value {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 88px;
+      padding: 0 10px 0 0;
+      font-size: 24px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .tempo-value small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-left: 3px;
+    }
+
+    .metronome {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .metronome-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metronome-display strong {
+      color: var(--text);
+      font-size: 24px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .beat-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+
+    .dot.on { background: var(--primary); }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (min-width: 440px) {
+      .actions { grid-template-columns: 1fr 1fr; }
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 14px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: #f3f4f6;
+      border: 1px solid var(--line);
+    }
+
+    button.danger {
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid #fecaca;
+    }
+
+    button.small {
+      min-height: 36px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .note {
+      margin-top: 12px;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--amber-soft);
+      color: #7c2d12;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 100;
+      max-width: min(92vw, 420px);
+      border-radius: var(--radius);
+      background: #111827;
+      color: #fff;
+      padding: 10px 12px;
+      box-shadow: 0 8px 30px rgba(17, 24, 39, .24);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>10m歩行 ケイデンス・メトロノーム</h1>
+      <a class="back-link" href="./index.html">一覧へ戻る</a>
+    </div>
+    <p>10m歩行速度と歩数からケイデンスを算出し、メトロノームtempoを bpm で表示します。</p>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <h2>入力</h2>
+
+        <div class="fields two">
+          <div class="field">
+            <label for="speedMs">10m歩行速度（m/s）</label>
+            <input id="speedMs" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="例: 0.83">
+          </div>
+          <div class="field">
+            <label for="steps">10m歩数（歩）</label>
+            <input id="steps" type="number" inputmode="decimal" min="1" max="80" step="0.5" placeholder="例: 18">
+          </div>
+        </div>
+
+        <div class="fields two" style="margin-top:12px;">
+          <div class="field">
+            <label for="tempoStep">tempo丸め（bpm）</label>
+            <select id="tempoStep">
+              <option value="1" selected>1 bpm</option>
+              <option value="2">2 bpm</option>
+              <option value="5">5 bpm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="customPercent">任意変化率（%）</label>
+            <input id="customPercent" type="number" inputmode="decimal" min="50" max="160" step="1" value="105">
+          </div>
+        </div>
+
+        <div class="formula">
+          <strong>計算式:</strong> 10m時間 = 10 ÷ 歩行速度。ケイデンス = 歩数 ÷ 10m時間 × 60。iPhoneメトロノームは2/4拍子にし、1拍目=左、2拍目=右、tempo = ケイデンス bpm とします。
+        </div>
+      </section>
+
+      <aside class="panel summary-panel">
+        <div class="result-main">
+          <div class="caption">基準メトロノームtempo</div>
+          <div class="tempo"><strong id="baseTempo">—</strong><span>bpm</span></div>
+          <div class="status" id="status">歩行速度と歩数を入力してください</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="label">10m時間</div>
+            <div class="value"><span id="timeOut">—</span></div>
+            <div class="unit">秒</div>
+          </div>
+          <div class="kpi">
+            <div class="label">歩幅</div>
+            <div class="value"><span id="stepLengthOut">—</span></div>
+            <div class="unit">cm/歩</div>
+          </div>
+          <div class="kpi">
+            <div class="label">ケイデンス</div>
+            <div class="value"><span id="cadenceOut">—</span></div>
+            <div class="unit">歩/分</div>
+          </div>
+        </div>
+
+        <h2>tempo候補</h2>
+        <div class="tempo-list" id="tempoList"></div>
+
+        <div class="metronome">
+          <div class="metronome-display">
+            <span>再生tempo</span>
+            <strong><span id="playTempo">—</span> bpm</strong>
+            <div class="beat-dots" aria-hidden="true">
+              <span class="dot" id="dot1"></span>
+              <span class="dot" id="dot2"></span>
+            </div>
+          </div>
+          <div class="actions" style="margin-top:0;">
+            <button id="toggleMetro" type="button">メトロノーム開始</button>
+            <button id="stopMetro" class="secondary" type="button">停止</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="copyResult" type="button">結果をコピー</button>
+          <button id="exportCsv" class="secondary" type="button">CSV保存</button>
+          <button id="printPage" class="secondary" type="button">印刷</button>
+          <button id="resetAll" class="danger" type="button">リセット</button>
+        </div>
+
+        <div class="note">
+          iPhoneアプリでは拍子を2/4に設定し、左・右で1小節として使います。速めのtempoを使う場合も、歩幅が過度に短くならないか確認します。
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js").then((registration) => registration.update());
+    }
+
+    const STORAGE_KEY = "rehacalc_cadence_metronome_state_v1";
+    const TEMPO_OPTIONS = [
+      { id: "slow", percent: 95, label: "少し遅め", note: "同期しにくい時の導入" },
+      { id: "base", percent: 100, label: "基準tempo", note: "10m歩行時のケイデンス相当" },
+      { id: "plus5", percent: 105, label: "軽い促通", note: "基準より5%速い" },
+      { id: "custom", percent: null, label: "任意設定", note: "入力した変化率で算出" }
+    ];
+
+    const els = {};
+    let toastTimer = null;
+    let selectedTempoId = "base";
+    let selectedTempo = null;
+    let audioContext = null;
+    let metroTimer = null;
+    let beatIndex = 0;
+
+    function init() {
+      [
+        "speedMs", "steps", "tempoStep", "customPercent", "baseTempo",
+        "status", "timeOut", "stepLengthOut", "cadenceOut", "tempoList",
+        "playTempo", "toggleMetro", "stopMetro", "copyResult", "exportCsv",
+        "printPage", "resetAll", "toast", "dot1", "dot2"
+      ].forEach((id) => {
+        els[id] = document.getElementById(id);
+      });
+
+      bindEvents();
+      restoreState();
+      calculate();
+    }
+
+    function bindEvents() {
+      [els.speedMs, els.steps, els.customPercent].forEach((input) => {
+        input.addEventListener("input", () => {
+          calculate();
+          saveState();
+        });
+      });
+
+      els.tempoStep.addEventListener("change", () => {
+        calculate();
+        saveState();
+      });
+
+      els.tempoList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-tempo-id]");
+        if (!button) return;
+        selectedTempoId = button.dataset.tempoId;
+        calculate();
+        saveState();
+      });
+
+      els.toggleMetro.addEventListener("click", toggleMetronome);
+      els.stopMetro.addEventListener("click", stopMetronome);
+      els.copyResult.addEventListener("click", copyResult);
+      els.exportCsv.addEventListener("click", exportCsv);
+      els.printPage.addEventListener("click", () => window.print());
+      els.resetAll.addEventListener("click", resetAll);
+    }
+
+    function parsePositive(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : null;
+    }
+
+    function roundToStep(value, step) {
+      if (!step || step <= 0) return value;
+      return Math.round(value / step) * step;
+    }
+
+    function calculateCore(speedMs, steps) {
+      const timeSec = 10 / speedMs;
+      const cadence = (steps / timeSec) * 60;
+      const stepLengthCm = (10 / steps) * 100;
+      return { timeSec, cadence, stepLengthCm };
+    }
+
+    function buildTempoOptions(cadence, tempoStep, customPercent) {
+      return TEMPO_OPTIONS.map((item) => {
+        const percent = item.id === "custom" ? customPercent : item.percent;
+        const exact = cadence * (percent / 100);
+        const rounded = roundToStep(exact, tempoStep);
+        return { ...item, percent, exact, rounded };
+      });
+    }
+
+    function collectResult() {
+      const speedMs = parsePositive(els.speedMs.value);
+      const steps = parsePositive(els.steps.value);
+      if (!speedMs || !steps) return null;
+
+      const tempoStep = parsePositive(els.tempoStep.value) || 1;
+      const customPercent = parsePositive(els.customPercent.value) || 105;
+      const core = calculateCore(speedMs, steps);
+      const tempos = buildTempoOptions(core.cadence, tempoStep, customPercent);
+
+      return {
+        speedMs,
+        steps,
+        tempoStep,
+        customPercent,
+        ...core,
+        tempos
+      };
+    }
+
+    function calculate() {
+      const result = collectResult();
+      els.playTempo.textContent = selectedTempo ? formatNumber(selectedTempo, 0) : "—";
+
+      if (!result) {
+        renderEmpty();
+        return;
+      }
+
+      const base = result.tempos.find((item) => item.id === "base");
+      const selected = result.tempos.find((item) => item.id === selectedTempoId) || base;
+      selectedTempo = selected.rounded;
+
+      els.baseTempo.textContent = formatNumber(base.rounded, 0);
+      els.timeOut.textContent = formatNumber(result.timeSec, 2);
+      els.stepLengthOut.textContent = formatNumber(result.stepLengthCm, 1);
+      els.cadenceOut.textContent = formatNumber(result.cadence, 1);
+      els.playTempo.textContent = formatNumber(selectedTempo, 0);
+      els.status.textContent = "iPhoneメトロノームは2/4拍子、左・右で1小節です";
+
+      renderTempoList(result.tempos);
+
+      if (metroTimer) restartMetronome();
+    }
+
+    function renderEmpty() {
+      selectedTempo = null;
+      els.baseTempo.textContent = "—";
+      els.timeOut.textContent = "—";
+      els.stepLengthOut.textContent = "—";
+      els.cadenceOut.textContent = "—";
+      els.playTempo.textContent = "—";
+      els.status.textContent = "歩行速度と歩数を入力してください";
+      els.tempoList.innerHTML = TEMPO_OPTIONS.map((item) => `
+        <button class="tempo-card small" type="button" data-tempo-id="${item.id}" disabled>
+          <div class="pct">${item.id === "custom" ? "任意" : item.percent + "%"}</div>
+          <div class="tempo-body">
+            <div class="tempo-title">${item.label}</div>
+            <div class="tempo-meta">${item.note}</div>
+          </div>
+          <div class="tempo-value">— <small>bpm</small></div>
+        </button>
+      `).join("");
+      stopMetronome();
+    }
+
+    function renderTempoList(tempos) {
+      els.tempoList.innerHTML = tempos.map((item) => `
+        <button class="tempo-card ${item.id === selectedTempoId ? "active" : ""}" type="button" data-tempo-id="${item.id}">
+          <div class="pct">${item.id === "custom" ? formatNumber(item.percent, 0) + "%" : item.percent + "%"}</div>
+          <div class="tempo-body">
+            <div class="tempo-title">${item.label}</div>
+            <div class="tempo-meta">厳密値 ${formatNumber(item.exact, 1)} bpm / ${item.note}</div>
+          </div>
+          <div class="tempo-value">${formatNumber(item.rounded, 0)} <small>bpm</small></div>
+        </button>
+      `).join("");
+    }
+
+    async function toggleMetronome() {
+      if (metroTimer) {
+        stopMetronome();
+        return;
+      }
+
+      if (!selectedTempo) {
+        showToast("先に歩行速度と歩数を入力してください");
+        return;
+      }
+
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      await audioContext.resume();
+      startMetronome();
+    }
+
+    function startMetronome() {
+      stopMetronome(false);
+      beatIndex = 0;
+      playClick();
+      const intervalMs = 60000 / selectedTempo;
+      metroTimer = setInterval(playClick, intervalMs);
+      els.toggleMetro.textContent = "メトロノーム停止";
+      els.toggleMetro.classList.add("danger");
+    }
+
+    function restartMetronome() {
+      if (!selectedTempo) return;
+      startMetronome();
+    }
+
+    function stopMetronome(showStopped = true) {
+      if (metroTimer) {
+        clearInterval(metroTimer);
+        metroTimer = null;
+      }
+      clearDots();
+      els.toggleMetro.textContent = "メトロノーム開始";
+      els.toggleMetro.classList.remove("danger");
+      if (showStopped) showToast("停止しました");
+    }
+
+    function playClick() {
+      if (!audioContext || !selectedTempo) return;
+
+      const now = audioContext.currentTime;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = beatIndex % 2 === 0 ? 1200 : 880;
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.28, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.08);
+
+      flashDot(beatIndex % 2);
+      beatIndex += 1;
+    }
+
+    function flashDot(index) {
+      clearDots();
+      const dot = document.getElementById(`dot${index + 1}`);
+      if (dot) dot.classList.add("on");
+    }
+
+    function clearDots() {
+      [els.dot1, els.dot2].forEach((dot) => dot.classList.remove("on"));
+    }
+
+    function copyResult() {
+      const result = collectResult();
+      if (!result) {
+        showToast("歩行速度と歩数を入力してください");
+        return;
+      }
+
+      const lines = [
+        "【10m歩行 ケイデンス・メトロノーム】",
+        `10m歩行速度: ${formatNumber(result.speedMs, 2)} m/s`,
+        `10m歩数: ${formatNumber(result.steps, 1)} 歩`,
+        `10m時間: ${formatNumber(result.timeSec, 2)} 秒`,
+        `歩幅: ${formatNumber(result.stepLengthCm, 1)} cm/歩`,
+        `ケイデンス: ${formatNumber(result.cadence, 1)} 歩/分`,
+        "設定: iPhoneメトロノーム 2/4拍子（1拍目=左、2拍目=右）",
+        ...result.tempos.map((item) => `${item.label} ${formatNumber(item.percent, 0)}%: ${formatNumber(item.rounded, 0)} bpm（厳密値 ${formatNumber(item.exact, 1)} bpm）`)
+      ];
+
+      writeClipboard(lines.join("\n")).then(() => showToast("結果をコピーしました"));
+    }
+
+    function exportCsv() {
+      const result = collectResult();
+      if (!result) {
+        showToast("歩行速度と歩数を入力してください");
+        return;
+      }
+
+      const headers = [
+        "date", "speed_ms", "steps", "time_sec", "step_length_cm",
+        "cadence_steps_per_min", "metronome_setting", "tempo_step_bpm",
+        "tempo_label", "percent", "exact_bpm", "setting_bpm"
+      ];
+
+      const rows = result.tempos.map((item) => [
+        new Date().toISOString().slice(0, 10),
+        formatNumber(result.speedMs, 2),
+        formatNumber(result.steps, 1),
+        formatNumber(result.timeSec, 2),
+        formatNumber(result.stepLengthCm, 1),
+        formatNumber(result.cadence, 1),
+        "2/4 time, beat1=left, beat2=right",
+        result.tempoStep,
+        item.label,
+        formatNumber(item.percent, 0),
+        formatNumber(item.exact, 1),
+        formatNumber(item.rounded, 0)
+      ]);
+
+      const csv = "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.map(csvEscape).join(",")).join("\n") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `cadence_metronome_${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showToast("CSVを保存しました");
+    }
+
+    function resetAll() {
+      stopMetronome(false);
+      els.speedMs.value = "";
+      els.steps.value = "";
+      els.tempoStep.value = "1";
+      els.customPercent.value = "105";
+      selectedTempoId = "base";
+      selectedTempo = null;
+      localStorage.removeItem(STORAGE_KEY);
+      calculate();
+      showToast("リセットしました");
+    }
+
+    function saveState() {
+      const state = {
+        speedMs: els.speedMs.value,
+        steps: els.steps.value,
+        tempoStep: els.tempoStep.value,
+        customPercent: els.customPercent.value,
+        selectedTempoId
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      try {
+        const state = JSON.parse(raw);
+        els.speedMs.value = state.speedMs || "";
+        els.steps.value = state.steps || "";
+        els.tempoStep.value = state.tempoStep || "1";
+        els.customPercent.value = state.customPercent || "105";
+        selectedTempoId = state.selectedTempoId || "base";
+      } catch (error) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    function writeClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      return Promise.resolve();
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function formatNumber(value, digits) {
+      if (!Number.isFinite(value)) return "—";
+      return Number(value).toFixed(digits);
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.style.display = "none";
+      }, 1600);
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>10m歩行速度 トレッドミル設定</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #fff;
+      --text: #111827;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --primary: #0f766e;
+      --primary-soft: #e6f5f2;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --amber-soft: #fff7ed;
+      --danger: #b91c1c;
+      --danger-soft: #fef2f2;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 18px 16px 8px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    a.back-link {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 12px 16px 28px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (min-width: 920px) {
+      .layout { grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); }
+      .summary-panel { position: sticky; top: 12px; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 1px 6px rgba(17, 24, 39, .05);
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: 0;
+      line-height: 1.35;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mode-tabs label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f9fafb;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .mode-tabs input { display: none; }
+
+    .mode-tabs label:has(input:checked) {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: #0f514d;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .fields.two { grid-template-columns: 1fr 1fr; }
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      font-size: 18px;
+      padding: 9px 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    select {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    input:disabled {
+      color: #9ca3af;
+      background: #f3f4f6;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+    }
+
+    .inline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .inline strong {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kpi {
+      min-height: 84px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-size: 25px;
+      font-weight: 950;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi .unit {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .result-main {
+      border-radius: var(--radius);
+      padding: 14px;
+      color: #fff;
+      background: #10201f;
+      margin-bottom: 12px;
+    }
+
+    .result-main .caption {
+      color: #b7cbc8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .result-main .speed {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .result-main .speed strong {
+      font-size: 48px;
+      line-height: .95;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-main .speed span {
+      color: #dce7e5;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .status {
+      margin-top: 10px;
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: rgba(255, 255, 255, .1);
+      color: #f3fffd;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .recommendations {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rec {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 10px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .rec .pct {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--primary);
+      font-size: 18px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rec:nth-child(2) .pct { background: var(--blue); }
+    .rec:nth-child(3) .pct { background: var(--amber); }
+
+    .rec-body {
+      padding: 10px 10px 10px 0;
+      min-width: 0;
+    }
+
+    .rec-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .rec-title {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rec-setting {
+      font-size: 24px;
+      font-weight: 950;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .rec-setting small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .rec-meta {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 480px) {
+      .rec-meta { grid-template-columns: 1fr 1fr; }
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (min-width: 440px) {
+      .actions { grid-template-columns: 1fr 1fr; }
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 14px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: #f3f4f6;
+      border: 1px solid var(--line);
+    }
+
+    button.danger {
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid #fecaca;
+    }
+
+    .note {
+      margin-top: 12px;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--amber-soft);
+      color: #7c2d12;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .formula {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .formula strong { color: var(--text); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 100;
+      max-width: min(92vw, 420px);
+      border-radius: var(--radius);
+      background: #111827;
+      color: #fff;
+      padding: 10px 12px;
+      box-shadow: 0 8px 30px rgba(17, 24, 39, .24);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>10m歩行速度 トレッドミル設定</h1>
+      <a class="back-link" href="./index.html">一覧へ戻る</a>
+    </div>
+    <p>10m歩行速度から、トレッドミル速度を100%、110%、120%で km/h 表示します。</p>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <h2>入力</h2>
+
+        <div class="mode-tabs" aria-label="入力方法">
+          <label><input type="radio" name="inputMode" value="speed" checked>速度 m/s</label>
+          <label><input type="radio" name="inputMode" value="time">10m時間 秒</label>
+        </div>
+
+        <div class="fields two">
+          <div class="field">
+            <label for="speedMs">10m歩行速度（m/s）</label>
+            <input id="speedMs" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="例: 0.83">
+          </div>
+          <div class="field">
+            <label for="timeSec">10m歩行時間（秒）</label>
+            <input id="timeSec" type="number" inputmode="decimal" min="1" max="120" step="0.01" placeholder="例: 12.0" disabled>
+          </div>
+        </div>
+
+        <div class="fields two" style="margin-top:12px;">
+          <div class="field">
+            <label for="roundStep">トレッドミル設定刻み（km/h）</label>
+            <select id="roundStep">
+              <option value="0.1" selected>0.1 km/h</option>
+              <option value="0.2">0.2 km/h</option>
+              <option value="0.5">0.5 km/h</option>
+              <option value="1">1.0 km/h</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="maxSpeed">機器の上限速度（任意・km/h）</label>
+            <input id="maxSpeed" type="number" inputmode="decimal" min="0" max="25" step="0.1" placeholder="例: 6.0">
+          </div>
+        </div>
+
+        <div class="inline">
+          <span>換算基準</span>
+          <strong>1 m/s = 3.6 km/h</strong>
+        </div>
+
+        <div class="formula">
+          <strong>計算式:</strong> トレッドミル設定 = 10m歩行速度（m/s） × 3.6 × 目標割合。設定刻みに合わせて最も近い km/h へ丸めます。
+        </div>
+      </section>
+
+      <aside class="panel summary-panel">
+        <div class="result-main">
+          <div class="caption">基準トレッドミル速度（100%）</div>
+          <div class="speed"><strong id="baseKmh">—</strong><span>km/h</span></div>
+          <div class="status" id="status">10m歩行速度を入力してください</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="label">10m歩行速度</div>
+            <div class="value"><span id="speedOut">—</span></div>
+            <div class="unit">m/s</div>
+          </div>
+          <div class="kpi">
+            <div class="label">10m換算時間</div>
+            <div class="value"><span id="timeOut">—</span></div>
+            <div class="unit">秒</div>
+          </div>
+          <div class="kpi">
+            <div class="label">丸め刻み</div>
+            <div class="value"><span id="stepOut">0.1</span></div>
+            <div class="unit">km/h</div>
+          </div>
+        </div>
+
+        <h2>提案速度</h2>
+        <div class="recommendations" id="recommendations"></div>
+
+        <div class="actions">
+          <button id="copyResult" type="button">結果をコピー</button>
+          <button id="exportCsv" class="secondary" type="button">CSV保存</button>
+          <button id="printPage" class="secondary" type="button">印刷</button>
+          <button id="resetAll" class="danger" type="button">リセット</button>
+        </div>
+
+        <div class="note">
+          トレッドミル初回・装具変更後・疼痛やふらつきがある場合は、手すり、免荷、監視、血圧・SpO2・Borg、歩容の崩れを確認して設定してください。
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js").then((registration) => registration.update());
+    }
+
+    const STORAGE_KEY = "rehacalc_treadmill_speed_state_v1";
+    const PERCENTAGES = [
+      { pct: 100, label: "基準速度", note: "10m歩行速度相当" },
+      { pct: 110, label: "少し速い設定", note: "基準より10%速い" },
+      { pct: 120, label: "速歩負荷", note: "基準より20%速い" }
+    ];
+
+    const els = {};
+    let toastTimer = null;
+    let syncing = false;
+
+    function init() {
+      [
+        "speedMs", "timeSec", "roundStep", "maxSpeed", "baseKmh", "status",
+        "speedOut", "timeOut", "stepOut", "recommendations", "copyResult",
+        "exportCsv", "printPage", "resetAll", "toast"
+      ].forEach((id) => {
+        els[id] = document.getElementById(id);
+      });
+
+      bindEvents();
+      restoreState();
+      calculate();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("input[name='inputMode']").forEach((input) => {
+        input.addEventListener("change", () => {
+          syncInputMode();
+          calculate();
+          saveState();
+        });
+      });
+
+      els.speedMs.addEventListener("input", () => {
+        if (!syncing && currentMode() === "speed") syncTimeFromSpeed();
+        calculate();
+        saveState();
+      });
+
+      els.timeSec.addEventListener("input", () => {
+        if (!syncing && currentMode() === "time") syncSpeedFromTime();
+        calculate();
+        saveState();
+      });
+
+      [els.roundStep, els.maxSpeed].forEach((input) => {
+        input.addEventListener("input", () => {
+          calculate();
+          saveState();
+        });
+        input.addEventListener("change", () => {
+          calculate();
+          saveState();
+        });
+      });
+
+      els.copyResult.addEventListener("click", copyResult);
+      els.exportCsv.addEventListener("click", exportCsv);
+      els.printPage.addEventListener("click", () => window.print());
+      els.resetAll.addEventListener("click", resetAll);
+    }
+
+    function currentMode() {
+      return document.querySelector("input[name='inputMode']:checked").value;
+    }
+
+    function syncInputMode() {
+      const mode = currentMode();
+      els.speedMs.disabled = mode !== "speed";
+      els.timeSec.disabled = mode !== "time";
+      if (mode === "speed") syncTimeFromSpeed();
+      if (mode === "time") syncSpeedFromTime();
+    }
+
+    function syncTimeFromSpeed() {
+      const speed = parsePositive(els.speedMs.value);
+      syncing = true;
+      els.timeSec.value = speed ? formatNumber(10 / speed, 2) : "";
+      syncing = false;
+    }
+
+    function syncSpeedFromTime() {
+      const time = parsePositive(els.timeSec.value);
+      syncing = true;
+      els.speedMs.value = time ? formatNumber(10 / time, 2) : "";
+      syncing = false;
+    }
+
+    function parsePositive(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : null;
+    }
+
+    function roundToStep(value, step) {
+      if (!step || step <= 0) return value;
+      return Math.round(value / step) * step;
+    }
+
+    function calculate() {
+      const speedMs = parsePositive(els.speedMs.value);
+      const roundStep = parsePositive(els.roundStep.value) || 0.1;
+      const maxSpeed = parsePositive(els.maxSpeed.value);
+
+      els.stepOut.textContent = formatNumber(roundStep, 1);
+
+      if (!speedMs) {
+        renderEmpty();
+        return;
+      }
+
+      const baseKmh = speedMs * 3.6;
+      const timeSec = 10 / speedMs;
+      const recommendations = buildRecommendations(baseKmh, roundStep, maxSpeed);
+
+      els.baseKmh.textContent = formatNumber(roundToStep(baseKmh, roundStep), 1);
+      els.speedOut.textContent = formatNumber(speedMs, 2);
+      els.timeOut.textContent = formatNumber(timeSec, 2);
+      els.status.textContent = makeStatus(recommendations, maxSpeed);
+      renderRecommendations(recommendations);
+    }
+
+    function buildRecommendations(baseKmh, roundStep, maxSpeed) {
+      return PERCENTAGES.map((item) => {
+        const exact = baseKmh * (item.pct / 100);
+        const rounded = roundToStep(exact, roundStep);
+        const error = rounded - exact;
+        const capped = maxSpeed ? rounded > maxSpeed : false;
+        return { ...item, exact, rounded, error, capped };
+      });
+    }
+
+    function renderEmpty() {
+      els.baseKmh.textContent = "—";
+      els.speedOut.textContent = "—";
+      els.timeOut.textContent = "—";
+      els.status.textContent = "10m歩行速度を入力してください";
+      els.recommendations.innerHTML = PERCENTAGES.map((item) => `
+        <div class="rec">
+          <div class="pct">${item.pct}%</div>
+          <div class="rec-body">
+            <div class="rec-top">
+              <div class="rec-title">${item.label}</div>
+              <div class="rec-setting">— <small>km/h</small></div>
+            </div>
+            <div class="rec-meta">
+              <span>${item.note}</span>
+              <span>入力待ち</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderRecommendations(recommendations) {
+      els.recommendations.innerHTML = recommendations.map((item) => {
+        const errorText = Math.abs(item.error) < 0.001
+          ? "丸め差 0.0 km/h"
+          : `丸め差 ${item.error > 0 ? "+" : ""}${formatNumber(item.error, 2)} km/h`;
+        const capText = item.capped ? "上限速度を超過" : "設定可能";
+
+        return `
+          <div class="rec">
+            <div class="pct">${item.pct}%</div>
+            <div class="rec-body">
+              <div class="rec-top">
+                <div class="rec-title">${item.label}</div>
+                <div class="rec-setting">${formatNumber(item.rounded, 1)} <small>km/h</small></div>
+              </div>
+              <div class="rec-meta">
+                <span>厳密値 ${formatNumber(item.exact, 2)} km/h</span>
+                <span>${errorText} / ${capText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function makeStatus(recommendations, maxSpeed) {
+      if (!maxSpeed) return "100%、110%、120%を km/h に換算しました";
+      const over = recommendations.filter((item) => item.capped).map((item) => `${item.pct}%`);
+      if (over.length === 0) return `上限 ${formatNumber(maxSpeed, 1)} km/h 内で設定可能です`;
+      return `${over.join("、")} は上限 ${formatNumber(maxSpeed, 1)} km/h を超えます`;
+    }
+
+    function collectResult() {
+      const speedMs = parsePositive(els.speedMs.value);
+      const roundStep = parsePositive(els.roundStep.value) || 0.1;
+      const maxSpeed = parsePositive(els.maxSpeed.value);
+      if (!speedMs) return null;
+      const baseKmh = speedMs * 3.6;
+      return {
+        speedMs,
+        timeSec: 10 / speedMs,
+        roundStep,
+        maxSpeed,
+        recommendations: buildRecommendations(baseKmh, roundStep, maxSpeed)
+      };
+    }
+
+    function copyResult() {
+      const result = collectResult();
+      if (!result) {
+        showToast("10m歩行速度を入力してください");
+        return;
+      }
+
+      const lines = [
+        "【10m歩行速度 トレッドミル設定】",
+        `10m歩行速度: ${formatNumber(result.speedMs, 2)} m/s`,
+        `10m換算時間: ${formatNumber(result.timeSec, 2)} 秒`,
+        `設定刻み: ${formatNumber(result.roundStep, 1)} km/h`,
+        result.maxSpeed ? `上限速度: ${formatNumber(result.maxSpeed, 1)} km/h` : "上限速度: 未設定",
+        ...result.recommendations.map((item) =>
+          `${item.pct}%: ${formatNumber(item.rounded, 1)} km/h（厳密値 ${formatNumber(item.exact, 2)} km/h${item.capped ? " / 上限超過" : ""}）`
+        )
+      ];
+
+      writeClipboard(lines.join("\n")).then(() => showToast("結果をコピーしました"));
+    }
+
+    function exportCsv() {
+      const result = collectResult();
+      if (!result) {
+        showToast("10m歩行速度を入力してください");
+        return;
+      }
+
+      const headers = [
+        "date", "speed_ms", "time_sec", "round_step_kmh", "max_speed_kmh",
+        "percent", "exact_kmh", "setting_kmh", "rounding_error_kmh", "over_limit"
+      ];
+
+      const rows = result.recommendations.map((item) => [
+        new Date().toISOString().slice(0, 10),
+        formatNumber(result.speedMs, 2),
+        formatNumber(result.timeSec, 2),
+        formatNumber(result.roundStep, 1),
+        result.maxSpeed ? formatNumber(result.maxSpeed, 1) : "",
+        item.pct,
+        formatNumber(item.exact, 2),
+        formatNumber(item.rounded, 1),
+        formatNumber(item.error, 2),
+        item.capped ? "yes" : "no"
+      ]);
+
+      const csv = "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.map(csvEscape).join(",")).join("\n") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `treadmill_speed_${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showToast("CSVを保存しました");
+    }
+
+    function resetAll() {
+      document.querySelector("input[name='inputMode'][value='speed']").checked = true;
+      els.speedMs.value = "";
+      els.timeSec.value = "";
+      els.roundStep.value = "0.1";
+      els.maxSpeed.value = "";
+      syncInputMode();
+      localStorage.removeItem(STORAGE_KEY);
+      calculate();
+      showToast("リセットしました");
+    }
+
+    function saveState() {
+      const state = {
+        inputMode: currentMode(),
+        speedMs: els.speedMs.value,
+        timeSec: els.timeSec.value,
+        roundStep: els.roundStep.value,
+        maxSpeed: els.maxSpeed.value
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        syncInputMode();
+        return;
+      }
+
+      try {
+        const state = JSON.parse(raw);
+        const mode = state.inputMode === "time" ? "time" : "speed";
+        document.querySelector(`input[name='inputMode'][value='${mode}']`).checked = true;
+        els.speedMs.value = state.speedMs || "";
+        els.timeSec.value = state.timeSec || "";
+        els.roundStep.value = state.roundStep || "0.1";
+        els.maxSpeed.value = state.maxSpeed || "";
+        syncInputMode();
+      } catch (error) {
+        localStorage.removeItem(STORAGE_KEY);
+        syncInputMode();
+      }
+    }
+
+    function writeClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      return Promise.resolve();
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function formatNumber(value, digits) {
+      if (!Number.isFinite(value)) return "—";
+      return Number(value).toFixed(digits);
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.style.display = "none";
+      }, 1800);
+    }
+
+    init();
+  </script>
+</body>
+</html>

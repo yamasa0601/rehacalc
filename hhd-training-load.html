@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HHD 筋トレ負荷設定</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #fff;
+      --text: #111827;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --primary: #0f766e;
+      --primary-soft: #e6f5f2;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --amber-soft: #fff7ed;
+      --danger: #b91c1c;
+      --danger-soft: #fef2f2;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 18px 16px 8px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    a.back-link {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 12px 16px 28px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (min-width: 920px) {
+      .layout { grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); }
+      .summary-panel { position: sticky; top: 12px; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 1px 6px rgba(17, 24, 39, .05);
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: 0;
+      line-height: 1.35;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .fields.two { grid-template-columns: 1fr 1fr; }
+      .fields.three { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      font-size: 18px;
+      padding: 9px 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    select {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+    }
+
+    .input-note {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mode-tabs label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f9fafb;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .mode-tabs input { display: none; }
+
+    .mode-tabs label:has(input:checked) {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: #0f514d;
+    }
+
+    .formula {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .formula strong { color: var(--text); }
+
+    .result-main {
+      border-radius: var(--radius);
+      padding: 14px;
+      color: #fff;
+      background: #10201f;
+      margin-bottom: 12px;
+    }
+
+    .result-main .caption {
+      color: #b7cbc8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .result-main .load {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .result-main .load strong {
+      font-size: 54px;
+      line-height: .95;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-main .load span {
+      color: #dce7e5;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .status {
+      margin-top: 10px;
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: rgba(255, 255, 255, .1);
+      color: #f3fffd;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kpi {
+      min-height: 84px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-size: 25px;
+      font-weight: 950;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi .unit {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .load-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .load-card {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 10px;
+      align-items: stretch;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #fff;
+      padding: 0;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .load-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .12);
+    }
+
+    .load-card .pct {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--primary);
+      font-size: 18px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .load-card:nth-child(1) .pct { background: #64748b; }
+    .load-card:nth-child(3) .pct { background: var(--blue); }
+    .load-card:nth-child(5) .pct { background: var(--amber); }
+
+    .load-body {
+      min-width: 0;
+      padding: 10px 10px 10px 0;
+    }
+
+    .load-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .load-title {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .load-value {
+      font-size: 24px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .load-value small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .load-meta {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 480px) {
+      .load-meta { grid-template-columns: 1fr 1fr; }
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (min-width: 440px) {
+      .actions { grid-template-columns: 1fr 1fr; }
+    }
+
+    button.action {
+      min-height: 42px;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 14px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: #f3f4f6;
+      border: 1px solid var(--line);
+    }
+
+    button.danger {
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid #fecaca;
+    }
+
+    .note {
+      margin-top: 12px;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--amber-soft);
+      color: #7c2d12;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 100;
+      max-width: min(92vw, 420px);
+      border-radius: var(--radius);
+      background: #111827;
+      color: #fff;
+      padding: 10px 12px;
+      box-shadow: 0 8px 30px rgba(17, 24, 39, .24);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>HHD 筋トレ負荷設定</h1>
+      <a class="back-link" href="./index.html">一覧へ戻る</a>
+    </div>
+    <p>HHDの筋力値とモーメントアームからトルクを算出し、膝伸展・股関節外転マシンの負荷kgを提案します。</p>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <h2>HHD結果</h2>
+
+        <div class="fields two">
+          <div class="field">
+            <label for="exercise">種目</label>
+            <select id="exercise">
+              <option value="kneeExt">膝伸展マシン</option>
+              <option value="hipAbd">股関節外転マシン</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="side">側</label>
+            <select id="side">
+              <option value="right">右</option>
+              <option value="left">左</option>
+              <option value="both">両側 / 代表値</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mode-tabs" style="margin-top:12px;" aria-label="HHD入力方法">
+          <label><input type="radio" name="inputMode" value="force" checked>HHD N + アーム</label>
+          <label><input type="radio" name="inputMode" value="torque">トルク Nm</label>
+        </div>
+
+        <div class="fields two">
+          <div class="field">
+            <label for="hhdForceN">HHD最大値（N）</label>
+            <input id="hhdForceN" type="number" inputmode="decimal" min="0" max="2000" step="1" placeholder="例: 300">
+            <div class="input-note">HHDで得た最大等尺性筋力。左右別に使う場合は対象側の値を入力します。</div>
+          </div>
+          <div class="field">
+            <label for="hhdArmCm">HHD測定アーム（cm）</label>
+            <input id="hhdArmCm" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="例: 40">
+            <div class="input-note">関節中心からHHD接触点までの距離です。</div>
+          </div>
+        </div>
+
+        <div class="fields two" style="margin-top:12px;">
+          <div class="field">
+            <label for="torqueNm">HHDトルク（Nm・任意）</label>
+            <input id="torqueNm" type="number" inputmode="decimal" min="0" max="1000" step="0.1" placeholder="例: 120">
+            <div class="input-note">既にNmが分かる場合はこちらを使えます。</div>
+          </div>
+          <div class="field">
+            <label for="machineArmCm">マシンアーム長（cm）</label>
+            <input id="machineArmCm" type="number" inputmode="decimal" min="1" max="150" step="0.1" placeholder="例: 30">
+            <div class="input-note">マシン回転軸からパッド/抵抗作用点までの距離です。</div>
+          </div>
+        </div>
+
+        <div class="fields three" style="margin-top:12px;">
+          <div class="field">
+            <label for="weightStepKg">マシン重量刻み（kg）</label>
+            <select id="weightStepKg">
+              <option value="0.5">0.5 kg</option>
+              <option value="1" selected>1 kg</option>
+              <option value="2.5">2.5 kg</option>
+              <option value="5">5 kg</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="customPercent">任意強度（%）</label>
+            <input id="customPercent" type="number" inputmode="decimal" min="5" max="100" step="1" value="45">
+          </div>
+          <div class="field">
+            <label for="maxMachineKg">マシン上限（任意・kg）</label>
+            <input id="maxMachineKg" type="number" inputmode="decimal" min="0" max="300" step="0.5" placeholder="例: 80">
+          </div>
+        </div>
+
+        <div class="formula">
+          <strong>計算式:</strong> HHDトルク = HHD(N) × HHD測定アーム(m)。目標トルク = HHDトルク × 強度%。マシン負荷(kg) = 目標トルク ÷ マシンアーム(m) ÷ 9.80665。
+        </div>
+      </section>
+
+      <aside class="panel summary-panel">
+        <div class="result-main">
+          <div class="caption">採用負荷</div>
+          <div class="load"><strong id="selectedKg">—</strong><span>kg</span></div>
+          <div class="status" id="status">HHD結果とマシンアーム長を入力してください</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="label">HHDトルク</div>
+            <div class="value"><span id="torqueOut">—</span></div>
+            <div class="unit">Nm</div>
+          </div>
+          <div class="kpi">
+            <div class="label">100%相当負荷</div>
+            <div class="value"><span id="maxLoadOut">—</span></div>
+            <div class="unit">kg</div>
+          </div>
+          <div class="kpi">
+            <div class="label">丸め後強度</div>
+            <div class="value"><span id="actualPctOut">—</span></div>
+            <div class="unit">%</div>
+          </div>
+        </div>
+
+        <h2>負荷候補</h2>
+        <div class="load-list" id="loadList"></div>
+
+        <div class="actions">
+          <button id="copyResult" class="action" type="button">結果をコピー</button>
+          <button id="exportCsv" class="action secondary" type="button">CSV保存</button>
+          <button id="printPage" class="action secondary" type="button">印刷</button>
+          <button id="resetAll" class="action danger" type="button">リセット</button>
+        </div>
+
+        <div class="note">
+          HHD最大トルクは1RMそのものではありません。初回は低めの負荷から開始し、疼痛、代償動作、息こらえ、RPE、翌日の反応を確認して調整してください。ワイヤー比やカム構造があるマシンでは表示kgと実効負荷がずれることがあります。
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js").then((registration) => registration.update());
+    }
+
+    const STORAGE_KEY = "rehacalc_hhd_training_load_state_v1";
+    const GRAVITY = 9.80665;
+    const LOAD_OPTIONS = [
+      { id: "veryLight", percent: 30, label: "慎重開始", note: "疼痛・虚弱・初回確認" },
+      { id: "light", percent: 40, label: "軽負荷", note: "フォーム確認から開始" },
+      { id: "moderate", percent: 50, label: "標準開始", note: "10〜15回の導入負荷" },
+      { id: "hard", percent: 60, label: "やや高負荷", note: "慣れている場合の候補" },
+      { id: "strength", percent: 70, label: "筋力向上", note: "疼痛なく高努力が可能な場合" },
+      { id: "custom", percent: null, label: "任意設定", note: "入力した強度で算出" }
+    ];
+
+    const els = {};
+    let selectedLoadId = "light";
+    let toastTimer = null;
+
+    function init() {
+      [
+        "exercise", "side", "hhdForceN", "hhdArmCm", "torqueNm", "machineArmCm",
+        "weightStepKg", "customPercent", "maxMachineKg", "selectedKg", "status",
+        "torqueOut", "maxLoadOut", "actualPctOut", "loadList", "copyResult",
+        "exportCsv", "printPage", "resetAll", "toast"
+      ].forEach((id) => {
+        els[id] = document.getElementById(id);
+      });
+
+      bindEvents();
+      restoreState();
+      syncMode();
+      calculate();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("input[name='inputMode']").forEach((input) => {
+        input.addEventListener("change", () => {
+          syncMode();
+          calculate();
+          saveState();
+        });
+      });
+
+      [
+        els.exercise, els.side, els.hhdForceN, els.hhdArmCm, els.torqueNm,
+        els.machineArmCm, els.weightStepKg, els.customPercent, els.maxMachineKg
+      ].forEach((input) => {
+        input.addEventListener("input", () => {
+          calculate();
+          saveState();
+        });
+        input.addEventListener("change", () => {
+          calculate();
+          saveState();
+        });
+      });
+
+      els.loadList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-load-id]");
+        if (!button) return;
+        selectedLoadId = button.dataset.loadId;
+        calculate();
+        saveState();
+      });
+
+      els.copyResult.addEventListener("click", copyResult);
+      els.exportCsv.addEventListener("click", exportCsv);
+      els.printPage.addEventListener("click", () => window.print());
+      els.resetAll.addEventListener("click", resetAll);
+    }
+
+    function inputMode() {
+      return document.querySelector("input[name='inputMode']:checked").value;
+    }
+
+    function syncMode() {
+      const mode = inputMode();
+      els.hhdForceN.disabled = mode === "torque";
+      els.hhdArmCm.disabled = mode === "torque";
+      els.torqueNm.disabled = mode === "force";
+    }
+
+    function parsePositive(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : null;
+    }
+
+    function roundToStep(value, step) {
+      if (!step || step <= 0) return value;
+      return Math.round(value / step) * step;
+    }
+
+    function torqueFromForce(forceN, armCm) {
+      return forceN * (armCm / 100);
+    }
+
+    function kgFromTorque(torqueNm, machineArmCm) {
+      return torqueNm / (machineArmCm / 100) / GRAVITY;
+    }
+
+    function calculateCore(torqueNm, machineArmCm, weightStepKg, customPercent, maxMachineKg) {
+      const maxLoadKg = kgFromTorque(torqueNm, machineArmCm);
+      const loads = LOAD_OPTIONS.map((item) => {
+        const percent = item.id === "custom" ? customPercent : item.percent;
+        const targetTorque = torqueNm * (percent / 100);
+        const exactKg = kgFromTorque(targetTorque, machineArmCm);
+        const roundedKg = roundToStep(exactKg, weightStepKg);
+        const actualTorque = roundedKg * GRAVITY * (machineArmCm / 100);
+        const actualPercent = torqueNm > 0 ? (actualTorque / torqueNm) * 100 : 0;
+        const capped = maxMachineKg ? roundedKg > maxMachineKg : false;
+        return { ...item, percent, targetTorque, exactKg, roundedKg, actualTorque, actualPercent, capped };
+      });
+      return { maxLoadKg, loads };
+    }
+
+    function collectResult() {
+      const mode = inputMode();
+      const forceN = parsePositive(els.hhdForceN.value);
+      const hhdArmCm = parsePositive(els.hhdArmCm.value);
+      const directTorque = parsePositive(els.torqueNm.value);
+      const machineArmCm = parsePositive(els.machineArmCm.value);
+      const weightStepKg = parsePositive(els.weightStepKg.value) || 1;
+      const customPercent = parsePositive(els.customPercent.value) || 45;
+      const maxMachineKg = parsePositive(els.maxMachineKg.value);
+      const torqueNm = mode === "torque"
+        ? directTorque
+        : (forceN && hhdArmCm ? torqueFromForce(forceN, hhdArmCm) : null);
+
+      if (!torqueNm || !machineArmCm) return null;
+
+      const core = calculateCore(torqueNm, machineArmCm, weightStepKg, customPercent, maxMachineKg);
+      return {
+        exercise: els.exercise.value,
+        side: els.side.value,
+        mode,
+        forceN,
+        hhdArmCm,
+        torqueNm,
+        machineArmCm,
+        weightStepKg,
+        customPercent,
+        maxMachineKg,
+        ...core
+      };
+    }
+
+    function calculate() {
+      const result = collectResult();
+      if (!result) {
+        renderEmpty();
+        return;
+      }
+
+      const selected = result.loads.find((item) => item.id === selectedLoadId) || result.loads[1];
+      els.selectedKg.textContent = formatNumber(selected.roundedKg, 1);
+      els.torqueOut.textContent = formatNumber(result.torqueNm, 1);
+      els.maxLoadOut.textContent = formatNumber(result.maxLoadKg, 1);
+      els.actualPctOut.textContent = formatNumber(selected.actualPercent, 1);
+      els.status.textContent = makeStatus(selected, result.maxMachineKg);
+      renderLoadList(result.loads);
+    }
+
+    function renderEmpty() {
+      els.selectedKg.textContent = "—";
+      els.torqueOut.textContent = "—";
+      els.maxLoadOut.textContent = "—";
+      els.actualPctOut.textContent = "—";
+      els.status.textContent = "HHD結果とマシンアーム長を入力してください";
+      els.loadList.innerHTML = LOAD_OPTIONS.map((item) => `
+        <button class="load-card" type="button" data-load-id="${item.id}" disabled>
+          <div class="pct">${item.id === "custom" ? "任意" : item.percent + "%"}</div>
+          <div class="load-body">
+            <div class="load-top">
+              <div class="load-title">${item.label}</div>
+              <div class="load-value">— <small>kg</small></div>
+            </div>
+            <div class="load-meta">
+              <span>${item.note}</span>
+              <span>入力待ち</span>
+            </div>
+          </div>
+        </button>
+      `).join("");
+    }
+
+    function renderLoadList(loads) {
+      els.loadList.innerHTML = loads.map((item) => {
+        const capText = item.capped ? "上限超過" : `実効 ${formatNumber(item.actualPercent, 1)}%`;
+        return `
+          <button class="load-card ${item.id === selectedLoadId ? "active" : ""}" type="button" data-load-id="${item.id}">
+            <div class="pct">${item.id === "custom" ? formatNumber(item.percent, 0) + "%" : item.percent + "%"}</div>
+            <div class="load-body">
+              <div class="load-top">
+                <div class="load-title">${item.label}</div>
+                <div class="load-value">${formatNumber(item.roundedKg, 1)} <small>kg</small></div>
+              </div>
+              <div class="load-meta">
+                <span>厳密値 ${formatNumber(item.exactKg, 2)} kg</span>
+                <span>${formatNumber(item.targetTorque, 1)} Nm / ${capText}</span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function makeStatus(selected, maxMachineKg) {
+      if (maxMachineKg && selected.capped) {
+        return `選択負荷はマシン上限 ${formatNumber(maxMachineKg, 1)} kg を超えます`;
+      }
+      return `${formatNumber(selected.percent, 0)}%候補を採用中。RPEとフォームで調整してください`;
+    }
+
+    function copyResult() {
+      const result = collectResult();
+      if (!result) {
+        showToast("HHD結果とマシンアーム長を入力してください");
+        return;
+      }
+
+      const selected = result.loads.find((item) => item.id === selectedLoadId) || result.loads[1];
+      const lines = [
+        "【HHD 筋トレ負荷設定】",
+        `種目: ${exerciseLabel(result.exercise)} / 側: ${sideLabel(result.side)}`,
+        result.mode === "force"
+          ? `HHD: ${formatNumber(result.forceN, 1)} N / HHD測定アーム: ${formatNumber(result.hhdArmCm, 1)} cm`
+          : `HHDトルク入力: ${formatNumber(result.torqueNm, 1)} Nm`,
+        `HHDトルク: ${formatNumber(result.torqueNm, 1)} Nm`,
+        `マシンアーム長: ${formatNumber(result.machineArmCm, 1)} cm`,
+        `100%相当負荷: ${formatNumber(result.maxLoadKg, 1)} kg`,
+        `採用負荷: ${selected.label} ${formatNumber(selected.percent, 0)}% = ${formatNumber(selected.roundedKg, 1)} kg（実効 ${formatNumber(selected.actualPercent, 1)}%）`,
+        ...result.loads.map((item) => `${item.label} ${formatNumber(item.percent, 0)}%: ${formatNumber(item.roundedKg, 1)} kg（厳密値 ${formatNumber(item.exactKg, 2)} kg / ${formatNumber(item.targetTorque, 1)} Nm）`)
+      ];
+
+      writeClipboard(lines.join("\n")).then(() => showToast("結果をコピーしました"));
+    }
+
+    function exportCsv() {
+      const result = collectResult();
+      if (!result) {
+        showToast("HHD結果とマシンアーム長を入力してください");
+        return;
+      }
+
+      const headers = [
+        "date", "exercise", "side", "input_mode", "hhd_force_n", "hhd_arm_cm",
+        "hhd_torque_nm", "machine_arm_cm", "weight_step_kg", "max_load_kg",
+        "load_label", "percent", "target_torque_nm", "exact_kg", "setting_kg",
+        "actual_percent", "over_limit"
+      ];
+
+      const rows = result.loads.map((item) => [
+        new Date().toISOString().slice(0, 10),
+        result.exercise,
+        result.side,
+        result.mode,
+        result.forceN ? formatNumber(result.forceN, 1) : "",
+        result.hhdArmCm ? formatNumber(result.hhdArmCm, 1) : "",
+        formatNumber(result.torqueNm, 1),
+        formatNumber(result.machineArmCm, 1),
+        formatNumber(result.weightStepKg, 1),
+        formatNumber(result.maxLoadKg, 1),
+        item.label,
+        formatNumber(item.percent, 0),
+        formatNumber(item.targetTorque, 1),
+        formatNumber(item.exactKg, 2),
+        formatNumber(item.roundedKg, 1),
+        formatNumber(item.actualPercent, 1),
+        item.capped ? "yes" : "no"
+      ]);
+
+      const csv = "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.map(csvEscape).join(",")).join("\n") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `hhd_training_load_${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showToast("CSVを保存しました");
+    }
+
+    function resetAll() {
+      document.querySelector("input[name='inputMode'][value='force']").checked = true;
+      els.exercise.value = "kneeExt";
+      els.side.value = "right";
+      els.hhdForceN.value = "";
+      els.hhdArmCm.value = "";
+      els.torqueNm.value = "";
+      els.machineArmCm.value = "";
+      els.weightStepKg.value = "1";
+      els.customPercent.value = "45";
+      els.maxMachineKg.value = "";
+      selectedLoadId = "light";
+      localStorage.removeItem(STORAGE_KEY);
+      syncMode();
+      calculate();
+      showToast("リセットしました");
+    }
+
+    function saveState() {
+      const state = {
+        inputMode: inputMode(),
+        exercise: els.exercise.value,
+        side: els.side.value,
+        hhdForceN: els.hhdForceN.value,
+        hhdArmCm: els.hhdArmCm.value,
+        torqueNm: els.torqueNm.value,
+        machineArmCm: els.machineArmCm.value,
+        weightStepKg: els.weightStepKg.value,
+        customPercent: els.customPercent.value,
+        maxMachineKg: els.maxMachineKg.value,
+        selectedLoadId
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      try {
+        const state = JSON.parse(raw);
+        const mode = state.inputMode === "torque" ? "torque" : "force";
+        document.querySelector(`input[name='inputMode'][value='${mode}']`).checked = true;
+        els.exercise.value = state.exercise || "kneeExt";
+        els.side.value = state.side || "right";
+        els.hhdForceN.value = state.hhdForceN || "";
+        els.hhdArmCm.value = state.hhdArmCm || "";
+        els.torqueNm.value = state.torqueNm || "";
+        els.machineArmCm.value = state.machineArmCm || "";
+        els.weightStepKg.value = state.weightStepKg || "1";
+        els.customPercent.value = state.customPercent || "45";
+        els.maxMachineKg.value = state.maxMachineKg || "";
+        selectedLoadId = state.selectedLoadId || "light";
+      } catch (error) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    function exerciseLabel(value) {
+      return value === "hipAbd" ? "股関節外転マシン" : "膝伸展マシン";
+    }
+
+    function sideLabel(value) {
+      if (value === "left") return "左";
+      if (value === "both") return "両側 / 代表値";
+      return "右";
+    }
+
+    function writeClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      return Promise.resolve();
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function formatNumber(value, digits) {
+      if (!Number.isFinite(value)) return "—";
+      return Number(value).toFixed(digits);
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        els.toast.style.display = "none";
+      }, 1600);
+    }
+
+    init();
+  </script>
+</body>
+</html>
