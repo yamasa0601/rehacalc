@@ -429,7 +429,7 @@
       <h1>10m歩行 ケイデンス・メトロノーム</h1>
       <a class="back-link" href="./index.html">一覧へ戻る</a>
     </div>
-    <p>10m歩行速度と歩数からケイデンスを算出し、メトロノームtempoを bpm で表示します。</p>
+    <p>10m歩行時間と歩数からケイデンスを算出し、メトロノームtempoを bpm で表示します。</p>
   </header>
 
   <main>
@@ -439,8 +439,8 @@
 
         <div class="fields two">
           <div class="field">
-            <label for="speedMs">10m歩行速度（m/s）</label>
-            <input id="speedMs" type="number" inputmode="decimal" min="0" max="4" step="0.01" placeholder="例: 0.83">
+            <label for="walkTimeSec">10m歩行時間（秒）</label>
+            <input id="walkTimeSec" type="number" inputmode="decimal" min="1" max="120" step="0.01" placeholder="例: 12.0">
           </div>
           <div class="field">
             <label for="steps">10m歩数（歩）</label>
@@ -464,7 +464,7 @@
         </div>
 
         <div class="formula">
-          <strong>計算式:</strong> 10m時間 = 10 ÷ 歩行速度。ケイデンス = 歩数 ÷ 10m時間 × 60。iPhoneメトロノームは2/4拍子にし、1拍目=左、2拍目=右、tempo = ケイデンス bpm とします。
+          <strong>計算式:</strong> ケイデンス = 10m歩数 ÷ 10m歩行時間 × 60。iPhoneメトロノームは2/4拍子にし、1拍目=左、2拍目=右、tempo = ケイデンス bpm とします。
         </div>
       </section>
 
@@ -472,7 +472,7 @@
         <div class="result-main">
           <div class="caption">基準メトロノームtempo</div>
           <div class="tempo"><strong id="baseTempo">—</strong><span>bpm</span></div>
-          <div class="status" id="status">歩行速度と歩数を入力してください</div>
+          <div class="status" id="status">10m歩行時間と歩数を入力してください</div>
         </div>
 
         <div class="kpis">
@@ -532,7 +532,7 @@
       navigator.serviceWorker.register("./service-worker.js").then((registration) => registration.update());
     }
 
-    const STORAGE_KEY = "rehacalc_cadence_metronome_state_v1";
+    const STORAGE_KEY = "rehacalc_cadence_metronome_state_v2";
     const TEMPO_OPTIONS = [
       { id: "slow", percent: 95, label: "少し遅め", note: "同期しにくい時の導入" },
       { id: "base", percent: 100, label: "基準tempo", note: "10m歩行時のケイデンス相当" },
@@ -550,7 +550,7 @@
 
     function init() {
       [
-        "speedMs", "steps", "tempoStep", "customPercent", "baseTempo",
+        "walkTimeSec", "steps", "tempoStep", "customPercent", "baseTempo",
         "status", "timeOut", "stepLengthOut", "cadenceOut", "tempoList",
         "playTempo", "toggleMetro", "stopMetro", "copyResult", "exportCsv",
         "printPage", "resetAll", "toast", "dot1", "dot2"
@@ -564,7 +564,7 @@
     }
 
     function bindEvents() {
-      [els.speedMs, els.steps, els.customPercent].forEach((input) => {
+      [els.walkTimeSec, els.steps, els.customPercent].forEach((input) => {
         input.addEventListener("input", () => {
           calculate();
           saveState();
@@ -602,8 +602,7 @@
       return Math.round(value / step) * step;
     }
 
-    function calculateCore(speedMs, steps) {
-      const timeSec = 10 / speedMs;
+    function calculateCore(timeSec, steps) {
       const cadence = (steps / timeSec) * 60;
       const stepLengthCm = (10 / steps) * 100;
       return { timeSec, cadence, stepLengthCm };
@@ -619,17 +618,16 @@
     }
 
     function collectResult() {
-      const speedMs = parsePositive(els.speedMs.value);
+      const timeSec = parsePositive(els.walkTimeSec.value);
       const steps = parsePositive(els.steps.value);
-      if (!speedMs || !steps) return null;
+      if (!timeSec || !steps) return null;
 
       const tempoStep = parsePositive(els.tempoStep.value) || 1;
       const customPercent = parsePositive(els.customPercent.value) || 105;
-      const core = calculateCore(speedMs, steps);
+      const core = calculateCore(timeSec, steps);
       const tempos = buildTempoOptions(core.cadence, tempoStep, customPercent);
 
       return {
-        speedMs,
         steps,
         tempoStep,
         customPercent,
@@ -670,7 +668,7 @@
       els.stepLengthOut.textContent = "—";
       els.cadenceOut.textContent = "—";
       els.playTempo.textContent = "—";
-      els.status.textContent = "歩行速度と歩数を入力してください";
+      els.status.textContent = "10m歩行時間と歩数を入力してください";
       els.tempoList.innerHTML = TEMPO_OPTIONS.map((item) => `
         <button class="tempo-card small" type="button" data-tempo-id="${item.id}" disabled>
           <div class="pct">${item.id === "custom" ? "任意" : item.percent + "%"}</div>
@@ -704,7 +702,7 @@
       }
 
       if (!selectedTempo) {
-        showToast("先に歩行速度と歩数を入力してください");
+        showToast("先に10m歩行時間と歩数を入力してください");
         return;
       }
 
@@ -774,15 +772,14 @@
     function copyResult() {
       const result = collectResult();
       if (!result) {
-        showToast("歩行速度と歩数を入力してください");
+        showToast("10m歩行時間と歩数を入力してください");
         return;
       }
 
       const lines = [
         "【10m歩行 ケイデンス・メトロノーム】",
-        `10m歩行速度: ${formatNumber(result.speedMs, 2)} m/s`,
-        `10m歩数: ${formatNumber(result.steps, 1)} 歩`,
         `10m時間: ${formatNumber(result.timeSec, 2)} 秒`,
+        `10m歩数: ${formatNumber(result.steps, 1)} 歩`,
         `歩幅: ${formatNumber(result.stepLengthCm, 1)} cm/歩`,
         `ケイデンス: ${formatNumber(result.cadence, 1)} 歩/分`,
         "設定: iPhoneメトロノーム 2/4拍子（1拍目=左、2拍目=右）",
@@ -795,21 +792,20 @@
     function exportCsv() {
       const result = collectResult();
       if (!result) {
-        showToast("歩行速度と歩数を入力してください");
+        showToast("10m歩行時間と歩数を入力してください");
         return;
       }
 
       const headers = [
-        "date", "speed_ms", "steps", "time_sec", "step_length_cm",
+        "date", "time_sec", "steps", "step_length_cm",
         "cadence_steps_per_min", "metronome_setting", "tempo_step_bpm",
         "tempo_label", "percent", "exact_bpm", "setting_bpm"
       ];
 
       const rows = result.tempos.map((item) => [
         new Date().toISOString().slice(0, 10),
-        formatNumber(result.speedMs, 2),
-        formatNumber(result.steps, 1),
         formatNumber(result.timeSec, 2),
+        formatNumber(result.steps, 1),
         formatNumber(result.stepLengthCm, 1),
         formatNumber(result.cadence, 1),
         "2/4 time, beat1=left, beat2=right",
@@ -833,7 +829,7 @@
 
     function resetAll() {
       stopMetronome(false);
-      els.speedMs.value = "";
+      els.walkTimeSec.value = "";
       els.steps.value = "";
       els.tempoStep.value = "1";
       els.customPercent.value = "105";
@@ -846,7 +842,7 @@
 
     function saveState() {
       const state = {
-        speedMs: els.speedMs.value,
+        walkTimeSec: els.walkTimeSec.value,
         steps: els.steps.value,
         tempoStep: els.tempoStep.value,
         customPercent: els.customPercent.value,
@@ -861,7 +857,7 @@
 
       try {
         const state = JSON.parse(raw);
-        els.speedMs.value = state.speedMs || "";
+        els.walkTimeSec.value = state.walkTimeSec || "";
         els.steps.value = state.steps || "";
         els.tempoStep.value = state.tempoStep || "1";
         els.customPercent.value = state.customPercent || "105";
