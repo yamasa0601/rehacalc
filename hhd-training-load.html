@@ -245,9 +245,13 @@
 
     .kpis {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       margin-bottom: 12px;
+    }
+
+    @media (min-width: 640px) {
+      .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
     .kpi {
@@ -433,7 +437,7 @@
       <h1>HHD 筋トレ負荷設定</h1>
       <a class="back-link" href="./index.html">一覧へ戻る</a>
     </div>
-    <p>HHDの筋力値とモーメントアームからトルクを算出し、膝伸展・股関節外転マシンの負荷kgを提案します。</p>
+    <p>HHDの筋力値とモーメントアームからトルクを算出し、膝伸展・股関節外転マシンの負荷kgと実トルクN・mを提案します。</p>
   </header>
 
   <main>
@@ -461,7 +465,7 @@
 
         <div class="mode-tabs" style="margin-top:12px;" aria-label="HHD入力方法">
           <label><input type="radio" name="inputMode" value="force" checked>HHD N + アーム</label>
-          <label><input type="radio" name="inputMode" value="torque">トルク Nm</label>
+          <label><input type="radio" name="inputMode" value="torque">トルク N・m</label>
         </div>
 
         <div class="fields two">
@@ -479,9 +483,9 @@
 
         <div class="fields two" style="margin-top:12px;">
           <div class="field">
-            <label for="torqueNm">HHDトルク（Nm・任意）</label>
+            <label for="torqueNm">HHDトルク（N・m・任意）</label>
             <input id="torqueNm" type="number" inputmode="decimal" min="0" max="1000" step="0.1" placeholder="例: 120">
-            <div class="input-note">既にNmが分かる場合はこちらを使えます。</div>
+            <div class="input-note">既にN・mが分かる場合はこちらを使えます。</div>
           </div>
           <div class="field">
             <label for="machineArmCm">マシンアーム長（cm）</label>
@@ -511,7 +515,7 @@
         </div>
 
         <div class="formula">
-          <strong>計算式:</strong> HHDトルク = HHD(N) × HHD測定アーム(m)。目標トルク = HHDトルク × 強度%。マシン負荷(kg) = 目標トルク ÷ マシンアーム(m) ÷ 9.80665。
+          <strong>計算式:</strong> HHDトルク = HHD(N) × HHD測定アーム(m)。目標トルク = HHDトルク × 強度%。マシン負荷(kg) = 目標トルク ÷ マシンアーム(m) ÷ 9.80665。丸め後の実トルク = 設定kg × 9.80665 × マシンアーム(m)。
         </div>
       </section>
 
@@ -526,12 +530,17 @@
           <div class="kpi">
             <div class="label">HHDトルク</div>
             <div class="value"><span id="torqueOut">—</span></div>
-            <div class="unit">Nm</div>
+            <div class="unit">N・m</div>
           </div>
           <div class="kpi">
             <div class="label">100%相当負荷</div>
             <div class="value"><span id="maxLoadOut">—</span></div>
             <div class="unit">kg</div>
+          </div>
+          <div class="kpi">
+            <div class="label">採用負荷トルク</div>
+            <div class="value"><span id="selectedTorqueOut">—</span></div>
+            <div class="unit">N・m</div>
           </div>
           <div class="kpi">
             <div class="label">丸め後強度</div>
@@ -583,7 +592,7 @@
       [
         "exercise", "side", "hhdForceN", "hhdArmCm", "torqueNm", "machineArmCm",
         "weightStepKg", "customPercent", "maxMachineKg", "selectedKg", "status",
-        "torqueOut", "maxLoadOut", "actualPctOut", "loadList", "copyResult",
+        "torqueOut", "maxLoadOut", "selectedTorqueOut", "actualPctOut", "loadList", "copyResult",
         "exportCsv", "printPage", "resetAll", "toast"
       ].forEach((id) => {
         els[id] = document.getElementById(id);
@@ -718,6 +727,7 @@
       els.selectedKg.textContent = formatNumber(selected.roundedKg, 1);
       els.torqueOut.textContent = formatNumber(result.torqueNm, 1);
       els.maxLoadOut.textContent = formatNumber(result.maxLoadKg, 1);
+      els.selectedTorqueOut.textContent = formatNumber(selected.actualTorque, 1);
       els.actualPctOut.textContent = formatNumber(selected.actualPercent, 1);
       els.status.textContent = makeStatus(selected, result.maxMachineKg);
       renderLoadList(result.loads);
@@ -727,6 +737,7 @@
       els.selectedKg.textContent = "—";
       els.torqueOut.textContent = "—";
       els.maxLoadOut.textContent = "—";
+      els.selectedTorqueOut.textContent = "—";
       els.actualPctOut.textContent = "—";
       els.status.textContent = "HHD結果とマシンアーム長を入力してください";
       els.loadList.innerHTML = LOAD_OPTIONS.map((item) => `
@@ -759,7 +770,8 @@
               </div>
               <div class="load-meta">
                 <span>厳密値 ${formatNumber(item.exactKg, 2)} kg</span>
-                <span>${formatNumber(item.targetTorque, 1)} Nm / ${capText}</span>
+                <span>目標 ${formatNumber(item.targetTorque, 1)} N・m / 実 ${formatNumber(item.actualTorque, 1)} N・m</span>
+                <span>${capText}</span>
               </div>
             </div>
           </button>
@@ -787,12 +799,12 @@
         `種目: ${exerciseLabel(result.exercise)} / 側: ${sideLabel(result.side)}`,
         result.mode === "force"
           ? `HHD: ${formatNumber(result.forceN, 1)} N / HHD測定アーム: ${formatNumber(result.hhdArmCm, 1)} cm`
-          : `HHDトルク入力: ${formatNumber(result.torqueNm, 1)} Nm`,
-        `HHDトルク: ${formatNumber(result.torqueNm, 1)} Nm`,
+          : `HHDトルク入力: ${formatNumber(result.torqueNm, 1)} N・m`,
+        `HHDトルク: ${formatNumber(result.torqueNm, 1)} N・m`,
         `マシンアーム長: ${formatNumber(result.machineArmCm, 1)} cm`,
         `100%相当負荷: ${formatNumber(result.maxLoadKg, 1)} kg`,
-        `採用負荷: ${selected.label} ${formatNumber(selected.percent, 0)}% = ${formatNumber(selected.roundedKg, 1)} kg（実効 ${formatNumber(selected.actualPercent, 1)}%）`,
-        ...result.loads.map((item) => `${item.label} ${formatNumber(item.percent, 0)}%: ${formatNumber(item.roundedKg, 1)} kg（厳密値 ${formatNumber(item.exactKg, 2)} kg / ${formatNumber(item.targetTorque, 1)} Nm）`)
+        `採用負荷: ${selected.label} ${formatNumber(selected.percent, 0)}% = ${formatNumber(selected.roundedKg, 1)} kg / 実トルク ${formatNumber(selected.actualTorque, 1)} N・m（実効 ${formatNumber(selected.actualPercent, 1)}%）`,
+        ...result.loads.map((item) => `${item.label} ${formatNumber(item.percent, 0)}%: ${formatNumber(item.roundedKg, 1)} kg（厳密値 ${formatNumber(item.exactKg, 2)} kg / 目標 ${formatNumber(item.targetTorque, 1)} N・m / 実 ${formatNumber(item.actualTorque, 1)} N・m）`)
       ];
 
       writeClipboard(lines.join("\n")).then(() => showToast("結果をコピーしました"));
@@ -809,7 +821,7 @@
         "date", "exercise", "side", "input_mode", "hhd_force_n", "hhd_arm_cm",
         "hhd_torque_nm", "machine_arm_cm", "weight_step_kg", "max_load_kg",
         "load_label", "percent", "target_torque_nm", "exact_kg", "setting_kg",
-        "actual_percent", "over_limit"
+        "actual_torque_nm", "actual_percent", "over_limit"
       ];
 
       const rows = result.loads.map((item) => [
@@ -828,6 +840,7 @@
         formatNumber(item.targetTorque, 1),
         formatNumber(item.exactKg, 2),
         formatNumber(item.roundedKg, 1),
+        formatNumber(item.actualTorque, 1),
         formatNumber(item.actualPercent, 1),
         item.capped ? "yes" : "no"
       ]);
