@@ -157,36 +157,6 @@
       line-height: 1.45;
     }
 
-    .mode-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .mode-tabs label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: #f9fafb;
-      color: #374151;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .mode-tabs input { display: none; }
-
-    .mode-tabs label:has(input:checked) {
-      border-color: var(--primary);
-      background: var(--primary-soft);
-      color: #0f514d;
-    }
-
     .formula {
       margin-top: 12px;
       border: 1px solid var(--line);
@@ -463,11 +433,6 @@
           </div>
         </div>
 
-        <div class="mode-tabs" style="margin-top:12px;" aria-label="HHD入力方法">
-          <label><input type="radio" name="inputMode" value="force" checked>HHD N + アーム</label>
-          <label><input type="radio" name="inputMode" value="torque">トルク N・m</label>
-        </div>
-
         <div class="fields two">
           <div class="field">
             <label for="hhdForceN">HHD最大値（N）</label>
@@ -481,12 +446,7 @@
           </div>
         </div>
 
-        <div class="fields two" style="margin-top:12px;">
-          <div class="field">
-            <label for="torqueNm">HHDトルク（N・m・任意）</label>
-            <input id="torqueNm" type="number" inputmode="decimal" min="0" max="1000" step="0.1" placeholder="例: 120">
-            <div class="input-note">既にN・mが分かる場合はこちらを使えます。</div>
-          </div>
+        <div class="fields" style="margin-top:12px;">
           <div class="field">
             <label for="machineArmCm">マシンアーム長（cm）</label>
             <input id="machineArmCm" type="number" inputmode="decimal" min="1" max="150" step="0.1" placeholder="例: 30">
@@ -590,7 +550,7 @@
 
     function init() {
       [
-        "exercise", "side", "hhdForceN", "hhdArmCm", "torqueNm", "machineArmCm",
+        "exercise", "side", "hhdForceN", "hhdArmCm", "machineArmCm",
         "weightStepKg", "customPercent", "maxMachineKg", "selectedKg", "status",
         "torqueOut", "maxLoadOut", "selectedTorqueOut", "actualPctOut", "loadList", "copyResult",
         "exportCsv", "printPage", "resetAll", "toast"
@@ -600,21 +560,12 @@
 
       bindEvents();
       restoreState();
-      syncMode();
       calculate();
     }
 
     function bindEvents() {
-      document.querySelectorAll("input[name='inputMode']").forEach((input) => {
-        input.addEventListener("change", () => {
-          syncMode();
-          calculate();
-          saveState();
-        });
-      });
-
       [
-        els.exercise, els.side, els.hhdForceN, els.hhdArmCm, els.torqueNm,
+        els.exercise, els.side, els.hhdForceN, els.hhdArmCm,
         els.machineArmCm, els.weightStepKg, els.customPercent, els.maxMachineKg
       ].forEach((input) => {
         input.addEventListener("input", () => {
@@ -639,17 +590,6 @@
       els.exportCsv.addEventListener("click", exportCsv);
       els.printPage.addEventListener("click", () => window.print());
       els.resetAll.addEventListener("click", resetAll);
-    }
-
-    function inputMode() {
-      return document.querySelector("input[name='inputMode']:checked").value;
-    }
-
-    function syncMode() {
-      const mode = inputMode();
-      els.hhdForceN.disabled = mode === "torque";
-      els.hhdArmCm.disabled = mode === "torque";
-      els.torqueNm.disabled = mode === "force";
     }
 
     function parsePositive(value) {
@@ -686,17 +626,13 @@
     }
 
     function collectResult() {
-      const mode = inputMode();
       const forceN = parsePositive(els.hhdForceN.value);
       const hhdArmCm = parsePositive(els.hhdArmCm.value);
-      const directTorque = parsePositive(els.torqueNm.value);
       const machineArmCm = parsePositive(els.machineArmCm.value);
       const weightStepKg = parsePositive(els.weightStepKg.value) || 1;
       const customPercent = parsePositive(els.customPercent.value) || 45;
       const maxMachineKg = parsePositive(els.maxMachineKg.value);
-      const torqueNm = mode === "torque"
-        ? directTorque
-        : (forceN && hhdArmCm ? torqueFromForce(forceN, hhdArmCm) : null);
+      const torqueNm = forceN && hhdArmCm ? torqueFromForce(forceN, hhdArmCm) : null;
 
       if (!torqueNm || !machineArmCm) return null;
 
@@ -704,7 +640,6 @@
       return {
         exercise: els.exercise.value,
         side: els.side.value,
-        mode,
         forceN,
         hhdArmCm,
         torqueNm,
@@ -797,9 +732,7 @@
       const lines = [
         "【HHD 筋トレ負荷設定】",
         `種目: ${exerciseLabel(result.exercise)} / 側: ${sideLabel(result.side)}`,
-        result.mode === "force"
-          ? `HHD: ${formatNumber(result.forceN, 1)} N / HHD測定アーム: ${formatNumber(result.hhdArmCm, 1)} cm`
-          : `HHDトルク入力: ${formatNumber(result.torqueNm, 1)} N・m`,
+        `HHD: ${formatNumber(result.forceN, 1)} N / HHD測定アーム: ${formatNumber(result.hhdArmCm, 1)} cm`,
         `HHDトルク: ${formatNumber(result.torqueNm, 1)} N・m`,
         `マシンアーム長: ${formatNumber(result.machineArmCm, 1)} cm`,
         `100%相当負荷: ${formatNumber(result.maxLoadKg, 1)} kg`,
@@ -818,7 +751,7 @@
       }
 
       const headers = [
-        "date", "exercise", "side", "input_mode", "hhd_force_n", "hhd_arm_cm",
+        "date", "exercise", "side", "hhd_force_n", "hhd_arm_cm",
         "hhd_torque_nm", "machine_arm_cm", "weight_step_kg", "max_load_kg",
         "load_label", "percent", "target_torque_nm", "exact_kg", "setting_kg",
         "actual_torque_nm", "actual_percent", "over_limit"
@@ -828,7 +761,6 @@
         new Date().toISOString().slice(0, 10),
         result.exercise,
         result.side,
-        result.mode,
         result.forceN ? formatNumber(result.forceN, 1) : "",
         result.hhdArmCm ? formatNumber(result.hhdArmCm, 1) : "",
         formatNumber(result.torqueNm, 1),
@@ -857,31 +789,26 @@
     }
 
     function resetAll() {
-      document.querySelector("input[name='inputMode'][value='force']").checked = true;
       els.exercise.value = "kneeExt";
       els.side.value = "right";
       els.hhdForceN.value = "";
       els.hhdArmCm.value = "";
-      els.torqueNm.value = "";
       els.machineArmCm.value = "";
       els.weightStepKg.value = "1";
       els.customPercent.value = "45";
       els.maxMachineKg.value = "";
       selectedLoadId = "light";
       localStorage.removeItem(STORAGE_KEY);
-      syncMode();
       calculate();
       showToast("リセットしました");
     }
 
     function saveState() {
       const state = {
-        inputMode: inputMode(),
         exercise: els.exercise.value,
         side: els.side.value,
         hhdForceN: els.hhdForceN.value,
         hhdArmCm: els.hhdArmCm.value,
-        torqueNm: els.torqueNm.value,
         machineArmCm: els.machineArmCm.value,
         weightStepKg: els.weightStepKg.value,
         customPercent: els.customPercent.value,
@@ -897,13 +824,10 @@
 
       try {
         const state = JSON.parse(raw);
-        const mode = state.inputMode === "torque" ? "torque" : "force";
-        document.querySelector(`input[name='inputMode'][value='${mode}']`).checked = true;
         els.exercise.value = state.exercise || "kneeExt";
         els.side.value = state.side || "right";
         els.hhdForceN.value = state.hhdForceN || "";
         els.hhdArmCm.value = state.hhdArmCm || "";
-        els.torqueNm.value = state.torqueNm || "";
         els.machineArmCm.value = state.machineArmCm || "";
         els.weightStepKg.value = state.weightStepKg || "1";
         els.customPercent.value = state.customPercent || "45";
